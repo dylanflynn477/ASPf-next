@@ -1,0 +1,5 @@
+#nherb balance/1.
+
+account(account1).
+account(account2).
+balance(account2) #= 500.

@@ -1,0 +1,2 @@
+1 { selected(red); selected(blue) } 1.
+#show selected/1.
