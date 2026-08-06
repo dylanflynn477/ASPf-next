@@ -16,3 +16,7 @@ class UnsupportedSyntaxError(AspfNextError):
         self.message = message
         self.location = location
         super().__init__(f"{location}: {message}")
+
+
+class SolverError(AspfNextError):
+    """Clingo could not parse, ground, or solve a lowered program."""

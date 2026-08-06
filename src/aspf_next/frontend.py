@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Never
 
@@ -49,20 +50,44 @@ class _StatementContext:
 def parse_program(text: str, *, filename: str = "<string>") -> Program:
     """Parse and validate the supported compatibility slice."""
 
-    source = SourceText(text, filename)
-    scanned = split_statements(source)
-    contexts = tuple(_context(statement) for statement in scanned)
-    declarations, declaration_indexes = _collect_declarations(contexts, source)
-    declared = {declaration.name: declaration.arity for declaration in declarations}
+    return parse_sources((SourceText(text, filename),))
+
+
+def parse_sources(sources: Sequence[SourceText]) -> Program:
+    """Parse multiple sources with a shared declaration namespace."""
+
+    prepared: list[tuple[SourceText, tuple[_StatementContext, ...], set[int]]] = []
+    declarations: list[NHerbDeclaration] = []
+    declared: dict[str, int] = {}
+    for source in sources:
+        scanned = split_statements(source)
+        contexts = tuple(_context(statement) for statement in scanned)
+        source_declarations, declaration_indexes = _collect_declarations(contexts, source)
+        for declaration in source_declarations:
+            previous_arity = declared.get(declaration.name)
+            if previous_arity is not None and previous_arity != declaration.arity:
+                raise UnsupportedSyntaxError(
+                    f"non-Herbrand function '{declaration.name}' was already declared with "
+                    f"arity {previous_arity}",
+                    source.location(declaration.span.start),
+                )
+            declared[declaration.name] = declaration.arity
+            declarations.append(declaration)
+        prepared.append((source, contexts, declaration_indexes))
 
     statements: list[ProgramStatement] = []
-    for index, context in enumerate(contexts):
-        if index in declaration_indexes:
-            continue
-        parsed = _parse_statement(context, source, declared)
-        if parsed is not None:
-            statements.append(parsed)
+    for source_index, (source, contexts, declaration_indexes) in enumerate(prepared):
+        for index, context in enumerate(contexts):
+            if index in declaration_indexes:
+                continue
+            parsed = _parse_statement(context, source, declared)
+            if parsed is not None:
+                statements.append(parsed)
+        if source_index + 1 < len(prepared) and not source.text.endswith("\n"):
+            boundary = len(source.text)
+            statements.append(OrdinaryStatement("\n", SourceSpan(boundary, boundary)))
 
+    filename = sources[0].filename if len(sources) == 1 else "<multiple sources>"
     return Program(tuple(declarations), tuple(statements), filename)
 
 

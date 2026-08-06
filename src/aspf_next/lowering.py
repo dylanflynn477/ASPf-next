@@ -7,9 +7,7 @@ from dataclasses import dataclass
 from aspf_next.ir import AspfStatement, NAtom, OrdinaryStatement, Program
 
 INTERNAL_VALUE_PREDICATE = "__aspf_value"
-FUNCTIONALITY_CONSTRAINT = (
-    ":- __aspf_value(K,V1), __aspf_value(K,V2), V1 != V2."
-)
+FUNCTIONALITY_CONSTRAINT = ":- __aspf_value(K,V1), __aspf_value(K,V2), V1 != V2."
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,10 +39,7 @@ def lower_program(program: Program) -> LoweredProgram:
 def render_internal_atom(n_atom: NAtom) -> str:
     """Render the ordinary predicate used by the reference backend."""
 
-    return (
-        f"{INTERNAL_VALUE_PREDICATE}("
-        f"{n_atom.application.render()},{n_atom.value.text})"
-    )
+    return f"{INTERNAL_VALUE_PREDICATE}({n_atom.application.render()},{n_atom.value.text})"
 
 
 def _lower_statement(statement: AspfStatement) -> str:
@@ -58,4 +53,3 @@ def _lower_statement(statement: AspfStatement) -> str:
     for start, end, replacement in sorted(replacements, reverse=True):
         text = f"{text[:start]}{replacement}{text[end:]}"
     return text
-
