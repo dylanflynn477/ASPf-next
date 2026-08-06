@@ -30,6 +30,8 @@ class FunctionApplication:
     arguments: tuple[GroundTerm, ...]
 
     def render(self) -> str:
+        if not self.arguments:
+            return self.name
         arguments = ",".join(argument.text for argument in self.arguments)
         return f"{self.name}({arguments})"
 

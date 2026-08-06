@@ -313,13 +313,40 @@ def _parse_application_left(
     operator_offset: int,
 ) -> tuple[int, int, str, list[GroundTerm]]:
     end = _trim_code_end(context.code, 0, operator_offset)
-    if end <= 0 or context.code[end - 1] != ")":
+    if end <= 0:
         _unsupported(
             source,
             context,
             operator_offset,
             "left side of '#=' must be a declared function application",
         )
+    if context.code[end - 1] != ")":
+        name_start = end
+        while name_start > 0 and (
+            context.code[name_start - 1].isalnum() or context.code[name_start - 1] == "_"
+        ):
+            name_start -= 1
+        name = context.code[name_start:end]
+        if not _SYMBOLIC_CONSTANT.fullmatch(name):
+            _unsupported(
+                source,
+                context,
+                name_start,
+                "left side of '#=' must be a declared function application",
+            )
+        if name not in declared:
+            _unsupported(
+                source, context, name_start, f"non-Herbrand function '{name}' is not declared"
+            )
+        if declared[name] != 0:
+            _unsupported(
+                source,
+                context,
+                name_start,
+                f"non-Herbrand function '{name}' expects {declared[name]} argument(s), got 0",
+            )
+        return name_start, end, name, []
+
     open_paren = _matching_open_paren(context.code, end - 1)
     if open_paren is None:
         _unsupported(
@@ -470,6 +497,13 @@ def _parse_ground_term(
                 else "nested declared non-Herbrand applications are not supported"
             )
             _unsupported(source, context, term_offset, message)
+        if as_value:
+            _unsupported(
+                source,
+                context,
+                term_offset,
+                "only integer, symbolic constant, and string values are supported",
+            )
         open_offset = stripped.find("(")
         if _matching_open_paren(stripped, len(stripped) - 1) == open_offset:
             for part in _split_arguments(stripped[open_offset + 1 : -1]):

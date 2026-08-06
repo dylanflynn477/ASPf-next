@@ -85,3 +85,9 @@ def test_string_value_is_rendered_as_aspf_assignment() -> None:
     result = solve('#nherb label/1.\nlabel(item1) #= "cold brew".\n')
 
     assert result.models[0].assignments == ('label(item1)#="cold brew"',)
+
+
+def test_zero_arity_assignment_is_reconstructed() -> None:
+    result = solve("#nherb mode/0.\nmode #= active.\n")
+
+    assert result.models[0].assignments == ("mode#=active",)

@@ -94,6 +94,10 @@ def test_each_unsupported_operator_has_location(operator: str) -> None:
             "#nherb first/1.\n#nherb second/1.\nfirst(a) #= second(a).\n",
             "cannot be used as the value",
         ),
+        (
+            "#nherb first/1.\nfirst(a) #= ordinary(value).\n",
+            "only integer, symbolic constant, and string values",
+        ),
     ],
 )
 def test_explicitly_unsupported_constructs_are_diagnostic(source: str, message: str) -> None:
@@ -123,3 +127,11 @@ def test_accepts_integer_symbol_string_and_ordinary_ground_function_terms() -> N
         '"lot-a"',
     ]
     assert statement.n_atoms[0].value.text == "available"
+
+
+def test_accepts_zero_arity_non_herbrand_function() -> None:
+    program = parse_program("#nherb mode/0.\nmode #= active.\n")
+
+    statement = program.statements[0]
+    assert isinstance(statement, AspfStatement)
+    assert statement.n_atoms[0].application.render() == "mode"
