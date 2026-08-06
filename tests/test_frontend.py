@@ -58,6 +58,60 @@ balance(
     assert statement.n_atoms[0].application.arguments[0].text == "account1"
 
 
+@pytest.mark.parametrize(
+    ("source", "line", "column"),
+    [
+        ("__aspf_value(key,value).\n", 1, 1),
+        ("ordinary.\np(__aspf_private).\n", 2, 3),
+    ],
+)
+def test_rejects_user_identifiers_in_reserved_internal_namespace(
+    source: str, line: int, column: int
+) -> None:
+    with pytest.raises(UnsupportedSyntaxError, match="reserved for aspf-next internals") as caught:
+        parse_program(source, filename="reserved.aspf")
+
+    assert caught.value.location.line == line
+    assert caught.value.location.column == column
+
+
+def test_reserved_identifier_text_in_comments_and_strings_is_inert() -> None:
+    program = parse_program('% __aspf_comment.\nmessage("__aspf_string").\n')
+
+    assert len(program.statements) == 2
+
+
+@pytest.mark.parametrize(
+    ("source", "column"),
+    [
+        ("#nherb balance/1.\nbalance(account1).\n", 1),
+        ("#nherb balance/1.\np(balance(account1)).\n", 3),
+    ],
+)
+def test_rejects_declared_non_herbrand_symbol_outside_n_atom(source: str, column: int) -> None:
+    with pytest.raises(UnsupportedSyntaxError, match="cannot be used outside") as caught:
+        parse_program(source, filename="misuse.aspf")
+
+    assert caught.value.location.line == 2
+    assert caught.value.location.column == column
+
+
+def test_rejects_declared_symbol_outside_n_atom_in_mixed_rule() -> None:
+    source = "#nherb balance/1.\np(balance(a)) :- balance(a) #= 1.\n"
+
+    with pytest.raises(UnsupportedSyntaxError, match="cannot be used outside") as caught:
+        parse_program(source, filename="mixed.aspf")
+
+    assert caught.value.location.line == 2
+    assert caught.value.location.column == 3
+
+
+def test_declared_symbol_text_in_comments_and_strings_is_inert() -> None:
+    program = parse_program('#nherb balance/1.\nlabel("balance"). % balance(a).\n')
+
+    assert len(program.declarations) == 1
+
+
 @pytest.mark.parametrize("operator", ["#!=", "#<", "#<=", "#>", "#>="])
 def test_each_unsupported_operator_has_location(operator: str) -> None:
     text = f"#nherb balance/1.\nokay :- balance(account1) {operator} 500.\n"

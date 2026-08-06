@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import pytest
+
+from aspf_next.errors import UnsupportedSyntaxError
 from aspf_next.frontend import parse_program
 from aspf_next.solver import SolveStatus, solve_program
 
@@ -91,3 +94,13 @@ def test_zero_arity_assignment_is_reconstructed() -> None:
     result = solve("#nherb mode/0.\nmode #= active.\n")
 
     assert result.models[0].assignments == ("mode#=active",)
+
+
+def test_solver_rejects_user_identifier_in_internal_namespace() -> None:
+    with pytest.raises(UnsupportedSyntaxError, match="reserved for aspf-next internals"):
+        solve("__aspf_injected(a).\n")
+
+
+def test_solver_rejects_declared_symbol_as_ordinary_predicate() -> None:
+    with pytest.raises(UnsupportedSyntaxError, match="cannot be used outside"):
+        solve("#nherb balance/1.\nbalance(account1).\n")

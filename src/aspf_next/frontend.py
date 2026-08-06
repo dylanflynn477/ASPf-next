@@ -36,6 +36,8 @@ _SYMBOLIC_CONSTANT = re.compile(r"[a-z][A-Za-z0-9_]*")
 _INTEGER = re.compile(r"-?\d+")
 _FUNCTION_TERM = re.compile(r"([a-z][A-Za-z0-9_]*)\s*\(")
 _VARIABLE = re.compile(r"(?:\b[A-Z][A-Za-z0-9_]*\b|\b_[A-Za-z0-9_]*\b)")
+_EXECUTABLE_IDENTIFIER = re.compile(r"(?<![A-Za-z0-9_])([a-z][A-Za-z0-9_]*)(?![A-Za-z0-9_])")
+_RESERVED_IDENTIFIER = re.compile(r"(?<![A-Za-z0-9_])(__aspf_[A-Za-z0-9_]*)(?![A-Za-z0-9_])")
 _UNSUPPORTED_OPERATORS = ("#!=", "#<=", "#>=", "#<", "#>")
 
 
@@ -62,6 +64,8 @@ def parse_sources(sources: Sequence[SourceText]) -> Program:
     for source in sources:
         scanned = split_statements(source)
         contexts = tuple(_context(statement) for statement in scanned)
+        for context in contexts:
+            _reject_reserved_identifier(context, source)
         source_declarations, declaration_indexes = _collect_declarations(contexts, source)
         for declaration in source_declarations:
             previous_arity = declared.get(declaration.name)
@@ -178,6 +182,7 @@ def _parse_statement(
 
     equality_offsets = _find_equalities(context.executable)
     if not equality_offsets:
+        _reject_declared_symbols(context, source, declared, ())
         return OrdinaryStatement(text, context.statement.span)
 
     separator = _find_top_level(context, ":-")
@@ -207,7 +212,48 @@ def _parse_statement(
         )
         n_atoms.append(_parse_n_atom(context, source, declared, operator_offset, role, separator))
 
-    return AspfStatement(text, context.statement.span, tuple(n_atoms))
+    parsed_n_atoms = tuple(n_atoms)
+    _reject_declared_symbols(context, source, declared, parsed_n_atoms)
+    return AspfStatement(text, context.statement.span, parsed_n_atoms)
+
+
+def _reject_reserved_identifier(context: _StatementContext, source: SourceText) -> None:
+    match = _RESERVED_IDENTIFIER.search(context.executable)
+    if match:
+        _unsupported(
+            source,
+            context,
+            match.start(1),
+            "identifiers beginning with '__aspf_' are reserved for aspf-next internals",
+        )
+
+
+def _reject_declared_symbols(
+    context: _StatementContext,
+    source: SourceText,
+    declared: dict[str, int],
+    n_atoms: tuple[NAtom, ...],
+) -> None:
+    allowed_spans = tuple(
+        (
+            n_atom.span.start - context.statement.span.start,
+            n_atom.span.end - context.statement.span.start,
+        )
+        for n_atom in n_atoms
+    )
+    for match in _EXECUTABLE_IDENTIFIER.finditer(context.executable):
+        name = match.group(1)
+        if name not in declared:
+            continue
+        if any(start <= match.start(1) < end for start, end in allowed_spans):
+            continue
+        _unsupported(
+            source,
+            context,
+            match.start(1),
+            f"declared non-Herbrand function '{name}/{declared[name]}' cannot be used outside "
+            "a supported n-atom",
+        )
 
 
 def _find_equalities(executable: str) -> list[int]:

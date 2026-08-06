@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import pytest
+
+from aspf_next.errors import UnsupportedSyntaxError
 from aspf_next.frontend import parse_program
 from aspf_next.lowering import FUNCTIONALITY_CONSTRAINT, lower_program
 
@@ -62,3 +65,13 @@ def test_declaration_alone_adds_no_totality_rule() -> None:
     assert "account(account1)." in result
     assert "__aspf_value(K,V) :-" not in result
     assert result.count("__aspf_value") == 2
+
+
+def test_lowering_rejects_user_identifier_in_internal_namespace() -> None:
+    with pytest.raises(UnsupportedSyntaxError, match="reserved for aspf-next internals"):
+        lowered("__aspf_value(user,key).\n")
+
+
+def test_lowering_rejects_declared_symbol_as_ordinary_term() -> None:
+    with pytest.raises(UnsupportedSyntaxError, match="cannot be used outside"):
+        lowered("#nherb balance/1.\np(balance(account1)).\n")

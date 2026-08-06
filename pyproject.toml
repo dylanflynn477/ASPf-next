@@ -9,7 +9,7 @@ description = "A compatibility-first clean-room ASP{f} frontend for Clingo 5.8"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
-authors = [{ name = "aspf-next contributors" }]
+authors = [{ name = "Dylan Flynn" }]
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
   "License :: OSI Approved :: MIT License",

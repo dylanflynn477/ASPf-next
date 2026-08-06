@@ -23,6 +23,8 @@ ASP{f} compatibility.
 | Ordinary `#show` | Pass-through | Normalizer preserves assignments |
 | `%` and `%* ... *%` comments | Supported | Source scanner |
 | Multiline statements | Supported | Source scanner |
+| User executable identifier beginning `__aspf_` | Unsupported | Location-aware error |
+| Declared symbol outside a supported n-atom | Unsupported | Location-aware error |
 | `#!=`, `#<`, `#<=`, `#>`, `#>=` | Unsupported | Location-aware error |
 | Default-negated n-atoms | Unsupported | Location-aware error |
 | Variables in n-atoms | Unsupported | Location-aware error |

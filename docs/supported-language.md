@@ -18,6 +18,16 @@ name/arity is accepted. Repeating a name with a different arity is rejected.
 
 Global `#nherb.` and every other declaration spelling are unsupported.
 
+Once declared, a non-Herbrand symbol may occur only as the key of a supported
+n-atom. Using it as an ordinary predicate or Herbrand function term is rejected,
+including `balance(account1).` and `p(balance(account1)).`.
+
+## Reserved internal namespace
+
+Every executable user identifier beginning with `__aspf_` is reserved for the
+frontend and backends. Such an occurrence raises `UnsupportedSyntaxError` before
+lowering. Prefix-like text inside comments and quoted strings is inert.
+
 ## Applications and arguments
 
 An n-atom key is a declared application with exactly the declared arity:

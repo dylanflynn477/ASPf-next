@@ -7,10 +7,6 @@ restricted ASP{f} vertical slice in the project brief. The implementation will
 use the public Python API of Clingo 5.8 and will not modify Clingo or copy code
 from historical Clingo{f}.
 
-This project is intentionally contained in the `aspf-next/` directory because
-the surrounding repository is an unrelated Caffeine Scout project with existing
-and uncommitted work.
-
 ## Proposed changes
 
 1. Add package and tooling metadata:
@@ -40,8 +36,7 @@ and uncommitted work.
 4. Complete user documentation and provenance notes.
 5. Run formatting, linting, strict static checks, and the complete test suite.
 
-Each completed stage will be committed separately, without staging unrelated
-files from the surrounding repository.
+Each completed stage will be committed separately.
 
 ## Parsing design
 
@@ -72,6 +67,8 @@ and default-negated contexts with a location-aware `UnsupportedSyntaxError`.
   while ASP{f} assignments are still reconstructed from internal atoms.
 - Redeclaring the same `f/n` is accepted, but using the same name with a different
   arity or using an undeclared application in an n-atom is diagnosed.
+- Executable identifiers beginning with `__aspf_` are reserved for backend use.
+- A declared non-Herbrand symbol may occur only in a validated supported n-atom.
 
 ## Design concerns and boundaries
 

@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from aspf_next.cli import main
 
 
@@ -69,3 +71,30 @@ def test_unsupported_diagnostic_includes_file_line_and_column(
     error = capsys.readouterr().err
     assert f"{path}:2:" in error
     assert "#>=" in error
+
+
+@pytest.mark.parametrize(
+    ("source", "message", "column"),
+    [
+        ("ordinary.\n__aspf_injected(a).\n", "reserved for aspf-next internals", 1),
+        (
+            "#nherb balance/1.\np(balance(account1)).\n",
+            "cannot be used outside a supported n-atom",
+            3,
+        ),
+    ],
+)
+def test_cli_rejects_semantic_boundary_violations_with_location(
+    tmp_path: Path,
+    capsys,  # type: ignore[no-untyped-def]
+    source: str,
+    message: str,
+    column: int,
+) -> None:
+    path = write_program(tmp_path, source, "boundary.aspf")
+
+    assert main([str(path)]) == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert f"{path}:2:{column}" in captured.err
+    assert message in captured.err
