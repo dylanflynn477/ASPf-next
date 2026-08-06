@@ -2,4 +2,3 @@
 
 balance(account1) #= 500.
 solvent(account1) :- balance(account1) #= 500.
-

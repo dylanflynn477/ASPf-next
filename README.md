@@ -168,4 +168,3 @@ features.
 
 MIT. The license covers this clean-room implementation only; it does not imply
 ownership of the ASP{f} language or historical Clingo{f} work.
-

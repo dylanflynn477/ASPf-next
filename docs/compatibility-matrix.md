@@ -37,4 +37,3 @@ ASP{f} compatibility.
 | Native theory-atom backend | Planned only | Not implemented |
 | Custom propagator | Planned only | Not implemented |
 | Historical grounding-efficiency behavior | Not claimed | Reference backend only |
-

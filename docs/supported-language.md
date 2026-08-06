@@ -106,4 +106,3 @@ Assignments are reconstructed from all true internal value atoms even if a
 `__aspf_` are private and omitted from normal human output.
 
 Legacy `#show #nherb` and `#hide #nherb` directives are unsupported.
-

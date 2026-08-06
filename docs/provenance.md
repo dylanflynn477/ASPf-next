@@ -63,4 +63,3 @@ Contributions must remain clean-room:
    not specified and tested.
 5. Keep native backend experiments separate from the reference backend and test
    them for answer-set equivalence on the supported slice.
-

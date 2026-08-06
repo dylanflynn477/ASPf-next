@@ -77,4 +77,3 @@ about every historical ASP{f} version:
 
 These should be compared with primary language specifications before a release
 claims a named historical compatibility level.
-

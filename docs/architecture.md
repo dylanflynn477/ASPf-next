@@ -93,4 +93,3 @@ No theory definition, propagator, native arithmetic, or optimization work belong
 to the first milestone. The frontend and IR are separated so a native backend can
 be added without changing the legacy-syntax scanner or silently changing the
 reference semantics.
-
