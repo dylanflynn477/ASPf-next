@@ -73,5 +73,5 @@ def test_lowering_rejects_user_identifier_in_internal_namespace() -> None:
 
 
 def test_lowering_rejects_declared_symbol_as_ordinary_term() -> None:
-    with pytest.raises(UnsupportedSyntaxError, match="cannot be used outside"):
+    with pytest.raises(UnsupportedSyntaxError, match="may only be used as the key"):
         lowered("#nherb balance/1.\np(balance(account1)).\n")

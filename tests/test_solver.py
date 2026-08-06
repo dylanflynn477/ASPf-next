@@ -102,5 +102,5 @@ def test_solver_rejects_user_identifier_in_internal_namespace() -> None:
 
 
 def test_solver_rejects_declared_symbol_as_ordinary_predicate() -> None:
-    with pytest.raises(UnsupportedSyntaxError, match="cannot be used outside"):
+    with pytest.raises(UnsupportedSyntaxError, match="may only be used as the key"):
         solve("#nherb balance/1.\nbalance(account1).\n")

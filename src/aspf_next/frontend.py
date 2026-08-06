@@ -234,10 +234,10 @@ def _reject_declared_symbols(
     declared: dict[str, int],
     n_atoms: tuple[NAtom, ...],
 ) -> None:
-    allowed_spans = tuple(
+    key_name_spans = tuple(
         (
             n_atom.span.start - context.statement.span.start,
-            n_atom.span.end - context.statement.span.start,
+            n_atom.span.start - context.statement.span.start + len(n_atom.application.name),
         )
         for n_atom in n_atoms
     )
@@ -245,14 +245,14 @@ def _reject_declared_symbols(
         name = match.group(1)
         if name not in declared:
             continue
-        if any(start <= match.start(1) < end for start, end in allowed_spans):
+        if any(start <= match.start(1) < end for start, end in key_name_spans):
             continue
         _unsupported(
             source,
             context,
             match.start(1),
-            f"declared non-Herbrand function '{name}/{declared[name]}' cannot be used outside "
-            "a supported n-atom",
+            f"declared non-Herbrand function '{name}/{declared[name]}' may only be used as "
+            "the key of a supported n-atom",
         )
 
 

@@ -79,7 +79,7 @@ def test_unsupported_diagnostic_includes_file_line_and_column(
         ("ordinary.\n__aspf_injected(a).\n", "reserved for aspf-next internals", 1),
         (
             "#nherb balance/1.\np(balance(account1)).\n",
-            "cannot be used outside a supported n-atom",
+            "may only be used as the key of a supported n-atom",
             3,
         ),
     ],

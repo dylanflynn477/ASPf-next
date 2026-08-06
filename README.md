@@ -50,8 +50,8 @@ It does **not** support:
 - legacy `#show #nherb` or `#hide #nherb` directives;
 - any user-written executable identifier beginning with the reserved `__aspf_`
   prefix;
-- a declared non-Herbrand symbol used as an ordinary predicate or function term
-  outside a supported n-atom;
+- a declared non-Herbrand symbol used anywhere other than as the key of a
+  supported n-atom;
 - arithmetic, aggregate, or choice-rule ASP{f} semantics from later milestones;
 - native theory-atom or custom-propagator execution.
 

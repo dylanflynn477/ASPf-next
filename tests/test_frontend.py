@@ -89,7 +89,7 @@ def test_reserved_identifier_text_in_comments_and_strings_is_inert() -> None:
     ],
 )
 def test_rejects_declared_non_herbrand_symbol_outside_n_atom(source: str, column: int) -> None:
-    with pytest.raises(UnsupportedSyntaxError, match="cannot be used outside") as caught:
+    with pytest.raises(UnsupportedSyntaxError, match="may only be used as the key") as caught:
         parse_program(source, filename="misuse.aspf")
 
     assert caught.value.location.line == 2
@@ -99,7 +99,7 @@ def test_rejects_declared_non_herbrand_symbol_outside_n_atom(source: str, column
 def test_rejects_declared_symbol_outside_n_atom_in_mixed_rule() -> None:
     source = "#nherb balance/1.\np(balance(a)) :- balance(a) #= 1.\n"
 
-    with pytest.raises(UnsupportedSyntaxError, match="cannot be used outside") as caught:
+    with pytest.raises(UnsupportedSyntaxError, match="may only be used as the key") as caught:
         parse_program(source, filename="mixed.aspf")
 
     assert caught.value.location.line == 2
@@ -110,6 +110,47 @@ def test_declared_symbol_text_in_comments_and_strings_is_inert() -> None:
     program = parse_program('#nherb balance/1.\nlabel("balance"). % balance(a).\n')
 
     assert len(program.declarations) == 1
+
+
+def test_rejects_declared_zero_arity_symbol_as_n_atom_value() -> None:
+    source = "#nherb mode/0.\n#nherb status/1.\nstatus(alice) #= mode.\n"
+
+    with pytest.raises(UnsupportedSyntaxError, match="may only be used as the key") as caught:
+        parse_program(source, filename="value.aspf")
+
+    assert caught.value.location.line == 3
+    assert caught.value.location.column == 18
+
+
+def test_rejects_declared_zero_arity_symbol_as_n_atom_argument() -> None:
+    source = "#nherb current/0.\n#nherb reading/1.\nreading(current) #= active.\n"
+
+    with pytest.raises(UnsupportedSyntaxError, match="may only be used as the key") as caught:
+        parse_program(source, filename="argument.aspf")
+
+    assert caught.value.location.line == 3
+    assert caught.value.location.column == 9
+
+
+def test_allows_declared_names_only_as_n_atom_keys() -> None:
+    source = """#nherb mode/0.
+#nherb left/1.
+#nherb right/1.
+mode #= active.
+left(a) #= 1.
+right(b) #= 2.
+ok :- left(a) #= 1, right(b) #= 2.
+label("mode"). % mode left(a) right(b).
+"""
+
+    program = parse_program(source)
+    n_atom_count = sum(
+        len(statement.n_atoms)
+        for statement in program.statements
+        if isinstance(statement, AspfStatement)
+    )
+
+    assert n_atom_count == 5
 
 
 @pytest.mark.parametrize("operator", ["#!=", "#<", "#<=", "#>", "#>="])

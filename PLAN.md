@@ -68,7 +68,8 @@ and default-negated contexts with a location-aware `UnsupportedSyntaxError`.
 - Redeclaring the same `f/n` is accepted, but using the same name with a different
   arity or using an undeclared application in an n-atom is diagnosed.
 - Executable identifiers beginning with `__aspf_` are reserved for backend use.
-- A declared non-Herbrand symbol may occur only in a validated supported n-atom.
+- A declared non-Herbrand symbol may occur only as the key of a validated
+  supported n-atom.
 
 ## Design concerns and boundaries
 
