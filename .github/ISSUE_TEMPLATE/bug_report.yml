@@ -1,0 +1,53 @@
+name: Bug report
+description: Report incorrect behavior in the implemented milestone 0.1 boundary
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a reproducible problem. Please remove private data from examples.
+  - type: textarea
+    id: program
+    attributes:
+      label: Minimal ASP{f} program
+      description: Paste the smallest source file that reproduces the problem.
+      render: prolog
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command and actual output
+      description: Include the exact aspf command and complete diagnostic or model output.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: Explain the result you expected and why it is inside the documented boundary.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: ASPf-next version or commit
+      placeholder: 0.1.0a1 or a commit SHA
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: Python 3.12, clingo 5.8.1, Windows 11
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: I checked the supported-language document and this is not a request for deferred syntax.
+          required: true

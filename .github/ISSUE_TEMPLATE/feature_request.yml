@@ -1,0 +1,45 @@
+name: Compatibility proposal
+description: Propose a documented compatibility or usability improvement
+title: "[Proposal]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Semantic proposals need primary-source support. This project does not infer historical behavior from examples alone.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What compatibility or usability gap should be addressed?
+    validations:
+      required: true
+  - type: textarea
+    id: syntax
+    attributes:
+      label: Minimal source examples
+      description: Show accepted and rejected cases without adding unrelated features.
+      render: prolog
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Primary specification or official documentation
+      description: Link the paper or official API documentation supporting the proposed behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: boundary
+    attributes:
+      label: Proposed semantic boundary
+      description: State what remains unsupported and how ambiguity should be diagnosed.
+    validations:
+      required: true
+  - type: checkboxes
+    id: clean-room
+    attributes:
+      label: Clean-room confirmation
+      options:
+        - label: This proposal does not include copied or translated historical Clingo{f} implementation code.
+          required: true
