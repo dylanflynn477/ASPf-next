@@ -48,12 +48,10 @@ Then create a fresh virtual environment, install with
 
 ## Boundaries and release decisions
 
-- Keep version `0.1.0`; the release name `0.1.0-alpha` describes project status
-  without introducing a conflicting package version during this documentation
-  milestone.
+- Adopt PEP 440 package version `0.1.0a1` and use the reader-facing release name
+  `0.1.0-alpha` consistently in release and portfolio documentation.
 - Describe the backend only as a correctness-oriented reference translation.
 - Keep unsupported syntax explicit and link to the normative language boundary.
 - Treat native backends and expanded operators as proposed research, not shipped
   or promised functionality.
 - Prepare release text but do not create a tag, GitHub Release, or merge.
-
