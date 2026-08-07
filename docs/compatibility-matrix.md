@@ -12,6 +12,7 @@ ASP{f} compatibility.
 | Ground `f(args) #= value.` | Supported | Reference lowering |
 | Conditional assignment head | Supported | Reference lowering |
 | Positive body `#=` | Supported | Reference lowering |
+| Positive ground body `#!=` | Supported | Defined value lookup plus ordinary inequality |
 | Integer value | Supported | Clingo number symbol |
 | Symbolic constant value | Supported | Clingo function symbol, arity 0 |
 | String value | Supported | Clingo string symbol |
@@ -25,7 +26,8 @@ ASP{f} compatibility.
 | Multiline statements | Supported | Source scanner |
 | User executable identifier beginning `__aspf_` | Unsupported | Location-aware error |
 | Declared symbol outside a supported n-atom key | Unsupported | Location-aware error |
-| `#!=`, `#<`, `#<=`, `#>`, `#>=` | Unsupported | Location-aware error |
+| Head or default-negated `#!=` | Unsupported | Location-aware error |
+| `#<`, `#<=`, `#>`, `#>=` | Unsupported | Location-aware error |
 | Default-negated n-atoms | Unsupported | Location-aware error |
 | Variables in n-atoms | Unsupported | Location-aware error |
 | `_v` non-Herbrand variables | Unsupported | Location-aware error |

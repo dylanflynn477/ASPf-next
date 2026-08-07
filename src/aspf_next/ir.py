@@ -15,6 +15,13 @@ class NAtomRole(Enum):
     BODY = "body"
 
 
+class NAtomOperator(Enum):
+    """A supported non-Herbrand comparison operator."""
+
+    EQUAL = "#="
+    NOT_EQUAL = "#!="
+
+
 @dataclass(frozen=True, slots=True)
 class GroundTerm:
     """A validated, ground Clingo term retained in source form."""
@@ -38,10 +45,11 @@ class FunctionApplication:
 
 @dataclass(frozen=True, slots=True)
 class NAtom:
-    """A supported equality assignment or positive comparison."""
+    """A supported assignment or positive comparison."""
 
     application: FunctionApplication
     value: GroundTerm
+    operator: NAtomOperator
     role: NAtomRole
     span: SourceSpan
 

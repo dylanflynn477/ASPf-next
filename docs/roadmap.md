@@ -1,8 +1,8 @@
 # Roadmap
 
 This roadmap distinguishes shipped behavior from possible research directions.
-Items beyond milestone 0.1 are proposals, not commitments or compatibility
-claims.
+Items beyond the implemented surface are proposals, not commitments or
+compatibility claims.
 
 ## Milestone 0.1 — restricted reference frontend
 
@@ -23,7 +23,7 @@ boundary.
 
 ## Milestone 0.2 conformance foundation
 
-In development without changing the accepted language:
+Implemented without changing the milestone 0.1 accepted language:
 
 - map every milestone 0.1 construct to primary sources, implementation, tests,
   and known deviations;
@@ -31,11 +31,20 @@ In development without changing the accepted language:
   multi-file programs; and
 - record the architectural decisions that protect the semantic boundary.
 
-## Next compatibility candidate
+## Current compatibility increment
 
-Positive ground `#!=` may be investigated only after the conformance foundation
-is reviewed and merged. Its treatment of undefined applications must come from
-primary sources and must not be implemented as the absence of equality.
+Positive ground `#!=` is implemented on the development branch only as a
+complete positive body literal. Both operands must be defined, so an undefined
+left application makes the comparison false. The reference backend performs an
+explicit value lookup followed by ordinary inequality; it does not treat
+inequality as the absence of equality. No release number has been assigned to
+this increment.
+
+## Next compatibility candidates
+
+Ordered comparisons and every broader n-atom context remain deferred. Each
+candidate requires its own primary-source review, explicit undefinedness rule,
+typed IR, conservative diagnostics, and focused conformance cases.
 
 ## Later research
 
@@ -49,6 +58,6 @@ Longer-term topics may include:
 - an explainable portfolio-risk demonstration built only after the language
   semantics it needs are specified and tested.
 
-None of these language capabilities is implemented by the conformance
-foundation. A native backend would be a separate research milestone, not a
+None of these later language capabilities is implemented by the `#!=`
+increment. A native backend would be a separate research milestone, not a
 silent replacement for the reference translation.

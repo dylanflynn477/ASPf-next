@@ -13,6 +13,7 @@ from aspf_next.ir import (
     FunctionApplication,
     GroundTerm,
     NAtom,
+    NAtomOperator,
     NAtomRole,
     NHerbDeclaration,
     OrdinaryStatement,
@@ -38,7 +39,7 @@ _FUNCTION_TERM = re.compile(r"([a-z][A-Za-z0-9_]*)\s*\(")
 _VARIABLE = re.compile(r"(?:\b[A-Z][A-Za-z0-9_]*\b|\b_[A-Za-z0-9_]*\b)")
 _EXECUTABLE_IDENTIFIER = re.compile(r"(?<![A-Za-z0-9_])([a-z][A-Za-z0-9_]*)(?![A-Za-z0-9_])")
 _RESERVED_IDENTIFIER = re.compile(r"(?<![A-Za-z0-9_])(__aspf_[A-Za-z0-9_]*)(?![A-Za-z0-9_])")
-_UNSUPPORTED_OPERATORS = ("#!=", "#<=", "#>=", "#<", "#>")
+_UNSUPPORTED_OPERATORS = ("#<=", "#>=", "#<", "#>")
 
 
 @dataclass(frozen=True, slots=True)
@@ -170,24 +171,25 @@ def _parse_statement(
             "legacy '#show #nherb' and '#hide #nherb' directives are not supported",
         )
 
-    for operator in _UNSUPPORTED_OPERATORS:
-        offset = context.executable.find(operator)
+    for unsupported_operator in _UNSUPPORTED_OPERATORS:
+        offset = context.executable.find(unsupported_operator)
         if offset >= 0:
             _unsupported(
                 source,
                 context,
                 offset,
-                f"operator '{operator}' is not supported in the first milestone; only '#=' is",
+                f"operator '{unsupported_operator}' is not supported; only '#=' and "
+                "restricted '#!=' are",
             )
 
-    equality_offsets = _find_equalities(context.executable)
-    if not equality_offsets:
+    operators = _find_n_atom_operators(context.executable)
+    if not operators:
         _reject_declared_symbols(context, source, declared, ())
         return OrdinaryStatement(text, context.statement.span)
 
     separator = _find_top_level(context, ":-")
     n_atoms: list[NAtom] = []
-    for operator_offset in equality_offsets:
+    for operator_offset, comparison_operator in operators:
         point = context.points.get(operator_offset)
         if point is None:
             continue
@@ -210,7 +212,17 @@ def _parse_statement(
             if separator is not None and operator_offset > separator
             else NAtomRole.HEAD
         )
-        n_atoms.append(_parse_n_atom(context, source, declared, operator_offset, role, separator))
+        n_atoms.append(
+            _parse_n_atom(
+                context,
+                source,
+                declared,
+                operator_offset,
+                comparison_operator,
+                role,
+                separator,
+            )
+        )
 
     parsed_n_atoms = tuple(n_atoms)
     _reject_declared_symbols(context, source, declared, parsed_n_atoms)
@@ -256,20 +268,21 @@ def _reject_declared_symbols(
         )
 
 
-def _find_equalities(executable: str) -> list[int]:
-    offsets: list[int] = []
-    start = 0
-    while True:
-        offset = executable.find("#=", start)
-        if offset < 0:
-            return offsets
-        following = executable[offset + 2 : offset + 3]
-        if following in {"=", "<", ">", "!"}:
-            # It is still ASP{f}-shaped but not a supported exact operator.
-            offsets.append(offset)
-        else:
-            offsets.append(offset)
-        start = offset + 2
+def _find_n_atom_operators(executable: str) -> list[tuple[int, NAtomOperator]]:
+    operators: list[tuple[int, NAtomOperator]] = []
+    offset = 0
+    ordered = sorted(NAtomOperator, key=lambda operator: len(operator.value), reverse=True)
+    while offset < len(executable):
+        matched = next(
+            (operator for operator in ordered if executable.startswith(operator.value, offset)),
+            None,
+        )
+        if matched is None:
+            offset += 1
+            continue
+        operators.append((offset, matched))
+        offset += len(matched.value)
+    return operators
 
 
 def _find_top_level(context: _StatementContext, needle: str) -> int | None:
@@ -286,13 +299,39 @@ def _parse_n_atom(
     source: SourceText,
     declared: dict[str, int],
     operator_offset: int,
+    operator: NAtomOperator,
     role: NAtomRole,
     separator: int | None,
 ) -> NAtom:
+    if operator is NAtomOperator.NOT_EQUAL and role is NAtomRole.HEAD:
+        _unsupported(
+            source,
+            context,
+            operator_offset,
+            "operator '#!=' is supported only as a complete positive rule-body literal",
+        )
     application_start, _application_end, name, arguments = _parse_application_left(
-        context, source, declared, operator_offset
+        context, source, declared, operator_offset, operator
     )
     literal_start, literal_end = _literal_bounds(context, operator_offset, role, separator)
+    if role is NAtomRole.BODY:
+        conditional_offset = next(
+            (
+                offset
+                for offset, point in context.points.items()
+                if operator_offset < offset < literal_end
+                and context.statement.text[offset] == ":"
+                and not (point.paren_depth or point.bracket_depth or point.brace_depth)
+            ),
+            None,
+        )
+        if conditional_offset is not None:
+            _unsupported(
+                source,
+                context,
+                operator_offset,
+                "n-atoms inside conditional literals are not supported",
+            )
     prefix = context.code[literal_start:application_start]
     prefix_code = prefix.strip()
     if prefix_code:
@@ -310,10 +349,10 @@ def _parse_n_atom(
             "an n-atom must be a complete rule-head assignment or positive body literal",
         )
 
-    value_start = _skip_space(context.code, operator_offset + 2, literal_end)
+    value_start = _skip_space(context.code, operator_offset + len(operator.value), literal_end)
     value_end = _trim_code_end(context.code, value_start, literal_end)
     if value_start >= value_end:
-        _unsupported(source, context, operator_offset, "missing value after '#='")
+        _unsupported(source, context, operator_offset, f"missing value after '{operator.value}'")
     value_text = context.statement.text[value_start:value_end]
     value = _parse_ground_term(
         value_text,
@@ -337,7 +376,7 @@ def _parse_n_atom(
             )
         if any(
             atom_offset != operator_offset
-            for atom_offset in _find_equalities(context.executable[:literal_end])
+            for atom_offset, _operator in _find_n_atom_operators(context.executable[:literal_end])
         ):
             _unsupported(
                 source,
@@ -349,7 +388,13 @@ def _parse_n_atom(
     absolute_start = context.statement.span.start + application_start
     absolute_end = context.statement.span.start + value_end
     application = FunctionApplication(name, tuple(arguments))
-    return NAtom(application, value, role, SourceSpan(absolute_start, absolute_end))
+    return NAtom(
+        application,
+        value,
+        operator,
+        role,
+        SourceSpan(absolute_start, absolute_end),
+    )
 
 
 def _parse_application_left(
@@ -357,6 +402,7 @@ def _parse_application_left(
     source: SourceText,
     declared: dict[str, int],
     operator_offset: int,
+    operator: NAtomOperator,
 ) -> tuple[int, int, str, list[GroundTerm]]:
     end = _trim_code_end(context.code, 0, operator_offset)
     if end <= 0:
@@ -364,7 +410,7 @@ def _parse_application_left(
             source,
             context,
             operator_offset,
-            "left side of '#=' must be a declared function application",
+            f"left side of '{operator.value}' must be a declared function application",
         )
     if context.code[end - 1] != ")":
         name_start = end
@@ -378,7 +424,7 @@ def _parse_application_left(
                 source,
                 context,
                 name_start,
-                "left side of '#=' must be a declared function application",
+                f"left side of '{operator.value}' must be a declared function application",
             )
         if name not in declared:
             _unsupported(
@@ -396,7 +442,10 @@ def _parse_application_left(
     open_paren = _matching_open_paren(context.code, end - 1)
     if open_paren is None:
         _unsupported(
-            source, context, operator_offset, "unbalanced function application before '#='"
+            source,
+            context,
+            operator_offset,
+            f"unbalanced function application before '{operator.value}'",
         )
     name_end = _trim_code_end(context.code, 0, open_paren)
     name_start = name_end
@@ -410,7 +459,7 @@ def _parse_application_left(
             source,
             context,
             name_start,
-            "left side of '#=' must use a lowercase declared function name",
+            f"left side of '{operator.value}' must use a lowercase declared function name",
         )
     if name not in declared:
         _unsupported(source, context, name_start, f"non-Herbrand function '{name}' is not declared")

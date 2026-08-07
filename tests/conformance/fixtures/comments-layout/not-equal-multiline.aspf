@@ -1,0 +1,8 @@
+#nherb balance/1.
+balance(account1) #= 600.
+% balance(account1) #!= 500 is inert here.
+different :-
+    balance(
+        account1
+    ) #!= 500.
+label("#!= remains text").

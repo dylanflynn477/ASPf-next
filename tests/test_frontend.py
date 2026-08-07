@@ -4,7 +4,7 @@ import pytest
 
 from aspf_next.errors import UnsupportedSyntaxError
 from aspf_next.frontend import parse_program
-from aspf_next.ir import AspfStatement, NAtomRole, OrdinaryStatement
+from aspf_next.ir import AspfStatement, NAtomOperator, NAtomRole, OrdinaryStatement
 
 
 def test_parses_declaration_and_basic_assignment() -> None:
@@ -15,6 +15,7 @@ def test_parses_declaration_and_basic_assignment() -> None:
     assert isinstance(statement, AspfStatement)
     assert statement.n_atoms[0].application.render() == "balance(account1)"
     assert statement.n_atoms[0].value.text == "500"
+    assert statement.n_atoms[0].operator is NAtomOperator.EQUAL
     assert statement.n_atoms[0].role is NAtomRole.HEAD
 
 
@@ -32,6 +33,21 @@ solvent(account1) :-
     assert isinstance(statement, AspfStatement)
     assert statement.n_atoms[0].role is NAtomRole.BODY
     assert statement.n_atoms[0].span.start < statement.n_atoms[0].span.end
+
+
+def test_parses_positive_ground_not_equal_body_literal() -> None:
+    program = parse_program(
+        "#nherb balance/1.\ndifferent :- balance(account1) #!= 500.\n",
+        filename="not-equal.aspf",
+    )
+
+    statement = program.statements[0]
+    assert isinstance(statement, AspfStatement)
+    comparison = statement.n_atoms[0]
+    assert comparison.application.render() == "balance(account1)"
+    assert comparison.value.text == "500"
+    assert comparison.operator is NAtomOperator.NOT_EQUAL
+    assert comparison.role is NAtomRole.BODY
 
 
 def test_preserves_ordinary_statement_text() -> None:
@@ -153,7 +169,7 @@ label("mode"). % mode left(a) right(b).
     assert n_atom_count == 5
 
 
-@pytest.mark.parametrize("operator", ["#!=", "#<", "#<=", "#>", "#>="])
+@pytest.mark.parametrize("operator", ["#<", "#<=", "#>", "#>="])
 def test_each_unsupported_operator_has_location(operator: str) -> None:
     text = f"#nherb balance/1.\nokay :- balance(account1) {operator} 500.\n"
 
@@ -162,6 +178,74 @@ def test_each_unsupported_operator_has_location(operator: str) -> None:
 
     assert str(caught.value).startswith("operators.aspf:2:")
     assert operator in str(caught.value)
+
+
+@pytest.mark.parametrize(
+    ("source", "message", "line", "column"),
+    [
+        (
+            "#nherb balance/1.\nbalance(account1) #!= 500.\n",
+            "only as a complete positive rule-body literal",
+            2,
+            19,
+        ),
+        (
+            "#nherb balance/1.\np :- not balance(account1) #!= 500.\n",
+            "default-negated n-atoms",
+            2,
+            6,
+        ),
+        (
+            "#nherb balance/1.\np :- #count { X : balance(account1) #!= 500 } > 0.\n",
+            "aggregates or choice",
+            2,
+            37,
+        ),
+        (
+            "#nherb balance/1.\n{ marked : balance(account1) #!= 500 }.\n",
+            "aggregates or choice",
+            2,
+            30,
+        ),
+        (
+            "#nherb balance/1.\np :- balance(account1) #!= 500 : guard.\n",
+            "conditional literals",
+            2,
+            24,
+        ),
+    ],
+)
+def test_rejects_not_equal_outside_a_complete_positive_body_literal(
+    source: str,
+    message: str,
+    line: int,
+    column: int,
+) -> None:
+    with pytest.raises(UnsupportedSyntaxError, match=message) as caught:
+        parse_program(source, filename="placement.aspf")
+
+    assert caught.value.location.line == line
+    assert caught.value.location.column == column
+
+
+def test_not_equal_in_comments_strings_and_multiline_rules_is_scanned_safely() -> None:
+    program = parse_program(
+        """#nherb balance/1.
+balance(account1) #= 500.
+different :-
+    % balance(account1) #!= 500.
+    balance(account1) #!= "#!= inert".
+label("balance(account1) #!= 500").
+"""
+    )
+
+    asp_statements = [
+        statement for statement in program.statements if isinstance(statement, AspfStatement)
+    ]
+    assert [atom.operator for statement in asp_statements for atom in statement.n_atoms] == [
+        NAtomOperator.EQUAL,
+        NAtomOperator.NOT_EQUAL,
+    ]
 
 
 @pytest.mark.parametrize(

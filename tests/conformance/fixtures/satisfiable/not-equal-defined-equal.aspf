@@ -1,2 +1,3 @@
 #nherb balance/1.
+balance(account1) #= 500.
 different :- balance(account1) #!= 500.

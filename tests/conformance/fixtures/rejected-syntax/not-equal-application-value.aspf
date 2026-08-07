@@ -1,0 +1,3 @@
+#nherb left/1.
+#nherb right/1.
+different :- left(a) #!= right(a).

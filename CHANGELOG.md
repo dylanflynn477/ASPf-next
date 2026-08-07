@@ -17,8 +17,15 @@ releases. Python package metadata uses the equivalent PEP 440 version.
 - Architecture decision records for clean-room development, reference
   lowering, partiality, conservative rejection, and the private backend
   namespace.
+- Positive, ground `#!=` comparisons as complete rule-body literals. The left
+  application must be defined, and its value must differ from the restricted
+  ground right operand.
+- Typed comparison operators in the ASP{f} IR and definedness-aware reference
+  lowering through an explicit value lookup.
+- Focused frontend, lowering, solver, CLI, and conformance regressions for
+  inequality behavior and its unsupported contexts.
 
-No ASP{f} language feature is added by these changes.
+No release number has been assigned to the `#!=` development increment.
 
 ## 0.1.0-alpha - Unreleased
 

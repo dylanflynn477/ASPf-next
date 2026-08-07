@@ -1,4 +1,4 @@
-# Supported language: milestone 0.1
+# Supported language
 
 This document is normative for the implemented compatibility slice. “Supported”
 means parsed into ASP{f} IR and covered by tests. Ordinary Clingo syntax is still
@@ -52,7 +52,8 @@ use the bare form `mode`; `mode()` is also accepted as input and normalized to
 
 ## Values
 
-The right side of `#=` is restricted to exactly one:
+The right side of `#=` or a supported `#!=` body comparison is restricted to
+exactly one:
 
 - integer: `500` or `-3`;
 - symbolic constant: `employed`;
@@ -75,7 +76,13 @@ Positive, complete body literals may compare against a value:
 
 ```asp
 solvent(A) :- account(A), balance(account1) #= 500.
+different :- balance(account1) #!= 600.
 ```
+
+A positive `#!=` comparison is true only when the left application has a
+defined value and that value differs from the right operand. An undefined
+application makes the literal false. Inequality is not negation-as-failure and
+is not implemented as the absence of an equality atom.
 
 The ordinary parts of a rule can still use Clingo variables. Only the n-atom
 itself must be ground in this milestone. Several positive n-atoms may appear as
@@ -84,6 +91,8 @@ separate comma-delimited body literals.
 The following positions are unsupported:
 
 - `not f(a) #= v`;
+- `not f(a) #!= v`;
+- `f(a) #!= v` in a fact or rule head;
 - n-atoms inside aggregates, choice rules, conditional literals, or disjunctions;
 - a head that combines an assignment with another head element;
 - nested or parenthesized n-atoms;
@@ -91,11 +100,13 @@ The following positions are unsupported:
 
 ## Operators
 
-Only `#=` is recognized semantically. Each of these is explicitly diagnosed at
-its source location:
+`#=` is supported in the head and positive-body positions described above.
+`#!=` is supported only as a complete, positive, ground body literal with a
+declared application on the left and a supported ground value on the right.
+Each ordered comparison is explicitly diagnosed at its source location:
 
 ```text
-#!=  #<  #<=  #>  #>=
+#<  #<=  #>  #>=
 ```
 
 ## Comments, strings, and statements
