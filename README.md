@@ -167,11 +167,11 @@ interchangeable. ASPf-next is not affiliated with Potassco.
 
 ## Roadmap and status
 
-Release `0.1.0-alpha` (Python package version `0.1.0a1`) is pre-alpha research
-software. The
-[roadmap](docs/roadmap.md) separates the shipped reference frontend from
-possible 0.2 compatibility work and longer-term native-backend research. Those
-directions are proposals, not promises.
+The codebase is prepared for `0.1.0-alpha` (Python package version `0.1.0a1`),
+but that release has not been published. This remains pre-alpha research
+software. The [roadmap](docs/roadmap.md) separates the shipped reference
+frontend from possible 0.2 compatibility work and longer-term native-backend
+research. Those directions are proposals, not promises.
 
 ## Development and attribution
 

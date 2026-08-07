@@ -54,6 +54,13 @@ def test_release_metadata_is_consistent() -> None:
     assert "answer-set-programming" in metadata["keywords"]
     assert "Development Status :: 2 - Pre-Alpha" in metadata["classifiers"]
 
+    changelog = (PROJECT_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
+    portfolio = (PROJECT_ROOT / "docs" / "portfolio-copy.md").read_text(encoding="utf-8")
+    assert "0.1.0-alpha - Unreleased" in changelog
+    assert "release has not been published" in readme
+    assert "Current release | Not yet published" in portfolio
+
 
 def test_productization_documents_exist() -> None:
     expected = (

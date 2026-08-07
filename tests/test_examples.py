@@ -81,6 +81,15 @@ def test_readme_basic_command_output(capsys: pytest.CaptureFixture[str]) -> None
     )
 
 
+def test_quickstart_json_output_matches_cli(capsys: pytest.CaptureFixture[str]) -> None:
+    path = EXAMPLES / "03_conditional_assignment.aspf"
+
+    assert main([str(path), "--json"]) == 0
+    output = capsys.readouterr().out.strip()
+    quickstart = (PROJECT_ROOT / "docs" / "quickstart.md").read_text(encoding="utf-8")
+    assert output in quickstart
+
+
 @pytest.mark.parametrize("script", ["scripts/demo.sh", "scripts/demo.ps1"])
 def test_demo_uses_verified_examples(script: str) -> None:
     content = (PROJECT_ROOT / script).read_text(encoding="utf-8")

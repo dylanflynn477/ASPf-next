@@ -12,10 +12,11 @@ readable ASP{f}-style models with explicit diagnostics for unsupported syntax.
 
 ASPf-next explores how Marcello Balduccini's ASP{f} language can be approached
 through a modern, maintainable Clingo integration. Dylan Flynn built the project
-as an independent clean-room Python frontend: a location-aware scanner validates
-a narrowly documented compatibility slice, typed intermediate representations
-separate syntax from execution, and a reference backend lowers supported
-non-Herbrand assignments to ordinary Clingo 5.8 atoms. The CLI solves programs,
+as an independent clean-room Python frontend: a location-aware scanner preserves
+source context, the compatibility frontend validates a narrowly documented
+slice, typed intermediate representations separate syntax from execution, and a
+reference backend lowers supported non-Herbrand assignments to ordinary Clingo
+5.8 atoms. The CLI solves programs,
 enumerates models, exposes the translation for inspection, and reconstructs
 stable ASP{f}-style human and JSON output. The repository includes focused
 semantic-boundary tests, Python 3.11/3.12 CI, guided examples, and explicit
@@ -56,7 +57,7 @@ future work.
 | Project status | Experimental pre-alpha research software |
 | Primary language | Python |
 | Key technologies | Clingo 5.8, typed IR, pytest, Ruff, mypy, GitHub Actions |
-| Current release | `0.1.0-alpha` (`0.1.0a1` Python package version) |
+| Current release | Not yet published; `0.1.0-alpha` is prepared (`0.1.0a1` Python package version) |
 | License | MIT |
 | Suggested website tags | Answer Set Programming, logic programming, Python, research software |
 | Suggested call to action | View the source and try the guided examples |

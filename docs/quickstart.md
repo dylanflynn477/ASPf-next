@@ -113,9 +113,16 @@ aspf examples/03_conditional_assignment.aspf --json
   "model_count": 1,
   "models": [
     {
-      "assignments": ["status(alice)#=employed"],
-      "atoms": ["active(alice)", "status(alice)#=employed"],
-      "ordinary_atoms": ["active(alice)"]
+      "assignments": [
+        "status(alice)#=employed"
+      ],
+      "atoms": [
+        "active(alice)",
+        "status(alice)#=employed"
+      ],
+      "ordinary_atoms": [
+        "active(alice)"
+      ]
     }
   ],
   "status": "SATISFIABLE"
