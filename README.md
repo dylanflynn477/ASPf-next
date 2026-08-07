@@ -49,12 +49,13 @@ solvent(account1) balance(account1)#=500
 SATISFIABLE
 ```
 
-Continue with the [seven guided examples](examples/README.md) or the
+Continue with the [eight guided examples](examples/README.md) or the
 [step-by-step quickstart](docs/quickstart.md). The examples include partiality,
 a conditional assignment, a conflicting-value program, ordered integer
-comparisons, and ordinary ASP model enumeration.
+comparisons, application-to-application comparisons, and ordinary ASP model
+enumeration.
 
-## What the current development branch can do
+## What the current implementation can do
 
 The implemented slice supports:
 
@@ -64,6 +65,9 @@ The implemented slice supports:
   defined-value semantics;
 - positive `#<`, `#<=`, `#>`, and `#>=` body comparisons against integer
   literals, requiring a defined integer application value;
+- positive body comparisons between two declared non-Herbrand applications for
+  all six operators; equality and inequality require two defined values, while
+  ordering additionally requires two integer values;
 - ordinary uppercase variables as direct application arguments when every such
   variable also occurs in an ordinary, unnegated positive body atom in the same
   rule;
@@ -100,7 +104,7 @@ such as `balance(account1)#=500`, without exposing the private `__aspf_`
 predicates in normal output.
 
 A supported body inequality first looks up the application's value and then
-compares it with the ground right operand. For example,
+compares it with the right operand. For example,
 `different :- balance(account1) #!= 600.` succeeds only when
 `balance(account1)` has a defined value other than `600`. It is false when the
 application is undefined; `#!=` is never interpreted as the absence of `#=`.
@@ -108,7 +112,14 @@ application is undefined; `#!=` is never interpreted as the absence of `#=`.
 Direct key arguments may use independently domain-safe ordinary variables. For
 example, `low(A) :- account(A), balance(A) #< 1000.` is accepted because
 `account(A)` supplies `A`'s source-level grounding domain. The generated private
-lookup never supplies that safety, and the right operand remains ground.
+lookup never supplies that safety. A scalar right operand remains ground; a
+declared application right operand may use variables that independently satisfy
+the same source-level rule.
+
+Application-to-application equality and inequality compare values rather than
+key syntax. Both lookups must succeed, so two undefined applications are neither
+equal nor unequal. Application equality is a dependent body comparison, not a
+copy assignment, and is rejected in a rule head.
 
 Ordered comparisons follow the same defined-value discipline but are numeric
 only. The reference backend records which assignment values are integer
@@ -146,11 +157,11 @@ aspf examples/05_multiple_models.aspf --models 0
 
 ## Current limitations
 
-The current development branch deliberately rejects:
+The current implementation deliberately rejects:
 
 - comparisons other than `#=` in rule heads, under default negation, or anywhere
   except a complete positive body literal;
-- non-integer right operands for `#<`, `#<=`, `#>`, and `#>=`;
+- non-integer scalar right operands for `#<`, `#<=`, `#>`, and `#>=`;
 - default-negated n-atoms;
 - variables as n-atom values, variables nested inside application arguments,
   anonymous variables, and variables without an ordinary positive body domain;
@@ -158,7 +169,8 @@ The current development branch deliberately rejects:
 - arithmetic expressions inside n-atoms;
 - aggregates, choices, disjunctions, or conditional literals containing
   n-atoms;
-- compound assignment values and nested declared non-Herbrand applications;
+- compound assignment values and declared non-Herbrand applications nested as
+  application arguments;
 - global `#nherb.` and legacy `#show #nherb` / `#hide #nherb` directives;
 - declared non-Herbrand symbols anywhere except the key of a supported n-atom;
   and
@@ -197,6 +209,7 @@ interchangeable. ASPf-next is not affiliated with Potassco.
 - [domain-safe variable development notes](docs/releases/domain-safe-variables-development.md)
 - [variable semantics research](docs/design/variable-semantics.md)
 - [restricted variable milestone plan](docs/design/variable-milestone-plan.md)
+- [application operand semantics](docs/design/application-operands.md)
 
 ## Roadmap and status
 

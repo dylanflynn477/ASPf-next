@@ -77,6 +77,25 @@ EXAMPLES = PROJECT_ROOT / "examples"
                 )
             },
         ),
+        (
+            "08_application_comparisons.aspf",
+            SolveStatus.SATISFIABLE,
+            1,
+            {
+                (
+                    "above_expected(b)",
+                    "account(a)",
+                    "account(b)",
+                    "account(c)",
+                    "changed(b)",
+                    "matches(a)",
+                    "actual(a)#=100",
+                    "actual(b)#=125",
+                    "expected(a)#=100",
+                    "expected(b)#=100",
+                )
+            },
+        ),
     ],
 )
 def test_documented_example(
@@ -98,7 +117,7 @@ def test_examples_guide_covers_every_program() -> None:
     guide = (EXAMPLES / "README.md").read_text(encoding="utf-8")
     programs = sorted(EXAMPLES.glob("*.aspf"))
 
-    assert len(programs) == 7
+    assert len(programs) == 8
     for program in programs:
         assert program.name in guide
 

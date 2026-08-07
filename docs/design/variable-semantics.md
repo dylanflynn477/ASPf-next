@@ -335,10 +335,10 @@ The shared value variable makes the body true only if both applications are defi
 same value. Functionality ensures that each key has at most one value. Modern Clingo regards
 `A` and `V` as safe, and undefinedness is preserved by the two positive lookups.
 
-This analysis suggests that the relational backend could represent this ground semantics, but
-it is **not** a recommendation for the first variable milestone. Application-to-application
-operands require a richer operand IR, declared-symbol validation on both sides, value-kind
-rules, and additional conformance work. Current ASPf-next deliberately rejects this syntax.
+This analysis was not a recommendation for the first variable milestone. The later
+[application operand design](application-operands.md) supplies the typed operand IR,
+declared-symbol validation on both sides, value-kind rules, and conformance work needed to
+implement this syntax while preserving the same safety restriction.
 
 ### Historically unsafe inequality
 
@@ -393,7 +393,7 @@ and solving.
 | --- | --- | --- |
 | domain-safe ordered lowering with `account(A)` | grounds; derives only the defined qualifying key | candidate lowering is viable |
 | inequality lowering without `account(A)` | grounds and derives `different(a)` from the private lookup | frontend must enforce source-level dependent-literal safety |
-| shared-value application equality | grounds; derives equality only for two defined equal values | relational encoding is plausible but deferred |
+| shared-value application equality | grounds; derives equality only for two defined equal values | implemented after the separate typed-operands review |
 | `1000 < active` and `1000 < "500"` | grounds and evaluates using Clingo term order | raw Clingo ordering is not numeric ASP{f} ordering |
 | `different(A) :- V != 1000.` | rejected as unsafe | a comparison alone does not make modern Clingo variables safe |
 
@@ -409,15 +409,16 @@ The relational backend is sufficient for the following restricted behaviors:
 
 - ordinary variables in direct application-argument positions;
 - those variables independently bounded by ordinary positive body atoms;
-- ground right operands from the already supported value classes;
+- ground scalar right operands from the already supported value classes;
+- declared application right operands whose direct variables are independently domain-safe;
 - head assignments whose argument variables are independently body-safe;
 - positive body `#=`, `#!=`, and numeric order comparisons with that key shape;
 - partiality through absent `__aspf_value/2` atoms;
 - functionality through the existing global integrity constraint;
 - stable model reconstruction after grounding.
 
-The backend can also express some broader ground relations, such as shared-value
-application-to-application equality, but frontend and IR work must precede any such acceptance.
+Typed frontend and IR support now make shared-value application equality, two-value
+inequality, and integer-guarded application ordering part of the restricted accepted surface.
 
 ## What requires more architecture
 
@@ -523,7 +524,7 @@ purpose. It also ignores defining equalities and n-stratification.
 | dependent comparison safety | variables must be safe elsewhere | enforced before lowering through the narrower ordinary-domain rule |
 | n-variables | grounder-inert, equality-defined, n-stratified | no representation or backend mechanism |
 | declared names outside n-atoms | treated as ordinary Herbrand terms in Clingo{f} | rejected to prevent semantic leakage |
-| application-to-application comparison | supported | rejected |
+| application-to-application comparison | supported broadly | all six operators in positive bodies, with two defined values and integer-only order |
 | arithmetic/aggregates | supported in broader language | rejected |
 | partiality | explicit semantic undefinedness | absence of a private value atom |
 | grounding backend | modified historical Clingo{f} | unmodified modern Clingo through Python API |
@@ -560,9 +561,9 @@ These questions should remain explicit rather than being answered by implementat
 
 **GO WITH CONDITIONS** — implement only ordinary, explicitly domain-safe variables in direct
 non-Herbrand application arguments. Require each such variable to occur directly in an
-ordinary, unnegated, positive symbolic body atom in the same rule. Keep every right operand
-ground, keep n-variables rejected, and do not allow a generated private lookup or another
-n-atom to establish source safety.
+ordinary, unnegated, positive symbolic body atom in the same rule. Keep every scalar right
+operand ground, keep n-variables rejected, and do not allow a generated private lookup or
+another n-atom to establish source safety.
 
 Under those conditions, the current reference backend is sufficient. The exact proposed
 language and implementation work are specified in

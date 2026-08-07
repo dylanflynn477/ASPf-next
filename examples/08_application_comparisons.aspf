@@ -1,0 +1,16 @@
+% Compare expected and observed partial values without copying either one.
+#nherb expected/1.
+#nherb actual/1.
+
+account(a;b;c).
+
+expected(a) #= 100.
+actual(a) #= 100.
+
+expected(b) #= 100.
+actual(b) #= 125.
+
+% Neither application is defined for c, so neither comparison succeeds there.
+matches(A) :- account(A), actual(A) #= expected(A).
+changed(A) :- account(A), actual(A) #!= expected(A).
+above_expected(A) :- account(A), actual(A) #> expected(A).

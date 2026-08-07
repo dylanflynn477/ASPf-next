@@ -71,25 +71,28 @@ classically negated atom do not establish source-variable safety.
 
 This deliberately narrower rule is checked before lowering. It prevents a
 private backend variable or lookup from accidentally widening the source
-grounding domain. Variables on the right, variables inside a compound key
-argument such as `balance(owner(A))`, anonymous `_`, and non-Herbrand variables
-such as `_V` remain unsupported.
+grounding domain. Scalar variables on the right, variables inside a compound
+key argument such as `balance(owner(A))`, anonymous `_`, and non-Herbrand
+variables such as `_V` remain unsupported. A declared application used as the
+right operand may contain direct variables, but each one needs the same
+independent ordinary domain occurrence.
 
 ## Values
 
-The right side of `#=` or a supported `#!=` body comparison is restricted to
-exactly one:
+An assignment value or scalar comparison operand is restricted to exactly one:
 
 - integer: `500` or `-3`;
 - symbolic constant: `employed`;
 - string: `"cold brew"`.
 
 Variables of every kind, arithmetic, intervals, tuples, and compound function
-terms are not values in this milestone. A declared non-Herbrand application
-used as a value receives a specific diagnostic.
+terms are not scalar values in this milestone.
 
-The right operand of `#<`, `#<=`, `#>`, and `#>=` is narrower: it must be an
-integer literal. Symbolic constants and strings are rejected in that position.
+In a positive body comparison, the right operand may instead be another
+explicitly declared non-Herbrand application. This is an application operand,
+not an assignment value. A scalar right operand of `#<`, `#<=`, `#>`, or `#>=`
+must be an integer literal; a right application is validated at runtime as
+described below.
 
 ## Rule positions
 
@@ -111,20 +114,38 @@ positive :- balance(account1) #> 0.
 minimum_met :- balance(account1) #>= 100.
 ```
 
+They may also compare two declared applications:
+
+```asp
+same(A) :- account(A), actual(A) #= expected(A).
+changed(A) :- account(A), actual(A) #!= expected(A).
+above(A) :- account(A), actual(A) #> expected(A).
+```
+
 A positive `#!=` comparison is true only when the left application has a
 defined value and that value differs from the right operand. An undefined
 application makes the literal false. Inequality is not negation-as-failure and
 is not implemented as the absence of an equality atom.
+
+For application equality and inequality, both application values must be
+defined. Equal values satisfy `#=`; different values satisfy `#!=`. An undefined
+left operand, undefined right operand, or two undefined operands satisfy
+neither relation.
 
 An ordered comparison is true only when the left application has a defined
 integer value and the usual arithmetic relation holds against the integer
 literal on the right. Undefined, symbolic, and string values make the literal
 false. No value is coerced to an integer.
 
-The ordinary parts of a rule can use normal Clingo variables. A direct n-atom
-key argument may use the domain-safe subset described above; its right operand
-must remain ground. Several positive n-atoms may appear as separate
-comma-delimited body literals.
+An ordered application-to-application comparison additionally requires the
+right application to have a defined integer value. Both values receive integer
+guards before the ordinary arithmetic relation is evaluated, so Clingo's
+general term ordering cannot make symbolic or string values compare in order.
+
+The ordinary parts of a rule can use normal Clingo variables. A direct
+application argument on either comparison side may use the domain-safe subset
+described above. Scalar right operands remain ground. Several positive n-atoms
+may appear as separate comma-delimited body literals.
 
 The following positions are unsupported:
 
@@ -132,6 +153,8 @@ The following positions are unsupported:
 - `not f(a) #!= v`;
 - default-negated ordered comparisons;
 - `f(a) op v` in a fact or rule head for every `op` other than `#=`;
+- `f(a) #= g(a)` in a fact or rule head; application equality is a dependent
+  body comparison and never a copy assignment;
 - n-atoms inside aggregates, choice rules, conditional literals, or disjunctions;
 - a head that combines an assignment with another head element;
 - nested or parenthesized n-atoms;
@@ -141,11 +164,12 @@ The following positions are unsupported:
 
 `#=` is supported in the head and positive-body positions described above.
 `#!=` is supported only as a complete, positive body literal with a declared
-application on the left and a supported ground value on the right. `#<`, `#<=`,
-`#>`, and `#>=` are supported only as complete, positive body literals with an
-integer literal on the right. The left key may contain direct domain-safe
-ordinary variables. Operator tokens are represented explicitly in typed IR;
-they are not implemented through text-wide replacement.
+application on the left and either a supported ground scalar or declared
+application on the right. `#<`, `#<=`, `#>`, and `#>=` are supported only as
+complete, positive body literals with an integer literal or declared application
+on the right. Application operands on both sides may contain direct domain-safe
+ordinary variables. Operator tokens and operand kinds are represented
+explicitly in typed IR; they are not implemented through text-wide replacement.
 
 ## Comments, strings, and statements
 

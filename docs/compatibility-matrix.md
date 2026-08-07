@@ -14,6 +14,9 @@ ASP{f} compatibility.
 | Positive body `#=` | Supported | Reference lowering |
 | Positive body `#!=` with a ground RHS | Supported | Defined value lookup plus ordinary inequality |
 | Positive body `#<`, `#<=`, `#>`, `#>=` with integer RHS | Supported | Defined integer lookup plus ordinary comparison |
+| Positive body application/application `#=` | Supported | Two defined lookups with one shared value variable |
+| Positive body application/application `#!=` | Supported | Two defined lookups plus ordinary inequality |
+| Positive body application/application ordering | Supported | Two defined lookups, two integer guards, then ordinary comparison |
 | Direct domain-safe ordinary variable in an n-atom key | Supported | Source safety validation, then ordinary Clingo grounding |
 | Integer value | Supported | Clingo number symbol |
 | Symbolic constant value | Supported | Clingo function symbol, arity 0 |
@@ -29,7 +32,9 @@ ASP{f} compatibility.
 | User executable identifier beginning `__aspf_` | Unsupported | Location-aware error |
 | Declared symbol outside a supported n-atom key | Unsupported | Location-aware error |
 | Non-integer value used by an ordered comparison | False | No coercion; integer tag is absent |
-| Non-integer right operand for an ordered comparison | Unsupported | Location-aware error |
+| Non-integer scalar right operand for an ordered comparison | Unsupported | Location-aware error |
+| Symbolic/string application value in ordered comparison | False | Integer guards prevent Clingo term ordering |
+| Application/application comparison in a rule head | Unsupported | Location-aware error; never copy assignment |
 | Head or default-negated comparison other than `#=` | Unsupported | Location-aware error |
 | Default-negated n-atoms | Unsupported | Location-aware error |
 | Ordinary variable as an n-atom value | Unsupported | Location-aware error |

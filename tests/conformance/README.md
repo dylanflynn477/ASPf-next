@@ -1,6 +1,7 @@
 # Conformance corpus
 
-`manifest.json` is the executable index for milestone 0.1 conformance cases.
+`manifest.json` is the executable index for milestone 0.1 and subsequent
+restricted compatibility-increment conformance cases.
 Each case names one or more source files and records:
 
 - whether parsing is accepted or rejected;

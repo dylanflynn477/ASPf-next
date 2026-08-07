@@ -20,10 +20,11 @@ reference backend lowers supported non-Herbrand assignments to ordinary Clingo
 enumerates models, exposes the translation for inspection, and reconstructs
 stable ASP{f}-style human and JSON output. The repository includes focused
 semantic-boundary tests, Python 3.11/3.12 CI, guided examples, and explicit
-provenance documentation. The development branch adds definedness-aware
-inequality and integer ordering plus ordinary variables in direct application
-arguments under a conservative positive-domain rule. Version 0.1.0-alpha is
-intentionally experimental. Arithmetic, broader variables, aggregates
+provenance documentation. The current implementation includes definedness-aware
+inequality, integer ordering, application-to-application comparison, and
+ordinary variables in direct application arguments under a conservative
+positive-domain rule. Version 0.1.0-alpha is intentionally experimental.
+Arithmetic, broader variables, aggregates
 containing n-atoms, and a native propagator remain unimplemented, and the
 project does not claim full historical compatibility or historical grounding
 efficiency. The result is a tested research baseline for evaluating future
