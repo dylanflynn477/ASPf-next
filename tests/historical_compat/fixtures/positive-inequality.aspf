@@ -1,0 +1,3 @@
+#nherb f/1.
+f(a) #= 2.
+different :- f(a) #!= 1.
