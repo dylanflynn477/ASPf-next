@@ -1,86 +1,68 @@
-# ASP{f}-next first-milestone plan
+# Typed operands and application comparisons plan
 
 ## Scope
 
-Build an independent, clean-room Python 3.11+ compatibility frontend for the
-restricted ASP{f} vertical slice in the project brief. The implementation will
-use the public Python API of Clingo 5.8 and will not modify Clingo or copy code
-from historical Clingo{f}.
+Implement the next restricted compatibility milestone on
+`feature/application-operands`. Body n-atoms may compare two explicitly declared
+non-Herbrand applications. Existing scalar assignments and scalar comparisons
+remain unchanged. The implementation stays a clean-room Python frontend and
+reference translation for unmodified Clingo 5.8.
+
+This branch does not add scalar value variables, historical equality-provided
+safety, non-Herbrand variables, arithmetic expressions, aggregates containing
+n-atoms, default-negated n-atoms, choices containing n-atoms, theory atoms, or a
+native propagator.
 
 ## Proposed changes
 
-1. Add package and tooling metadata:
-   - `pyproject.toml` with Clingo, pytest, Ruff, and mypy configuration.
-   - `LICENSE` using the repository's MIT licensing convention.
-   - a console entry point named `aspf`.
-2. Add a typed `src/aspf_next` package with separate responsibilities:
-   - `source.py`: source locations, spans, scanner state, and statement splitting.
-   - `errors.py`: location-aware frontend diagnostics.
-   - `ir.py`: immutable declarations, ordinary statements, n-atoms, and rules.
-   - `frontend.py`: context-aware parsing and validation of the supported slice.
-   - `lowering.py`: reference translation to `__aspf_value/2` plus functionality.
-   - `solver.py`: Clingo 5.8 control, grounding, and model enumeration.
-   - `model.py`: stable normalized human and JSON model rendering.
-   - `cli.py`: file loading, `--models`, `--emit-lowered`, and `--json`.
-3. Add tests for parsing, lowering, solving, rendering, CLI behavior, multiline
-   input, comments, pass-through ASP, and every explicitly unsupported form.
-4. Add runnable examples for basic, conditional, and conflicting assignments.
-5. Add documentation covering architecture, supported syntax, semantics,
-   compatibility limits, and clean-room provenance.
+1. Record the primary-source semantics and the deliberately narrower ASPf-next
+   boundary in `docs/design/application-operands.md`.
+2. Replace the role-bearing, scalar-specific `NAtom` IR with typed scalar and
+   application operands plus distinct `Assignment` and `BodyComparison` nodes.
+3. Extend the frontend to parse a declared application as the right operand of
+   a complete positive body comparison. Validate declaration, arity, argument
+   shape, placement, and source-level safety on both applications.
+4. Add a per-statement `TemporaryAllocator` and lower:
+   - application equality with a shared generated value variable;
+   - application inequality with two defined-value lookups and `!=`;
+   - application ordering with two lookups, two integer guards, and the selected
+     arithmetic relation.
+5. Add focused IR, frontend, lowering, solver, CLI, multi-model, multi-file, and
+   manifest-driven conformance coverage. Preserve every existing fixture.
+6. Add `examples/08_application_comparisons.aspf` and update user, architecture,
+   quickstart, compatibility, roadmap, changelog, and traceability documents.
+7. Run formatting, linting, strict type checking, the full suite, the isolated
+   conformance suite, a fresh editable install, and manual CLI checks.
+8. Review the complete diff against `main`, correct semantic leaks, commit in
+   reviewable units, and push the feature branch without merging it.
 
-## Implementation sequence
+## Semantic boundary
 
-1. Scaffold metadata, errors, source scanner, IR, and frontend tests.
-2. Implement reference lowering with tests.
-3. Add Clingo integration, rendering, CLI, examples, and end-to-end tests.
-4. Complete user documentation and provenance notes.
-5. Run formatting, linting, strict static checks, and the complete test suite.
+- A scalar `#=` in a fact or rule head remains an assignment.
+- An application-to-application n-atom is a dependent comparison and is accepted
+  only as a complete, positive rule-body literal.
+- Equality and inequality succeed only when both applications are defined.
+  Undefined is neither equal nor unequal.
+- Ordered application comparisons succeed only when both applications are
+  defined with integer values. Symbols and strings do not participate in Clingo
+  term ordering.
+- Every source variable in either application key needs its own occurrence in
+  an ordinary, unnegated, positive symbolic body atom in the same rule. Private
+  lookup atoms and other n-atoms never establish source safety.
+- Right-side application operands must be declared and must obey the same
+  argument grammar and arity checks as left-side applications.
+- Application equality in a head is rejected; it is never lowered as value-copy
+  assignment.
 
-Each completed stage will be committed separately.
+## Design concerns
 
-## Parsing design
-
-The frontend will use a character scanner rather than global substitutions. It
-will track filename, line, column, comments, escaped quoted strings, and nesting
-depth for parentheses, brackets, and braces. Only top-level statement boundaries
-and top-level rule/body separators will be recognized. Ordinary statements with
-no ASP{f} marker will be preserved byte-for-byte apart from the enclosing source
-assembly needed for Clingo.
-
-Supported n-atoms will be parsed into structured IR. Function applications and
-values are deliberately ground: any variable or arithmetic-shaped term in an
-n-atom will fail before lowering. The scanner will reject n-atoms in aggregates
-and default-negated contexts with a location-aware `UnsupportedSyntaxError`.
-
-## Initial semantic decisions
-
-- `#nherb f/n.` is a declaration only and emits no Clingo statement.
-- Every lowered assignment or positive comparison uses
-  `__aspf_value(f(args), value)`.
-- A single global functionality constraint is appended whenever the program has
-  at least one non-Herbrand declaration.
-- No totality rule is generated; undefined applications remain absent.
-- Model rendering combines Clingo's shown ordinary atoms with all true internal
-  value atoms, filters every other `__aspf_` atom, and sorts the result for stable
-  output.
-- If the input contains `#show`, Clingo controls which ordinary atoms are shown,
-  while ASP{f} assignments are still reconstructed from internal atoms.
-- Redeclaring the same `f/n` is accepted, but using the same name with a different
-  arity or using an undeclared application in an n-atom is diagnosed.
-- Executable identifiers beginning with `__aspf_` are reserved for backend use.
-- A declared non-Herbrand symbol may occur only as the key of a validated
-  supported n-atom.
-
-## Design concerns and boundaries
-
-- The first backend is a semantic reference translation, not an efficiency claim
-  and not a native propagator.
-- Clingo lexical syntax is broad. This milestone validates terms conservatively;
-  ambiguous n-atom terms are rejected instead of assigned invented semantics.
-- `#=` inside comments and strings is inert. Unsupported operators are diagnosed
-  only in executable syntax.
-- Aggregates are passed through only when they contain no n-atoms.
-- Ordinary Clingo parsing remains Clingo's responsibility after the compatibility
-  frontend has preserved or lowered each statement.
-- Native theory atoms, custom propagators, arithmetic, aggregates containing
-  n-atoms, and trading examples are explicitly deferred.
+- A bare declared zero-arity symbol on the right is an application operand, not
+  a symbolic scalar. An undeclared bare lowercase identifier remains a scalar.
+- Generated names must be deterministic and avoid every executable identifier
+  in the containing statement, including identifiers that merely resemble the
+  allocator's preferred prefix.
+- The historical language permits operands and safety modes beyond this
+  milestone. The typed IR should expose the present distinction without adding
+  a speculative general expression hierarchy.
+- The reference lowering is intended for semantic transparency, not the
+  grounding-efficiency properties of historical Clingo{f}.
