@@ -33,7 +33,10 @@ The lookup atom enforces definedness before the ordinary Clingo comparison.
 ASPf-next does not lower `#!=` to `not __aspf_value(...)` and does not interpret
 it as negation-as-failure.
 
-## Still unsupported
+## Boundary at this increment
+
+At the time this increment was completed, the following constructs were still
+unsupported. Later development notes may supersede individual items.
 
 - `#!=` in facts or rule heads;
 - default-negated `#!=`;

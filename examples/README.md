@@ -6,9 +6,9 @@ Install the project from its repository root before running these examples:
 python -m pip install -e ".[dev]"
 ```
 
-The examples progress from one value assignment to ordinary Clingo model
-enumeration. They intentionally stay inside the
-[milestone 0.1 language boundary](../docs/supported-language.md).
+The examples progress from one value assignment to comparisons and ordinary
+Clingo model enumeration. They intentionally stay inside the
+[documented language boundary](../docs/supported-language.md).
 
 ## 01 — Basic assignment and body comparison
 
@@ -107,3 +107,28 @@ aspf examples/05_multiple_models.aspf --models 0
 Two models are produced: one selecting `red` and one selecting `blue`. Their
 display order is solver-dependent. This is ordinary ASP choice-rule behavior;
 choice constructs containing n-atoms remain unsupported.
+
+## 06 — Ordered integer comparisons
+
+[`06_ordered_comparisons.aspf`](06_ordered_comparisons.aspf) exercises all four
+positive ground ordered operators with negative, zero, and positive integers.
+
+```asp
+#nherb temperature/1.
+
+temperature(freezer) #= -5.
+temperature(room) #= 21.
+
+below_zero :- temperature(freezer) #< 0.
+at_most_zero :- temperature(freezer) #<= 0.
+above_zero :- temperature(room) #> 0.
+at_least_twenty :- temperature(room) #>= 20.
+```
+
+```console
+aspf examples/06_ordered_comparisons.aspf
+```
+
+All four ordinary atoms are derived. Ordered comparisons require a defined
+integer value and an integer literal on the right. Undefined, symbolic, and
+string-valued applications make these comparisons false.

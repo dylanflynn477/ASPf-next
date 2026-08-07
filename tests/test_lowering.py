@@ -4,7 +4,12 @@ import pytest
 
 from aspf_next.errors import UnsupportedSyntaxError
 from aspf_next.frontend import parse_program
-from aspf_next.lowering import FUNCTIONALITY_CONSTRAINT, lower_program
+from aspf_next.lowering import (
+    FUNCTIONALITY_CONSTRAINT,
+    INTERNAL_DEFINITIONS,
+    INTERNAL_INTEGER_PREDICATE,
+    lower_program,
+)
 
 
 def lowered(source: str) -> str:
@@ -65,6 +70,47 @@ def test_equality_and_not_equal_share_the_value_relation() -> None:
     assert "__aspf_value(balance(account1),_AspfNeq0), _AspfNeq0 != 600" in result
 
 
+@pytest.mark.parametrize(
+    ("operator", "clingo_operator"),
+    [("#<", "<"), ("#<=", "<="), ("#>", ">"), ("#>=", ">=")],
+)
+def test_lowers_each_ordered_operator_through_shared_integer_lookup(
+    operator: str, clingo_operator: str
+) -> None:
+    result = lowered(
+        f"#nherb balance/1.\nbalance(account1) #= -5.\nokay :- balance(account1) {operator} 0.\n"
+    )
+
+    assert f"{INTERNAL_INTEGER_PREDICATE}(-5)." in result
+    assert (
+        "okay :- __aspf_value(balance(account1),_AspfCmp0), "
+        f"__aspf_integer(_AspfCmp0), _AspfCmp0 {clingo_operator} 0."
+    ) in result
+
+
+def test_ordered_lowering_tags_only_integer_assignment_values() -> None:
+    result = lowered(
+        '#nherb value/1.\nvalue(number) #= 7.\nvalue(symbol) #= seven.\nvalue(string) #= "7".\n'
+    )
+
+    assert "__aspf_integer(7)." in result
+    assert "__aspf_integer(seven)." not in result
+    assert '__aspf_integer("7").' not in result
+
+
+def test_ordered_lowering_uses_collision_free_shared_comparison_path() -> None:
+    result = lowered(
+        "#nherb balance/1.\n"
+        "okay(_AspfCmp0) :- item(_AspfCmp0), balance(account1) #>= 0, "
+        "balance(account1) #!= 10.\n"
+    )
+
+    assert "__aspf_value(balance(account1),_AspfCmp1)" in result
+    assert "_AspfCmp1 >= 0" in result
+    assert "__aspf_value(balance(account1),_AspfNeq2)" in result
+    assert "_AspfNeq2 != 10" in result
+
+
 def test_lowers_conditional_assignment_in_rule_head() -> None:
     result = lowered(
         """#nherb status/1.
@@ -100,7 +146,8 @@ def test_declaration_alone_adds_no_totality_rule() -> None:
 
     assert "account(account1)." in result
     assert "__aspf_value(K,V) :-" not in result
-    assert result.count("__aspf_value") == 2
+    assert INTERNAL_DEFINITIONS in result
+    assert FUNCTIONALITY_CONSTRAINT in result
 
 
 def test_lowering_rejects_user_identifier_in_internal_namespace() -> None:

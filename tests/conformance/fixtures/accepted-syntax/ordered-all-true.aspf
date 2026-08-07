@@ -1,0 +1,10 @@
+#nherb value/1.
+value(negative) #= -1.
+value(zero) #= 0.
+value(positive) #= 1.
+less :- value(negative) #< 0.
+less_equal :- value(zero) #<= 0.
+greater :- value(positive) #> 0.
+greater_equal :- value(zero) #>= 0.
+equal :- value(zero) #= 0.
+different :- value(positive) #!= 0.

@@ -31,7 +31,7 @@ Implemented without changing the milestone 0.1 accepted language:
   multi-file programs; and
 - record the architectural decisions that protect the semantic boundary.
 
-## Current compatibility increment
+## Implemented compatibility increments
 
 Positive ground `#!=` is implemented on the development branch only as a
 complete positive body literal. Both operands must be defined, so an undefined
@@ -40,11 +40,18 @@ explicit value lookup followed by ordinary inequality; it does not treat
 inequality as the absence of equality. No release number has been assigned to
 this increment.
 
+Positive fully ground `#<`, `#<=`, `#>`, and `#>=` body literals are also
+implemented on the development branch for integer values and integer right
+operands only. Undefined and non-integer application values make the comparison
+false. No coercion, arithmetic, or variable support is included, and no release
+number has been assigned.
+
 ## Next compatibility candidates
 
-Ordered comparisons and every broader n-atom context remain deferred. Each
-candidate requires its own primary-source review, explicit undefinedness rule,
-typed IR, conservative diagnostics, and focused conformance cases.
+Arithmetic expressions, variables inside n-atoms, application-to-application
+comparisons, and every broader n-atom context remain deferred. Each candidate
+requires its own primary-source review, explicit undefinedness rule, typed IR,
+conservative diagnostics, and focused conformance cases.
 
 ## Later research
 
@@ -58,6 +65,6 @@ Longer-term topics may include:
 - an explainable portfolio-risk demonstration built only after the language
   semantics it needs are specified and tested.
 
-None of these later language capabilities is implemented by the `#!=`
-increment. A native backend would be a separate research milestone, not a
-silent replacement for the reference translation.
+None of these later language capabilities is implemented by the
+ordered-comparison increment. A native backend would be a separate research
+milestone, not a silent replacement for the reference translation.

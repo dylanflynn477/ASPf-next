@@ -1,0 +1,5 @@
+#nherb value/1.
+value(symbol) #= active.
+value(string) #= "5".
+symbol_ordered :- value(symbol) #< 0.
+string_ordered :- value(string) #>= 0.

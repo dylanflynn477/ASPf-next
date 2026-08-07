@@ -46,6 +46,21 @@ EXAMPLES = PROJECT_ROOT / "examples"
             2,
             {("selected(blue)",), ("selected(red)",)},
         ),
+        (
+            "06_ordered_comparisons.aspf",
+            SolveStatus.SATISFIABLE,
+            1,
+            {
+                (
+                    "above_zero",
+                    "at_least_twenty",
+                    "at_most_zero",
+                    "below_zero",
+                    "temperature(freezer)#=-5",
+                    "temperature(room)#=21",
+                )
+            },
+        ),
     ],
 )
 def test_documented_example(
@@ -67,7 +82,7 @@ def test_examples_guide_covers_every_program() -> None:
     guide = (EXAMPLES / "README.md").read_text(encoding="utf-8")
     programs = sorted(EXAMPLES.glob("*.aspf"))
 
-    assert len(programs) == 5
+    assert len(programs) == 6
     for program in programs:
         assert program.name in guide
 

@@ -112,6 +112,78 @@ different :- level(item) #!= 1.
     }
 
 
+@pytest.mark.parametrize(
+    ("operator", "assigned", "right"),
+    [
+        ("#<", -1, 0),
+        ("#<=", 0, 0),
+        ("#>", 1, 0),
+        ("#>=", 0, 0),
+    ],
+)
+def test_each_ordered_operator_succeeds_when_true(operator: str, assigned: int, right: int) -> None:
+    result = solve(f"#nherb value/0.\nvalue #= {assigned}.\nokay :- value {operator} {right}.\n")
+
+    assert result.models[0].ordinary_atoms == ("okay",)
+
+
+@pytest.mark.parametrize(
+    ("operator", "assigned", "right"),
+    [
+        ("#<", 0, 0),
+        ("#<=", 1, 0),
+        ("#>", 0, 0),
+        ("#>=", -1, 0),
+    ],
+)
+def test_each_ordered_operator_fails_when_false(operator: str, assigned: int, right: int) -> None:
+    result = solve(f"#nherb value/0.\nvalue #= {assigned}.\nokay :- value {operator} {right}.\n")
+
+    assert result.models[0].ordinary_atoms == ()
+
+
+@pytest.mark.parametrize("operator", ["#<", "#<=", "#>", "#>="])
+def test_each_ordered_operator_fails_for_undefined_application(operator: str) -> None:
+    result = solve(f"#nherb value/0.\nokay :- value {operator} 0.\n")
+
+    assert result.models[0].ordinary_atoms == ()
+    assert result.models[0].assignments == ()
+
+
+@pytest.mark.parametrize("operator", ["#<", "#<=", "#>", "#>="])
+@pytest.mark.parametrize("assigned", ["symbolic", '"5"'])
+def test_ordered_comparison_fails_for_defined_noninteger_value(
+    operator: str, assigned: str
+) -> None:
+    result = solve(f"#nherb value/0.\nvalue #= {assigned}.\nokay :- value {operator} 0.\n")
+
+    assert result.models[0].ordinary_atoms == ()
+
+
+@pytest.mark.parametrize(
+    ("operator", "right"),
+    [("#<", 2), ("#<=", 1), ("#>", -2), ("#>=", -1)],
+)
+@pytest.mark.parametrize("assigned", [-1, 0, 1])
+def test_each_ordered_operator_accepts_negative_zero_and_positive_integer_values(
+    operator: str, right: int, assigned: int
+) -> None:
+    result = solve(f"#nherb value/0.\nvalue #= {assigned}.\nokay :- value {operator} {right}.\n")
+
+    assert result.models[0].ordinary_atoms == ("okay",)
+
+
+def test_ordered_comparison_interacts_with_equal_and_not_equal() -> None:
+    result = solve(
+        "#nherb value/0.\nvalue #= 5.\n"
+        "equal :- value #= 5.\n"
+        "different :- value #!= 4.\n"
+        "ordered :- value #> 0.\n"
+    )
+
+    assert result.models[0].ordinary_atoms == ("different", "equal", "ordered")
+
+
 def test_conditional_assignment() -> None:
     result = solve(
         """#nherb status/1.

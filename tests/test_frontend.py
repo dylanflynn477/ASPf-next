@@ -4,7 +4,13 @@ import pytest
 
 from aspf_next.errors import UnsupportedSyntaxError
 from aspf_next.frontend import parse_program
-from aspf_next.ir import AspfStatement, NAtomOperator, NAtomRole, OrdinaryStatement
+from aspf_next.ir import (
+    AspfStatement,
+    GroundTermKind,
+    NAtomOperator,
+    NAtomRole,
+    OrdinaryStatement,
+)
 
 
 def test_parses_declaration_and_basic_assignment() -> None:
@@ -169,15 +175,127 @@ label("mode"). % mode left(a) right(b).
     assert n_atom_count == 5
 
 
+@pytest.mark.parametrize(
+    ("spelling", "operator"),
+    [
+        ("#<", NAtomOperator.LESS_THAN),
+        ("#<=", NAtomOperator.LESS_EQUAL),
+        ("#>", NAtomOperator.GREATER_THAN),
+        ("#>=", NAtomOperator.GREATER_EQUAL),
+    ],
+)
+def test_parses_each_positive_ground_ordered_operator(
+    spelling: str, operator: NAtomOperator
+) -> None:
+    text = f"#nherb balance/1.\nokay :- balance(account1) {spelling} 500.\n"
+
+    program = parse_program(text, filename="operators.aspf")
+    statement = program.statements[0]
+
+    assert isinstance(statement, AspfStatement)
+    comparison = statement.n_atoms[0]
+    assert comparison.operator is operator
+    assert comparison.role is NAtomRole.BODY
+    assert comparison.value.kind is GroundTermKind.INTEGER
+
+
 @pytest.mark.parametrize("operator", ["#<", "#<=", "#>", "#>="])
-def test_each_unsupported_operator_has_location(operator: str) -> None:
+@pytest.mark.parametrize("value", ["active", '"500"'])
+def test_ordered_operator_requires_integer_right_operand(operator: str, value: str) -> None:
     text = f"#nherb balance/1.\nokay :- balance(account1) {operator} 500.\n"
 
-    with pytest.raises(UnsupportedSyntaxError) as caught:
+    text = text.replace("500.", f"{value}.")
+
+    with pytest.raises(UnsupportedSyntaxError, match="requires an integer literal") as caught:
         parse_program(text, filename="operators.aspf")
 
-    assert str(caught.value).startswith("operators.aspf:2:")
-    assert operator in str(caught.value)
+    assert caught.value.location.line == 2
+    assert caught.value.location.column == text.splitlines()[1].index(value) + 1
+
+
+@pytest.mark.parametrize("operator", ["#<", "#<=", "#>", "#>="])
+def test_rejects_each_ordered_operator_in_rule_head_with_location(operator: str) -> None:
+    text = f"#nherb balance/1.\nbalance(account1) {operator} 500.\n"
+
+    with pytest.raises(UnsupportedSyntaxError, match="complete positive rule-body") as caught:
+        parse_program(text, filename="head.aspf")
+
+    assert caught.value.location.line == 2
+    assert caught.value.location.column == 19
+
+
+@pytest.mark.parametrize("operator", ["#<", "#<=", "#>", "#>="])
+def test_rejects_default_negated_ordered_operator(operator: str) -> None:
+    text = f"#nherb balance/1.\nokay :- not balance(account1) {operator} 500.\n"
+
+    with pytest.raises(UnsupportedSyntaxError, match="default-negated n-atoms") as caught:
+        parse_program(text, filename="negated.aspf")
+
+    assert caught.value.location.line == 2
+    assert caught.value.location.column == 9
+
+
+@pytest.mark.parametrize(
+    ("spelling", "operator", "right"),
+    [
+        ("#<", NAtomOperator.LESS_THAN, 1),
+        ("#<=", NAtomOperator.LESS_EQUAL, 0),
+        ("#>", NAtomOperator.GREATER_THAN, -1),
+        ("#>=", NAtomOperator.GREATER_EQUAL, 0),
+    ],
+)
+def test_ordered_operators_in_comments_strings_and_multiline_rules_are_scanned_safely(
+    spelling: str, operator: NAtomOperator, right: int
+) -> None:
+    program = parse_program(
+        f"""#nherb balance/1.
+balance(account1) #= 0.
+okay :-
+    % balance(account1) {spelling} 100 is inert.
+    balance(
+        account1
+    ) {spelling} {right}.
+label("balance(account1) #<= 0 #> -10 #>= -5").
+"""
+    )
+
+    asp_statements = [
+        statement for statement in program.statements if isinstance(statement, AspfStatement)
+    ]
+    assert [atom.operator for statement in asp_statements for atom in statement.n_atoms] == [
+        NAtomOperator.EQUAL,
+        operator,
+    ]
+
+
+@pytest.mark.parametrize("operator", ["#<", "#<=", "#>", "#>="])
+@pytest.mark.parametrize(
+    "source_template",
+    [
+        "okay :- #count { X : balance(account1) OP 0 } > 0.\n",
+        "{ okay : balance(account1) OP 0 }.\n",
+    ],
+)
+def test_rejects_ordered_operators_inside_aggregates_and_choices(
+    operator: str, source_template: str
+) -> None:
+    source = "#nherb balance/1.\n" + source_template.replace("OP", operator)
+
+    with pytest.raises(UnsupportedSyntaxError, match="aggregates or choice") as caught:
+        parse_program(source, filename="nested.aspf")
+
+    assert caught.value.location.line == 2
+
+
+@pytest.mark.parametrize("operator", ["#<", "#<=", "#>", "#>="])
+def test_rejects_variables_inside_ordered_n_atoms(operator: str) -> None:
+    source = f"#nherb balance/1.\nokay :- balance(Account) {operator} 0.\n"
+
+    with pytest.raises(UnsupportedSyntaxError, match="variables") as caught:
+        parse_program(source, filename="variable.aspf")
+
+    assert caught.value.location.line == 2
+    assert caught.value.location.column == 17
 
 
 @pytest.mark.parametrize(
