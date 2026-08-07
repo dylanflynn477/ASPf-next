@@ -4,14 +4,23 @@
 
 The first milestone follows this explicit pipeline:
 
-```text
-legacy syntax
-  -> compatibility frontend
-  -> ASP{f} IR
-  -> reference lowering
-  -> Clingo
-  -> normalized model output
+```mermaid
+flowchart TD
+    source["ASP{f} source<br/>legacy syntax"] --> scanner["Location-aware scanner"]
+    scanner --> frontend["Compatibility frontend<br/>and validation"]
+    frontend --> ir["Typed ASP{f} IR"]
+    ir --> lowering["Reference lowering<br/>implemented backend"]
+    lowering --> ordinary["Ordinary Clingo program"]
+    ordinary --> clingo["Clingo 5.8"]
+    clingo --> output["Normalized ASP{f}-style<br/>model output"]
+
+    ir -. planned research .-> native["Future native backend<br/>theory atoms + custom propagator<br/>not implemented"]
+
+    classDef planned stroke-dasharray: 5 5,color:#666;
+    class native planned;
 ```
+
+The solid path is implemented. The dashed branch is architecture research only.
 
 Each boundary has a distinct responsibility:
 

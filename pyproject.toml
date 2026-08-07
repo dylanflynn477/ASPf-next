@@ -4,21 +4,38 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aspf-next"
-version = "0.1.0"
-description = "A compatibility-first clean-room ASP{f} frontend for Clingo 5.8"
+version = "0.1.0a1"
+description = "Experimental clean-room ASP{f} compatibility frontend for Clingo 5.8"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 authors = [{ name = "Dylan Flynn" }]
+keywords = [
+  "answer-set-programming",
+  "asp",
+  "clingo",
+  "logic-programming",
+  "non-herbrand-functions",
+  "research-software",
+]
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Science/Research",
   "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = ["clingo>=5.8,<5.9"]
+
+[project.urls]
+Homepage = "https://github.com/dylanflynn477/ASPf-next"
+Repository = "https://github.com/dylanflynn477/ASPf-next"
+Documentation = "https://github.com/dylanflynn477/ASPf-next/tree/main/docs"
+Issues = "https://github.com/dylanflynn477/ASPf-next/issues"
 
 [project.optional-dependencies]
 dev = [
