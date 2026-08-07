@@ -1,0 +1,48 @@
+# Positive ground `#!=` development notes
+
+## Status
+
+This is an unreleased development increment. It has not been assigned a release
+number and does not change the `0.1.0a1` package metadata.
+
+## Added surface
+
+The frontend accepts `#!=` only when it is a complete, positive, ground rule-body
+literal:
+
+```asp
+#nherb balance/1.
+balance(account1) #= 500.
+different :- balance(account1) #!= 600.
+```
+
+The left operand must be a declared ground non-Herbrand application. The right
+operand must be an integer, symbolic constant, or string. The literal is true
+only when the application has a defined value different from the right operand.
+If the application is undefined, the literal is false.
+
+## Reference lowering
+
+The body literal above lowers to the equivalent of:
+
+```asp
+__aspf_value(balance(account1),_AspfNeq0), _AspfNeq0 != 600
+```
+
+The lookup atom enforces definedness before the ordinary Clingo comparison.
+ASPf-next does not lower `#!=` to `not __aspf_value(...)` and does not interpret
+it as negation-as-failure.
+
+## Still unsupported
+
+- `#!=` in facts or rule heads;
+- default-negated `#!=`;
+- application-to-application comparisons;
+- variables or arithmetic inside n-atoms;
+- n-atoms in aggregates, choices, conditional literals, or disjunctions;
+- `#<`, `#<=`, `#>`, and `#>=`; and
+- theory atoms, a native propagator, or any grounding-efficiency claim.
+
+See the [supported-language document](../supported-language.md) for the
+normative boundary and the [traceability matrix](../specification-traceability.md)
+for the primary semantic basis.

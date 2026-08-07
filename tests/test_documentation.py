@@ -23,6 +23,8 @@ def test_readme_contains_required_scope_and_attribution() -> None:
     assert "Status: pre-alpha" in readme
     assert "examples/01_basic_assignment.aspf" in readme
     assert "docs/specification-traceability.md" in readme
+    assert "docs/releases/not-equal-development.md" in readme
+    assert "undefined" in readme and "#!=" in readme
 
 
 def test_architecture_documents_required_pipeline_and_future_backend() -> None:
@@ -59,7 +61,7 @@ def test_release_metadata_is_consistent() -> None:
     readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
     portfolio = (PROJECT_ROOT / "docs" / "portfolio-copy.md").read_text(encoding="utf-8")
     assert "0.1.0-alpha - Unreleased" in changelog
-    assert "release has not been published" in readme
+    assert "release has not been published" in " ".join(readme.split())
     assert "Current release | Not yet published" in portfolio
 
 
@@ -73,6 +75,7 @@ def test_productization_documents_exist() -> None:
         "docs/demo-recording.md",
         "docs/portfolio-copy.md",
         "docs/releases/0.1.0-alpha.md",
+        "docs/releases/not-equal-development.md",
         ".github/ISSUE_TEMPLATE/bug_report.yml",
         ".github/ISSUE_TEMPLATE/feature_request.yml",
         ".github/pull_request_template.md",
@@ -94,6 +97,7 @@ def test_conformance_traceability_and_decisions_cover_the_current_boundary() -> 
         "Assignment fact",
         "Assignment rule head",
         "Positive body equality",
+        "Positive body inequality",
         "Constants and values",
         "Ordinary ASP interaction",
         "Variables and arithmetic",
@@ -116,6 +120,30 @@ def test_conformance_traceability_and_decisions_cover_the_current_boundary() -> 
         assert "## Context" in decision
         assert "## Decision" in decision
         assert "## Consequences" in decision
+
+
+def test_not_equal_documentation_records_the_semantic_boundary() -> None:
+    required_documents = (
+        "README.md",
+        "docs/supported-language.md",
+        "docs/compatibility-matrix.md",
+        "docs/quickstart.md",
+        "docs/roadmap.md",
+        "CHANGELOG.md",
+        "docs/releases/not-equal-development.md",
+    )
+
+    for relative_path in required_documents:
+        content = (PROJECT_ROOT / relative_path).read_text(encoding="utf-8")
+        assert "#!=" in content, relative_path
+
+    supported = (PROJECT_ROOT / "docs" / "supported-language.md").read_text(encoding="utf-8")
+    development = (PROJECT_ROOT / "docs" / "releases" / "not-equal-development.md").read_text(
+        encoding="utf-8"
+    )
+    assert "undefined application makes the literal false" in " ".join(supported.split())
+    assert "not __aspf_value" in development
+    assert "has not been assigned a release number" in " ".join(development.split())
 
 
 def test_relative_markdown_links_resolve() -> None:

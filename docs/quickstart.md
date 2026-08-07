@@ -1,6 +1,6 @@
 # Quickstart
 
-This tutorial walks through the runnable milestone 0.1 surface. It is an
+This tutorial walks through the runnable development surface. It is an
 introduction, not the normative language specification; consult
 [`supported-language.md`](supported-language.md) for the exact boundary.
 
@@ -81,10 +81,26 @@ solvent(account1) :- balance(account1) #= 500.
 ```
 
 The rule derives `solvent(account1)` because the application has the tested
-value. Milestone 0.1 requires n-atoms to be ground and does not support default
+value. The current frontend requires n-atoms to be ground and does not support default
 negation.
 
-## 6. Inspect the reference lowering
+## 6. Compare with a different defined value
+
+Positive ground inequality is supported only as a complete body literal:
+
+```asp
+#nherb balance/1.
+
+balance(account1) #= 500.
+different(account1) :- balance(account1) #!= 600.
+```
+
+This derives `different(account1)` because the application is defined as `500`.
+If no value had been assigned to `balance(account1)`, the `#!=` literal would
+be false. It means “defined and different,” not “no matching equality was
+found.”
+
+## 7. Inspect the reference lowering
 
 ```console
 aspf hello.aspf --emit-lowered
@@ -101,7 +117,16 @@ The first atom represents the value assignment. The constraint enforces at most
 one value per ground key. This is an inspectable reference translation, not a
 native Clingo propagator.
 
-## 7. Use JSON output
+An inequality such as `balance(account1) #!= 600` lowers to the equivalent of:
+
+```asp
+__aspf_value(balance(account1),_AspfNeq0), _AspfNeq0 != 600
+```
+
+The required `__aspf_value/2` lookup is what makes an undefined application
+fail the comparison.
+
+## 8. Use JSON output
 
 ```console
 aspf examples/03_conditional_assignment.aspf --json
@@ -132,7 +157,7 @@ aspf examples/03_conditional_assignment.aspf --json
 The JSON object separates ordinary shown atoms from reconstructed assignments.
 Use `--models 0` when every model is required.
 
-## 8. Understand partiality
+## 9. Understand partiality
 
 Run:
 
@@ -145,7 +170,7 @@ therefore includes `balance(account2)#=500` and no assignment for `account1`.
 Declarations introduce possible function applications; they do not add values
 or a totality rule.
 
-## 9. Understand conflicting assignments
+## 10. Understand conflicting assignments
 
 ```console
 aspf examples/04_conflicting_values.aspf
@@ -158,7 +183,7 @@ UNSATISFIABLE
 The same ground application is assigned both `500` and `600`, violating the
 functionality constraint.
 
-## 10. Recognize unsupported syntax
+## 11. Recognize unsupported syntax
 
 For example, `#>=` is outside milestone 0.1:
 
@@ -170,7 +195,7 @@ ok :- balance(account1) #>= 500.
 Running it produces a location-aware error resembling:
 
 ```text
-aspf: error: unsupported.aspf:2:25: operator '#>=' is not supported in the first milestone; only '#=' is
+aspf: error: unsupported.aspf:2:25: operator '#>=' is not supported; only '#=' and restricted positive body '#!=' are supported
 ```
 
 The same explicit rejection policy covers arithmetic, variables, aggregates

@@ -8,7 +8,7 @@
 ASPf-next is an experimental, independent clean-room modernization of Marcello
 Balduccini's ASP{f} language. It provides a compatibility frontend for modern
 Clingo 5.8, bringing partial non-Herbrand function notation to a tested Python
-CLI while keeping milestone 0.1's semantic boundary deliberately narrow.
+CLI while keeping its semantic boundary deliberately narrow.
 
 ## What is ASP{f}?
 
@@ -54,7 +54,7 @@ Continue with the [five guided examples](examples/README.md) or the
 a conditional assignment, a conflicting-value program, and ordinary ASP model
 enumeration.
 
-## What milestone 0.1 can do
+## What the current development branch can do
 
 The implemented slice supports:
 
@@ -62,6 +62,8 @@ The implemented slice supports:
 - ground function applications and `#=` assignments as facts or complete rule
   heads;
 - positive, ground `#=` comparisons as complete rule-body literals;
+- positive, ground `#!=` comparisons as complete rule-body literals, with both
+  operands required to be defined;
 - integer, symbolic constant, and string values;
 - ordinary Clingo statements that do not contain ASP{f} syntax in this slice;
 - `%` and `%* ... *%` comments, quoted strings, multiline statements, and
@@ -94,6 +96,12 @@ means the application is undefined. Models are then normalized back to notation
 such as `balance(account1)#=500`, without exposing the private `__aspf_`
 predicates in normal output.
 
+A supported body inequality first looks up the application's value and then
+compares it with the ground right operand. For example,
+`different :- balance(account1) #!= 600.` succeeds only when
+`balance(account1)` has a defined value other than `600`. It is false when the
+application is undefined; `#!=` is never interpreted as the absence of `#=`.
+
 ```text
 ASP{f} source → scanner → validation → typed IR → reference lowering
                → Clingo 5.8 → normalized ASP{f}-style output
@@ -124,9 +132,10 @@ aspf examples/05_multiple_models.aspf --models 0
 
 ## Current limitations
 
-Milestone 0.1 deliberately rejects:
+The current development branch deliberately rejects:
 
-- `#!=`, `#<`, `#<=`, `#>`, and `#>=`;
+- `#!=` in rule heads or anywhere except a complete positive body literal;
+- `#<`, `#<=`, `#>`, and `#>=`;
 - default-negated n-atoms;
 - variables, including `_v` non-Herbrand variables, inside n-atoms;
 - arithmetic expressions inside n-atoms;
@@ -166,15 +175,16 @@ interchangeable. ASPf-next is not affiliated with Potassco.
 - [Provenance and clean-room policy](docs/provenance.md)
 - [Roadmap](docs/roadmap.md)
 - [0.1.0-alpha release notes](docs/releases/0.1.0-alpha.md)
+- [`#!=` development notes](docs/releases/not-equal-development.md)
 
 ## Roadmap and status
 
-The codebase is prepared for `0.1.0-alpha` (Python package version `0.1.0a1`),
-but that release has not been published. This remains pre-alpha research
-software. The [roadmap](docs/roadmap.md) separates the shipped reference
-frontend from the 0.2 conformance foundation, possible later compatibility
-work, and longer-term native-backend research. Those directions are proposals,
-not promises.
+The package metadata remains `0.1.0a1`, and that release has not been
+published. The current `#!=` work is an unreleased development increment and
+has not been assigned a release number. This remains pre-alpha research
+software. The [roadmap](docs/roadmap.md) separates implemented reference
+frontend work from later compatibility candidates and longer-term
+native-backend research. Those directions are proposals, not promises.
 
 ## Development and attribution
 
