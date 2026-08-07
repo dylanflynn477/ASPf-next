@@ -254,9 +254,45 @@ def test_solver_rejects_user_identifier_in_internal_namespace() -> None:
         solve("__aspf_injected(a).\n")
 
 
-def test_solver_rejects_declared_symbol_as_ordinary_predicate() -> None:
-    with pytest.raises(UnsupportedSyntaxError, match="may only be used as the key"):
-        solve("#nherb balance/1.\nbalance(account1).\n")
+def test_solver_preserves_declared_symbol_as_ordinary_predicate() -> None:
+    result = solve("#nherb balance/1.\nbalance(account1).\n")
+
+    assert result.models[0].ordinary_atoms == ("balance(account1)",)
+    assert result.models[0].assignments == ()
+
+
+def test_declared_symbol_has_separate_ordinary_and_non_herbrand_meanings() -> None:
+    result = solve("#nherb k/1.\nk(1) #= 5.\nordinary(k(1)).\n")
+
+    assert result.models[0].ordinary_atoms == ("ordinary(k(1))",)
+    assert result.models[0].assignments == ("k(1)#=5",)
+
+
+def test_compound_herbrand_values_preserve_identity() -> None:
+    result = solve(
+        "#nherb f/1.\nf(a) #= wrapper(k(1)).\n"
+        "same :- f(a) #= wrapper(k(1)).\n"
+        "different :- f(a) #!= wrapper(k(2)).\n"
+    )
+
+    assert result.models[0].ordinary_atoms == ("different", "same")
+    assert result.models[0].assignments == ("f(a)#=wrapper(k(1))",)
+
+
+def test_declared_and_undeclared_right_applications_have_different_definedness() -> None:
+    undeclared = solve("#nherb f/1.\nf(a) #= k(1).\nsame :- f(a) #= k(1).\n")
+    declared = solve("#nherb f/1.\n#nherb k/1.\nf(a) #= value.\nsame :- f(a) #= k(1).\n")
+
+    assert "same" in undeclared.models[0].ordinary_atoms
+    assert "same" not in declared.models[0].ordinary_atoms
+
+
+def test_same_name_at_multiple_arities_keeps_values_distinct() -> None:
+    result = solve(
+        "#nherb f/0.\n#nherb f(X).\n#nherb f/2.\nf #= zero.\nf(a) #= one.\nf(a,b) #= two.\n"
+    )
+
+    assert result.models[0].assignments == ("f#=zero", "f(a)#=one", "f(a,b)#=two")
 
 
 def test_domain_safe_variable_comparisons_preserve_definedness() -> None:

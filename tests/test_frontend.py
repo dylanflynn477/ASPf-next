@@ -29,6 +29,59 @@ def test_parses_declaration_and_basic_assignment() -> None:
     assert assignment.value.text == "500"
 
 
+def test_parses_historical_application_style_declarations() -> None:
+    program = parse_program(
+        "#nherb f(X).\n#nherb pair(Left,Right).\nf(a) #= one.\npair(a,b) #= two.\n"
+    )
+
+    assert [(item.name, item.arity) for item in program.declarations] == [
+        ("f", 1),
+        ("pair", 2),
+    ]
+
+
+def test_equivalent_declarations_are_harmless_and_deduplicated() -> None:
+    program = parse_program("#nherb f/1.\n#nherb f(X).\n#nherb f/1.\nf(a) #= value.\n")
+
+    assert [(item.name, item.arity) for item in program.declarations] == [("f", 1)]
+
+
+@pytest.mark.parametrize(
+    "declaration",
+    ["#nherb f().", "#nherb f(1).", "#nherb f(X+1).", "#nherb f(g(X))."],
+)
+def test_application_style_declarations_require_placeholders(declaration: str) -> None:
+    with pytest.raises(UnsupportedSyntaxError, match="placeholder-only") as caught:
+        parse_program(declaration, filename="declaration.aspf")
+
+    assert caught.value.location.filename == "declaration.aspf"
+    assert caught.value.location.line == 1
+    assert caught.value.location.column == 1
+
+
+def test_same_name_declarations_at_multiple_arities_are_distinct() -> None:
+    program = parse_program(
+        "#nherb f/0.\n#nherb f(X).\n#nherb f/2.\nf #= zero.\nf(a) #= one.\nf(a,b) #= two.\n"
+    )
+
+    assert {(item.name, item.arity) for item in program.declarations} == {
+        ("f", 0),
+        ("f", 1),
+        ("f", 2),
+    }
+    assignments = [
+        n_atom
+        for statement in program.statements
+        if isinstance(statement, AspfStatement)
+        for n_atom in statement.n_atoms
+    ]
+    assert [item.target.render() for item in assignments if isinstance(item, Assignment)] == [
+        "f",
+        "f(a)",
+        "f(a,b)",
+    ]
+
+
 def test_parses_positive_body_comparison_and_multiline_rule() -> None:
     program = parse_program(
         """#nherb balance/1.
@@ -112,28 +165,27 @@ def test_reserved_identifier_text_in_comments_and_strings_is_inert() -> None:
 
 
 @pytest.mark.parametrize(
-    ("source", "column"),
+    "source",
     [
-        ("#nherb balance/1.\nbalance(account1).\n", 1),
-        ("#nherb balance/1.\np(balance(account1)).\n", 3),
+        "#nherb balance/1.\nbalance(account1).\n",
+        "#nherb balance/1.\np(balance(account1)).\n",
     ],
 )
-def test_rejects_declared_non_herbrand_symbol_outside_n_atom(source: str, column: int) -> None:
-    with pytest.raises(UnsupportedSyntaxError, match="may only be used as the key") as caught:
-        parse_program(source, filename="misuse.aspf")
+def test_preserves_declared_non_herbrand_symbol_outside_n_atom(source: str) -> None:
+    program = parse_program(source)
 
-    assert caught.value.location.line == 2
-    assert caught.value.location.column == column
+    assert len(program.declarations) == 1
+    assert isinstance(program.statements[0], OrdinaryStatement)
 
 
-def test_rejects_declared_symbol_outside_n_atom_in_mixed_rule() -> None:
+def test_preserves_declared_symbol_outside_n_atom_in_mixed_rule() -> None:
     source = "#nherb balance/1.\np(balance(a)) :- balance(a) #= 1.\n"
 
-    with pytest.raises(UnsupportedSyntaxError, match="may only be used as the key") as caught:
-        parse_program(source, filename="mixed.aspf")
+    program = parse_program(source, filename="mixed.aspf")
 
-    assert caught.value.location.line == 2
-    assert caught.value.location.column == 3
+    statement = program.statements[0]
+    assert isinstance(statement, AspfStatement)
+    assert len(statement.n_atoms) == 1
 
 
 def test_declared_symbol_text_in_comments_and_strings_is_inert() -> None:
@@ -155,7 +207,7 @@ def test_rejects_declared_zero_arity_symbol_as_n_atom_value() -> None:
 def test_rejects_declared_zero_arity_symbol_as_n_atom_argument() -> None:
     source = "#nherb current/0.\n#nherb reading/1.\nreading(current) #= active.\n"
 
-    with pytest.raises(UnsupportedSyntaxError, match="may only be used as the key") as caught:
+    with pytest.raises(UnsupportedSyntaxError, match="nested declared") as caught:
         parse_program(source, filename="argument.aspf")
 
     assert caught.value.location.line == 3
@@ -403,8 +455,8 @@ label("balance(account1) #!= 500").
             "only as a complete positive rule-body literal",
         ),
         (
-            "#nherb first/1.\nfirst(a) #= ordinary(value).\n",
-            "non-Herbrand function 'ordinary' is not declared",
+            "#nherb first/1.\nfirst(a) #= ordinary(Value).\n",
+            "variables as n-atom values",
         ),
     ],
 )
@@ -421,7 +473,7 @@ def test_rejects_undeclared_and_wrong_arity_applications() -> None:
     with pytest.raises(UnsupportedSyntaxError, match="not declared"):
         parse_program("missing(a) #= 1.")
 
-    with pytest.raises(UnsupportedSyntaxError, match="expects 2 argument"):
+    with pytest.raises(UnsupportedSyntaxError, match=r"pair/1.*declared arities: 2"):
         parse_program("#nherb pair/2.\npair(a) #= yes.")
 
 
@@ -437,6 +489,55 @@ def test_accepts_integer_symbol_string_and_ordinary_ground_function_terms() -> N
         '"lot-a"',
     ]
     assert assignment.value.text == "available"
+
+
+def test_accepts_nested_ground_herbrand_assignment_value() -> None:
+    program = parse_program("#nherb f/1.\nf(a) #= wrapper(k(1),inner(value)).\n")
+
+    statement = program.statements[0]
+    assert isinstance(statement, AspfStatement)
+    assignment = statement.n_atoms[0]
+    assert isinstance(assignment, Assignment)
+    assert assignment.value.kind is GroundTermKind.FUNCTION
+    assert assignment.value.text == "wrapper(k(1),inner(value))"
+
+
+def test_rejects_declared_application_nested_in_herbrand_value() -> None:
+    source = "#nherb f/1.\n#nherb k/1.\nf(a) #= wrapper(k(1)).\n"
+
+    with pytest.raises(UnsupportedSyntaxError, match="declared non-Herbrand application") as caught:
+        parse_program(source, filename="nested-value.aspf")
+
+    assert caught.value.location.line == 3
+    assert caught.value.location.column == source.splitlines()[2].index("k(1)") + 1
+
+
+def test_undeclared_right_function_is_scalar_but_declared_right_function_is_application() -> None:
+    undeclared = parse_program("#nherb f/1.\nsame :- f(a) #= k(1).\n")
+    declared = parse_program("#nherb f/1.\n#nherb k/1.\nsame :- f(a) #= k(1).\n")
+
+    undeclared_statement = undeclared.statements[0]
+    declared_statement = declared.statements[0]
+    assert isinstance(undeclared_statement, AspfStatement)
+    assert isinstance(declared_statement, AspfStatement)
+    undeclared_comparison = undeclared_statement.n_atoms[0]
+    declared_comparison = declared_statement.n_atoms[0]
+    assert isinstance(undeclared_comparison, BodyComparison)
+    assert isinstance(declared_comparison, BodyComparison)
+    assert isinstance(undeclared_comparison.right, ScalarOperand)
+    assert undeclared_comparison.right.kind is GroundTermKind.FUNCTION
+    assert isinstance(declared_comparison.right, ApplicationOperand)
+
+
+def test_undeclared_arity_of_declared_name_remains_a_herbrand_value() -> None:
+    program = parse_program("#nherb f/1.\n#nherb k/2.\nsame :- f(a) #= k(1).\n")
+
+    statement = program.statements[0]
+    assert isinstance(statement, AspfStatement)
+    comparison = statement.n_atoms[0]
+    assert isinstance(comparison, BodyComparison)
+    assert isinstance(comparison.right, ScalarOperand)
+    assert comparison.right.text == "k(1)"
 
 
 def test_accepts_zero_arity_non_herbrand_function() -> None:
@@ -661,8 +762,8 @@ def test_rejects_unsafe_variables_from_either_application(body: str, token: str)
 @pytest.mark.parametrize(
     ("right", "message", "token"),
     [
-        ("missing(A)", "non-Herbrand function 'missing' is not declared", "missing"),
-        ("expected(A,B)", "expects 1 argument", "expected"),
+        ("missing(A)", "variables as n-atom values", "A"),
+        ("expected(A,B)", "variables as n-atom values", "A"),
         ("expected(_V)", "non-Herbrand variables", "_V"),
         ("expected(owner(A))", "complete direct arguments", "A"),
     ],

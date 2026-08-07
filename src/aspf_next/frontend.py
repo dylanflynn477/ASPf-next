@@ -38,6 +38,11 @@ from aspf_next.source import (
 )
 
 _DECLARATION = re.compile(r"^\s*#nherb\s+([a-z][A-Za-z0-9_]*)\s*/\s*(\d+)\s*\.\s*$")
+_APPLICATION_DECLARATION = re.compile(
+    r"^\s*#nherb\s+([a-z][A-Za-z0-9_]*)\s*\(\s*"
+    r"((?:[A-Z][A-Za-z0-9_]*|_)(?:\s*,\s*(?:[A-Z][A-Za-z0-9_]*|_))*)"
+    r"\s*\)\s*\.\s*$"
+)
 _GLOBAL_DECLARATION = re.compile(r"#nherb\s*\.")
 _LEGACY_VISIBILITY = re.compile(r"#(?:show|hide)\s+#nherb\b")
 _SYMBOLIC_CONSTANT = re.compile(r"[a-z][A-Za-z0-9_]*")
@@ -46,8 +51,9 @@ _FUNCTION_TERM = re.compile(r"([a-z][A-Za-z0-9_]*)\s*\(")
 _ORDINARY_VARIABLE = re.compile(r"(?<![A-Za-z0-9_])([A-Z][A-Za-z0-9_]*)(?![A-Za-z0-9_])")
 _NON_HERBRAND_VARIABLE = re.compile(r"(?<![A-Za-z0-9_])(_[A-Za-z0-9_]*)(?![A-Za-z0-9_])")
 _VARIABLE = re.compile(r"(?<![A-Za-z0-9_])([A-Z][A-Za-z0-9_]*|_[A-Za-z0-9_]*)(?![A-Za-z0-9_])")
-_EXECUTABLE_IDENTIFIER = re.compile(r"(?<![A-Za-z0-9_])([a-z][A-Za-z0-9_]*)(?![A-Za-z0-9_])")
 _RESERVED_IDENTIFIER = re.compile(r"(?<![A-Za-z0-9_])(__aspf_[A-Za-z0-9_]*)(?![A-Za-z0-9_])")
+
+_DeclarationKey = tuple[str, int]
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,7 +75,7 @@ def parse_sources(sources: Sequence[SourceText]) -> Program:
 
     prepared: list[tuple[SourceText, tuple[_StatementContext, ...], set[int]]] = []
     declarations: list[NHerbDeclaration] = []
-    declared: dict[str, int] = {}
+    declared: set[_DeclarationKey] = set()
     for source in sources:
         scanned = split_statements(source)
         contexts = tuple(_context(statement) for statement in scanned)
@@ -77,15 +83,10 @@ def parse_sources(sources: Sequence[SourceText]) -> Program:
             _reject_reserved_identifier(context, source)
         source_declarations, declaration_indexes = _collect_declarations(contexts, source)
         for declaration in source_declarations:
-            previous_arity = declared.get(declaration.name)
-            if previous_arity is not None and previous_arity != declaration.arity:
-                raise UnsupportedSyntaxError(
-                    f"non-Herbrand function '{declaration.name}' was already declared with "
-                    f"arity {previous_arity}",
-                    source.location(declaration.span.start),
-                )
-            declared[declaration.name] = declaration.arity
-            declarations.append(declaration)
+            key = (declaration.name, declaration.arity)
+            if key not in declared:
+                declared.add(key)
+                declarations.append(declaration)
         prepared.append((source, contexts, declaration_indexes))
 
     statements: list[ProgramStatement] = []
@@ -118,7 +119,6 @@ def _collect_declarations(
 ) -> tuple[list[NHerbDeclaration], set[int]]:
     declarations: list[NHerbDeclaration] = []
     indexes: set[int] = set()
-    declared: dict[str, int] = {}
     for index, context in enumerate(contexts):
         code = context.code
         visibility = _LEGACY_VISIBILITY.search(context.executable)
@@ -139,22 +139,27 @@ def _collect_declarations(
                 "'#nherb f/n.'",
             )
         match = _DECLARATION.fullmatch(code)
-        if not match:
+        application_match = _APPLICATION_DECLARATION.fullmatch(code)
+        if not match and not application_match:
             if "#nherb" in context.executable:
                 marker = context.executable.index("#nherb")
-                _unsupported(source, context, marker, "unsupported #nherb declaration syntax")
+                _unsupported(
+                    source,
+                    context,
+                    marker,
+                    "unsupported #nherb declaration syntax; use '#nherb f/n.' or "
+                    "placeholder-only '#nherb f(X,...).'",
+                )
             continue
-        name = match.group(1)
-        arity = int(match.group(2))
-        if name in declared and declared[name] != arity:
-            _unsupported(
-                source,
-                context,
-                match.start(1),
-                f"non-Herbrand function '{name}' was already declared with arity {declared[name]}",
-            )
-        declared[name] = arity
-        local_start = match.start(1)
+        if match:
+            name = match.group(1)
+            arity = int(match.group(2))
+            local_start = match.start(1)
+        else:
+            assert application_match is not None
+            name = application_match.group(1)
+            arity = len([*_VARIABLE.finditer(application_match.group(2))])
+            local_start = application_match.start(1)
         absolute_start = context.statement.span.start + local_start
         declarations.append(
             NHerbDeclaration(name, arity, SourceSpan(absolute_start, absolute_start + len(name)))
@@ -164,7 +169,7 @@ def _collect_declarations(
 
 
 def _parse_statement(
-    context: _StatementContext, source: SourceText, declared: dict[str, int]
+    context: _StatementContext, source: SourceText, declared: set[_DeclarationKey]
 ) -> ProgramStatement | None:
     text = context.statement.text
     if not text:
@@ -181,7 +186,6 @@ def _parse_statement(
 
     operators = _find_n_atom_operators(context.executable)
     if not operators:
-        _reject_declared_symbols(context, source, declared, ())
         return OrdinaryStatement(text, context.statement.span)
 
     separator = _find_top_level(context, ":-")
@@ -218,7 +222,6 @@ def _parse_statement(
         )
 
     parsed_n_atoms = tuple(n_atoms)
-    _reject_declared_symbols(context, source, declared, parsed_n_atoms)
     _validate_n_atom_variable_safety(context, source, parsed_n_atoms, separator)
     return AspfStatement(text, context.statement.span, parsed_n_atoms)
 
@@ -231,35 +234,6 @@ def _reject_reserved_identifier(context: _StatementContext, source: SourceText) 
             context,
             match.start(1),
             "identifiers beginning with '__aspf_' are reserved for aspf-next internals",
-        )
-
-
-def _reject_declared_symbols(
-    context: _StatementContext,
-    source: SourceText,
-    declared: dict[str, int],
-    n_atoms: tuple[NAtom, ...],
-) -> None:
-    key_name_spans = tuple(
-        (
-            operand.span.start - context.statement.span.start,
-            operand.span.start - context.statement.span.start + len(operand.application.name),
-        )
-        for n_atom in n_atoms
-        for operand in _application_operands(n_atom)
-    )
-    for match in _EXECUTABLE_IDENTIFIER.finditer(context.executable):
-        name = match.group(1)
-        if name not in declared:
-            continue
-        if any(start <= match.start(1) < end for start, end in key_name_spans):
-            continue
-        _unsupported(
-            source,
-            context,
-            match.start(1),
-            f"declared non-Herbrand function '{name}/{declared[name]}' may only be used as "
-            "the key of a supported n-atom",
         )
 
 
@@ -292,7 +266,7 @@ def _find_top_level(context: _StatementContext, needle: str) -> int | None:
 def _parse_n_atom(
     context: _StatementContext,
     source: SourceText,
-    declared: dict[str, int],
+    declared: set[_DeclarationKey],
     operator_offset: int,
     operator: NAtomOperator,
     is_body: bool,
@@ -410,7 +384,7 @@ def _parse_n_atom(
 def _parse_application_left(
     context: _StatementContext,
     source: SourceText,
-    declared: dict[str, int],
+    declared: set[_DeclarationKey],
     operator_offset: int,
     operator: NAtomOperator,
 ) -> ApplicationOperand:
@@ -464,7 +438,7 @@ def _parse_application_left(
 def _parse_right_operand(
     context: _StatementContext,
     source: SourceText,
-    declared: dict[str, int],
+    declared: set[_DeclarationKey],
     start: int,
     end: int,
 ) -> ComparisonOperand:
@@ -472,7 +446,7 @@ def _parse_right_operand(
     stripped = code.strip()
     term_start = start + (len(code) - len(code.lstrip()))
     term_end = term_start + len(stripped)
-    if _SYMBOLIC_CONSTANT.fullmatch(stripped) and stripped in declared:
+    if _SYMBOLIC_CONSTANT.fullmatch(stripped) and (stripped, 0) in declared:
         return _parse_application_operand(
             context, source, declared, term_start, term_end, side="right operand"
         )
@@ -481,9 +455,11 @@ def _parse_right_operand(
     if function_match and stripped.endswith(")"):
         open_offset = stripped.find("(")
         if _matching_open_paren(stripped, len(stripped) - 1) == open_offset:
-            return _parse_application_operand(
-                context, source, declared, term_start, term_end, side="right operand"
-            )
+            argument_ranges = _split_argument_ranges(stripped, open_offset + 1, len(stripped) - 1)
+            if (function_match.group(1), len(argument_ranges)) in declared:
+                return _parse_application_operand(
+                    context, source, declared, term_start, term_end, side="right operand"
+                )
 
     term = _parse_ground_term(
         context.statement.text[start:end],
@@ -500,7 +476,7 @@ def _parse_right_operand(
 def _parse_application_operand(
     context: _StatementContext,
     source: SourceText,
-    declared: dict[str, int],
+    declared: set[_DeclarationKey],
     start: int,
     end: int,
     *,
@@ -532,15 +508,20 @@ def _parse_application_operand(
         name = match.group(1)
         argument_ranges = _split_argument_ranges(text, open_offset + 1, len(text) - 1)
 
-    if name not in declared:
-        _unsupported(source, context, start, f"non-Herbrand function '{name}' is not declared")
-    if len(argument_ranges) != declared[name]:
+    arity = len(argument_ranges)
+    if (name, arity) not in declared:
+        declared_arities = sorted(
+            item_arity for item_name, item_arity in declared if item_name == name
+        )
+        if not declared_arities:
+            _unsupported(source, context, start, f"non-Herbrand function '{name}' is not declared")
+        rendered_arities = ", ".join(str(item) for item in declared_arities)
         _unsupported(
             source,
             context,
             start,
-            f"non-Herbrand function '{name}' expects {declared[name]} argument(s), "
-            f"got {len(argument_ranges)}",
+            f"non-Herbrand function '{name}/{arity}' is not declared; declared arities: "
+            f"{rendered_arities}",
         )
     arguments = [
         _parse_application_argument(
@@ -563,7 +544,7 @@ def _parse_application_argument(
     context: _StatementContext,
     source: SourceText,
     local_offset: int,
-    declared: dict[str, int],
+    declared: set[_DeclarationKey],
 ) -> ApplicationArgument:
     stripped = text.strip()
     term_offset = local_offset + (len(text) - len(text.lstrip()))
@@ -819,7 +800,7 @@ def _parse_ground_term(
     context: _StatementContext,
     source: SourceText,
     local_offset: int,
-    declared: dict[str, int],
+    declared: set[_DeclarationKey],
     as_value: bool,
 ) -> GroundTerm:
     stripped = text.strip()
@@ -858,14 +839,7 @@ def _parse_ground_term(
     if _INTEGER.fullmatch(stripped):
         return GroundTerm(stripped, GroundTermKind.INTEGER)
     if _SYMBOLIC_CONSTANT.fullmatch(stripped):
-        return GroundTerm(stripped, GroundTermKind.SYMBOL)
-    if _is_string(stripped):
-        return GroundTerm(stripped, GroundTermKind.STRING)
-
-    function_match = _FUNCTION_TERM.match(stripped)
-    if function_match and stripped.endswith(")"):
-        function_name = function_match.group(1)
-        if function_name in declared:
+        if (stripped, 0) in declared:
             message = (
                 "a declared non-Herbrand application cannot be used as the value of another "
                 "non-Herbrand application"
@@ -873,25 +847,40 @@ def _parse_ground_term(
                 else "nested declared non-Herbrand applications are not supported"
             )
             _unsupported(source, context, term_offset, message)
-        if as_value:
+        return GroundTerm(stripped, GroundTermKind.SYMBOL)
+    if _is_string(stripped):
+        return GroundTerm(stripped, GroundTermKind.STRING)
+
+    function_match = _FUNCTION_TERM.match(stripped)
+    if function_match and stripped.endswith(")"):
+        function_name = function_match.group(1)
+        open_offset = stripped.find("(")
+        if _matching_open_paren(stripped, len(stripped) - 1) != open_offset:
             _unsupported(
                 source,
                 context,
                 term_offset,
-                "only integer, symbolic constant, and string values are supported",
+                "arithmetic or unsupported term syntax inside n-atoms is not supported",
             )
-        open_offset = stripped.find("(")
-        if _matching_open_paren(stripped, len(stripped) - 1) == open_offset:
-            for part in _split_arguments(stripped[open_offset + 1 : -1]):
-                _parse_ground_term(
-                    part,
-                    context=context,
-                    source=source,
-                    local_offset=term_offset + open_offset + 1,
-                    declared=declared,
-                    as_value=as_value,
-                )
-            return GroundTerm(stripped, GroundTermKind.FUNCTION)
+        argument_ranges = _split_argument_ranges(stripped, open_offset + 1, len(stripped) - 1)
+        if (function_name, len(argument_ranges)) in declared:
+            message = (
+                "a declared non-Herbrand application cannot be used as the value of another "
+                "non-Herbrand application"
+                if as_value
+                else "nested declared non-Herbrand applications are not supported"
+            )
+            _unsupported(source, context, term_offset, message)
+        for argument_start, argument_end in argument_ranges:
+            _parse_ground_term(
+                stripped[argument_start:argument_end],
+                context=context,
+                source=source,
+                local_offset=term_offset + argument_start,
+                declared=declared,
+                as_value=as_value,
+            )
+        return GroundTerm(stripped, GroundTermKind.FUNCTION)
 
     _unsupported(
         source,

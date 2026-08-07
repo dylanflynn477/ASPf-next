@@ -1,0 +1,4 @@
+#nherb item/1.
+#nherb item/2.
+item(a) #= one.
+item(a,b) #= two.
