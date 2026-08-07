@@ -158,3 +158,43 @@ def test_lowering_rejects_user_identifier_in_internal_namespace() -> None:
 def test_lowering_rejects_declared_symbol_as_ordinary_term() -> None:
     with pytest.raises(UnsupportedSyntaxError, match="may only be used as the key"):
         lowered("#nherb balance/1.\np(balance(account1)).\n")
+
+
+def test_lowers_domain_safe_variable_assignment_head_without_emitting_a_domain_rule() -> None:
+    result = lowered("#nherb status/1.\nperson(alice;bob).\nstatus(P) #= active :- person(P).\n")
+
+    assert "__aspf_value(status(P),active) :- person(P)." in result
+    assert "person(P) :-" not in result
+
+
+def test_lowers_domain_safe_variable_positive_equality() -> None:
+    result = lowered("#nherb balance/1.\nzero(A) :- account(A), balance(A) #= 0.\n")
+
+    assert "zero(A) :- account(A), __aspf_value(balance(A),0)." in result
+
+
+def test_lowers_domain_safe_variable_not_equal_with_definedness_lookup() -> None:
+    result = lowered("#nherb balance/1.\nnonzero(A) :- account(A), balance(A) #!= 0.\n")
+
+    assert (
+        "nonzero(A) :- account(A), __aspf_value(balance(A),_AspfNeq0), _AspfNeq0 != 0."
+    ) in result
+
+
+def test_lowers_domain_safe_variable_ordered_comparison_with_integer_guard() -> None:
+    result = lowered("#nherb balance/1.\nlow(A) :- account(A), balance(A) #< 1000.\n")
+
+    assert (
+        "low(A) :- account(A), __aspf_value(balance(A),_AspfCmp0), "
+        "__aspf_integer(_AspfCmp0), _AspfCmp0 < 1000."
+    ) in result
+
+
+def test_variable_lowering_keeps_generated_comparison_helpers_collision_free() -> None:
+    result = lowered(
+        "#nherb balance/1.\n"
+        "low(A,_AspfCmp0) :- account(A), marker(_AspfCmp0), balance(A) #< 1000.\n"
+    )
+
+    assert "__aspf_value(balance(A),_AspfCmp1)" in result
+    assert "_AspfCmp1 < 1000" in result

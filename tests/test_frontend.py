@@ -10,6 +10,7 @@ from aspf_next.ir import (
     NAtomOperator,
     NAtomRole,
     OrdinaryStatement,
+    VariableTerm,
 )
 
 
@@ -288,10 +289,12 @@ def test_rejects_ordered_operators_inside_aggregates_and_choices(
 
 
 @pytest.mark.parametrize("operator", ["#<", "#<=", "#>", "#>="])
-def test_rejects_variables_inside_ordered_n_atoms(operator: str) -> None:
+def test_rejects_unsafe_variables_inside_ordered_n_atoms(operator: str) -> None:
     source = f"#nherb balance/1.\nokay :- balance(Account) {operator} 0.\n"
 
-    with pytest.raises(UnsupportedSyntaxError, match="variables") as caught:
+    with pytest.raises(
+        UnsupportedSyntaxError, match="must occur in an ordinary positive"
+    ) as caught:
         parse_program(source, filename="variable.aspf")
 
     assert caught.value.location.line == 2
@@ -381,7 +384,7 @@ label("balance(account1) #!= 500").
         ),
         (
             "#nherb balance/1.\nbalance(X) #= 500.\n",
-            "variables",
+            "must occur in an ordinary positive",
         ),
         (
             "#nherb balance/1.\nbalance(account1) #= 500 + 1.\n",
@@ -432,3 +435,118 @@ def test_accepts_zero_arity_non_herbrand_function() -> None:
     statement = program.statements[0]
     assert isinstance(statement, AspfStatement)
     assert statement.n_atoms[0].application.render() == "mode"
+
+
+def test_parses_domain_safe_variable_as_typed_direct_application_argument() -> None:
+    source = "#nherb balance/1.\nlow(A) :- account(A), balance(A) #< 1000.\n"
+
+    program = parse_program(source, filename="variables.aspf")
+    statement = program.statements[0]
+
+    assert isinstance(statement, AspfStatement)
+    argument = statement.n_atoms[0].application.arguments[0]
+    assert isinstance(argument, VariableTerm)
+    assert argument.name == argument.text == "A"
+    assert program.statements[0].n_atoms[0].application.render() == "balance(A)"
+    assert argument.span.start == source.index("balance(A)") + len("balance(")
+
+
+@pytest.mark.parametrize("operator", ["#=", "#!=", "#<", "#<=", "#>", "#>="])
+@pytest.mark.parametrize("domain_first", [True, False])
+def test_accepts_domain_safe_variable_for_every_operator_regardless_of_body_order(
+    operator: str, domain_first: bool
+) -> None:
+    comparison = f"balance(A) {operator} 0"
+    body = f"account(A), {comparison}" if domain_first else f"{comparison}, account(A)"
+
+    program = parse_program(f"#nherb balance/1.\nok(A) :- {body}.\n")
+
+    statement = program.statements[0]
+    assert isinstance(statement, AspfStatement)
+    assert statement.n_atoms[0].application.render() == "balance(A)"
+
+
+def test_accepts_domain_safe_variable_in_assignment_head() -> None:
+    program = parse_program(
+        "#nherb status/1.\nperson(alice;bob).\nstatus(P) #= active :- person(P).\n"
+    )
+
+    statement = program.statements[1]
+    assert isinstance(statement, AspfStatement)
+    assert statement.n_atoms[0].role is NAtomRole.HEAD
+    assert statement.n_atoms[0].application.render() == "status(P)"
+
+
+@pytest.mark.parametrize("operator", ["#=", "#!=", "#<", "#<=", "#>", "#>="])
+def test_rejects_variable_bound_only_by_n_atom_for_every_operator(operator: str) -> None:
+    source = f"#nherb balance/1.\nok(A) :- balance(A) {operator} 0.\n"
+
+    with pytest.raises(UnsupportedSyntaxError, match="ordinary positive body atom") as caught:
+        parse_program(source, filename="unsafe.aspf")
+
+    assert caught.value.location.line == 2
+    assert caught.value.location.column == source.splitlines()[1].index("balance(A)") + 9
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "not account(A), balance(A) #< 1000",
+        "A = account1, balance(A) #< 1000",
+        "status(A) #= active, balance(A) #< 1000",
+        "-account(A), balance(A) #< 1000",
+    ],
+)
+def test_rejects_unapproved_variable_domain_sources(body: str) -> None:
+    source = f"#nherb balance/1.\n#nherb status/1.\nlow(A) :- {body}.\n"
+
+    with pytest.raises(UnsupportedSyntaxError, match="ordinary positive body atom") as caught:
+        parse_program(source, filename="domain.aspf")
+
+    assert caught.value.location.line == 3
+
+
+def test_rejects_ordinary_variable_as_n_atom_value() -> None:
+    source = "#nherb balance/1.\nvalue(V).\nbalance(account1) #= V :- value(V).\n"
+
+    with pytest.raises(UnsupportedSyntaxError, match="variables as n-atom values") as caught:
+        parse_program(source, filename="value.aspf")
+
+    assert caught.value.location.line == 3
+    assert caught.value.location.column == source.splitlines()[2].index("V") + 1
+
+
+@pytest.mark.parametrize(
+    ("argument", "message"),
+    [
+        ("_V", "non-Herbrand variables"),
+        ("_", "anonymous variables"),
+        ("owner(A)", "complete direct arguments"),
+        ("A + 1", "complete direct arguments"),
+    ],
+)
+def test_rejects_non_herbrand_anonymous_and_nested_argument_variables(
+    argument: str, message: str
+) -> None:
+    source = f"#nherb balance/1.\naccount(a).\nlow :- balance({argument}) #< 1000.\n"
+
+    with pytest.raises(UnsupportedSyntaxError, match=message) as caught:
+        parse_program(source, filename="argument.aspf")
+
+    assert caught.value.location.line == 3
+
+
+def test_comments_and_strings_do_not_provide_or_create_variable_occurrences() -> None:
+    source = """#nherb balance/1.
+low(A) :-
+    label("balance(B) and account(B)"),
+    % balance(C) #< 1000, account(C).
+    balance(A) #< 1000,
+    account(A).
+"""
+
+    program = parse_program(source, filename="inert.aspf")
+
+    statement = program.statements[0]
+    assert isinstance(statement, AspfStatement)
+    assert statement.n_atoms[0].application.render() == "balance(A)"

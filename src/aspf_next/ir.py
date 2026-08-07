@@ -61,11 +61,28 @@ class GroundTerm:
 
 
 @dataclass(frozen=True, slots=True)
-class FunctionApplication:
-    """A declared, ground non-Herbrand function application."""
+class VariableTerm:
+    """A source-level ordinary variable used as a direct application argument."""
 
     name: str
-    arguments: tuple[GroundTerm, ...]
+    span: SourceSpan
+
+    @property
+    def text(self) -> str:
+        """Return the source spelling used by the reference lowering."""
+
+        return self.name
+
+
+ApplicationArgument = GroundTerm | VariableTerm
+
+
+@dataclass(frozen=True, slots=True)
+class FunctionApplication:
+    """A declared non-Herbrand function application."""
+
+    name: str
+    arguments: tuple[ApplicationArgument, ...]
 
     def render(self) -> str:
         if not self.arguments:

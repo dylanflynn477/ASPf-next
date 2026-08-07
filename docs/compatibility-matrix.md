@@ -12,8 +12,9 @@ ASP{f} compatibility.
 | Ground `f(args) #= value.` | Supported | Reference lowering |
 | Conditional assignment head | Supported | Reference lowering |
 | Positive body `#=` | Supported | Reference lowering |
-| Positive ground body `#!=` | Supported | Defined value lookup plus ordinary inequality |
-| Positive fully ground body `#<`, `#<=`, `#>`, `#>=` with integer RHS | Supported | Defined integer lookup plus ordinary comparison |
+| Positive body `#!=` with a ground RHS | Supported | Defined value lookup plus ordinary inequality |
+| Positive body `#<`, `#<=`, `#>`, `#>=` with integer RHS | Supported | Defined integer lookup plus ordinary comparison |
+| Direct domain-safe ordinary variable in an n-atom key | Supported | Source safety validation, then ordinary Clingo grounding |
 | Integer value | Supported | Clingo number symbol |
 | Symbolic constant value | Supported | Clingo function symbol, arity 0 |
 | String value | Supported | Clingo string symbol |
@@ -31,7 +32,10 @@ ASP{f} compatibility.
 | Non-integer right operand for an ordered comparison | Unsupported | Location-aware error |
 | Head or default-negated comparison other than `#=` | Unsupported | Location-aware error |
 | Default-negated n-atoms | Unsupported | Location-aware error |
-| Variables in n-atoms | Unsupported | Location-aware error |
+| Ordinary variable as an n-atom value | Unsupported | Location-aware error |
+| Ordinary variable nested in a key argument | Unsupported | Location-aware error |
+| Key variable without an ordinary positive body domain | Unsupported | Location-aware error |
+| Anonymous `_` in an n-atom | Unsupported | Location-aware error |
 | `_v` non-Herbrand variables | Unsupported | Location-aware error |
 | Arithmetic in n-atoms | Unsupported | Location-aware error |
 | Aggregates containing n-atoms | Unsupported | Location-aware error |

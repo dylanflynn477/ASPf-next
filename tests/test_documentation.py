@@ -25,6 +25,7 @@ def test_readme_contains_required_scope_and_attribution() -> None:
     assert "docs/specification-traceability.md" in readme
     assert "docs/releases/not-equal-development.md" in readme
     assert "docs/releases/ordered-comparisons-development.md" in readme
+    assert "docs/releases/domain-safe-variables-development.md" in readme
     assert "undefined" in readme and "#!=" in readme
 
 
@@ -78,6 +79,7 @@ def test_productization_documents_exist() -> None:
         "docs/releases/0.1.0-alpha.md",
         "docs/releases/not-equal-development.md",
         "docs/releases/ordered-comparisons-development.md",
+        "docs/releases/domain-safe-variables-development.md",
         ".github/ISSUE_TEMPLATE/bug_report.yml",
         ".github/ISSUE_TEMPLATE/feature_request.yml",
         ".github/pull_request_template.md",
@@ -170,6 +172,32 @@ def test_ordered_comparison_documentation_records_numeric_boundary() -> None:
     normalized = " ".join(development.split())
     assert "defined integer value" in normalized
     assert "No coercion is performed" in normalized
+    assert "has not been assigned a release number" in normalized
+
+
+def test_variable_documentation_records_the_source_safety_boundary() -> None:
+    required_documents = (
+        "README.md",
+        "docs/supported-language.md",
+        "docs/compatibility-matrix.md",
+        "docs/quickstart.md",
+        "docs/roadmap.md",
+        "docs/semantics-notes.md",
+        "CHANGELOG.md",
+        "docs/releases/domain-safe-variables-development.md",
+    )
+
+    for relative_path in required_documents:
+        content = (PROJECT_ROOT / relative_path).read_text(encoding="utf-8")
+        normalized = " ".join(content.split())
+        assert "domain-safe" in normalized.lower(), relative_path
+
+    development = (
+        PROJECT_ROOT / "docs" / "releases" / "domain-safe-variables-development.md"
+    ).read_text(encoding="utf-8")
+    normalized = " ".join(development.split())
+    assert "ordinary, unnegated positive symbolic body atom" in normalized
+    assert "Right operands remain ground" in normalized
     assert "has not been assigned a release number" in normalized
 
 

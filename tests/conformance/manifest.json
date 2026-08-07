@@ -312,7 +312,7 @@
         "solve_status": "NOT_RUN",
         "model_count": null,
         "diagnostic": {
-          "contains": "variables, including non-Herbrand variables",
+          "contains": "must occur in an ordinary positive body atom",
           "source": "fixtures/rejected-syntax/variable-application.aspf",
           "line": 2,
           "column": 9
@@ -321,7 +321,7 @@
       "source_basis": {
         "kind": "aspf-next-boundary",
         "references": ["B12 §2 pp. 27–28", "B13 §2 pp. 549–550"],
-        "notes": "Variables are historical ASP{f} behavior but deliberately rejected in milestone 0.1 n-atoms."
+        "notes": "Variables are historical ASP{f} behavior, but a variable assignment fact has no independent ordinary body domain and remains outside the restricted subset."
       }
     },
     {
@@ -934,6 +934,252 @@
         "kind": "aspf-next-boundary",
         "references": ["B13 §3 p. 552"],
         "notes": "Historical Clingo{f} permits one function name at multiple arities; ASPf-next currently reserves one arity per name."
+      }
+    },
+    {
+      "id": "accepted-variable-arguments",
+      "category": "accepted-syntax",
+      "sources": ["fixtures/accepted-syntax/variable-arguments.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": [
+              "active_status(alice)",
+              "active_status(bob)",
+              "person(alice)",
+              "person(bob)"
+            ],
+            "assignments": ["status(alice)#=active", "status(bob)#=active"]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B13 §3 pp. 552–553", "Variable semantics design"],
+        "notes": "Ordinary variables are historical; this case locks the narrower ASPf-next rule requiring an independent positive ordinary body domain."
+      }
+    },
+    {
+      "id": "satisfiable-variable-comparisons",
+      "category": "satisfiable",
+      "sources": ["fixtures/satisfiable/variable-comparisons.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": [
+              "account(a)",
+              "account(b)",
+              "account(c)",
+              "different(b)",
+              "equal(a)",
+              "low(a)"
+            ],
+            "assignments": ["balance(a)#=500", "balance(b)#=1500"]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B13 §2 pp. 549–550", "B13 §3 pp. 552–553", "CF Syntax restrictions"],
+        "notes": "Grounding follows the ordinary domain while equality, inequality, and order retain their defined-value behavior."
+      }
+    },
+    {
+      "id": "partiality-variable-undefined",
+      "category": "partiality",
+      "sources": ["fixtures/partiality/variable-undefined.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": ["account(a)", "account(b)", "low(a)"],
+            "assignments": ["balance(a)#=500"]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B13 §2 p. 550", "BG12 §2 PDF pp. 3–4"],
+        "notes": "Grounding a key for a domain member does not define its value; the undefined member does not satisfy the ordered comparison."
+      }
+    },
+    {
+      "id": "functionality-variable-conflict",
+      "category": "functionality",
+      "sources": ["fixtures/functionality/variable-conflict.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "UNSATISFIABLE",
+        "model_count": 0,
+        "models": []
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B12 §3 p. 28", "B13 §2 p. 550"],
+        "notes": "Grounding variable assignment heads preserves functionality for every resulting key."
+      }
+    },
+    {
+      "id": "comments-variable-multiline",
+      "category": "comments-layout",
+      "sources": ["fixtures/comments-layout/variable-multiline.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": [
+              "account(a)",
+              "account(b)",
+              "label(\"balance(C) and account(C)\")",
+              "low(a)"
+            ],
+            "assignments": ["balance(a)#=500"]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["Scanner contract", "Variable semantics design"],
+        "notes": "Only executable direct variable occurrences participate in safety; comments and strings remain inert across multiline rules."
+      }
+    },
+    {
+      "id": "multi-file-variable-domain",
+      "category": "multi-file",
+      "sources": [
+        "fixtures/multi-file/variable-declarations.aspf",
+        "fixtures/multi-file/variable-rules.aspf"
+      ],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": ["person(alice)", "person(bob)"],
+            "assignments": ["status(alice)#=active", "status(bob)#=active"]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["Cross-file declaration pass", "Variable semantics design"],
+        "notes": "Shared declarations and ordinary per-rule domain safety compose across CLI input files."
+      }
+    },
+    {
+      "id": "rejected-variable-unsafe-dependent",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/variable-unsafe-dependent.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "must occur in an ordinary positive body atom",
+          "source": "fixtures/rejected-syntax/variable-unsafe-dependent.aspf",
+          "line": 2,
+          "column": 25
+        }
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["CF Syntax restrictions P3–P5"],
+        "notes": "Dependent inequality cannot provide an ordinary variable's domain even though the generated private lookup would satisfy modern Clingo safety."
+      }
+    },
+    {
+      "id": "rejected-variable-value",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/variable-value.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "variables as n-atom values are not supported",
+          "source": "fixtures/rejected-syntax/variable-value.aspf",
+          "line": 3,
+          "column": 22
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["Variable milestone plan"],
+        "notes": "The first variable milestone changes only direct key arguments and leaves every right operand ground."
+      }
+    },
+    {
+      "id": "rejected-non-herbrand-variable",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/non-herbrand-variable.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "non-Herbrand variables",
+          "source": "fixtures/rejected-syntax/non-herbrand-variable.aspf",
+          "line": 3,
+          "column": 28
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B13 §3 pp. 552–553", "Variable semantics design"],
+        "notes": "Historical n-variables are grounder-inert solver values and cannot be flattened into ordinary reference-backend variables."
+      }
+    },
+    {
+      "id": "rejected-nested-variable",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/nested-variable.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "complete direct arguments",
+          "source": "fixtures/rejected-syntax/nested-variable.aspf",
+          "line": 3,
+          "column": 37
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["Variable milestone plan"],
+        "notes": "Variables inside compound key arguments are deferred to keep the first parser and safety boundary narrow."
+      }
+    },
+    {
+      "id": "rejected-variable-negated-domain",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/variable-negated-domain.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "must occur in an ordinary positive body atom",
+          "source": "fixtures/rejected-syntax/variable-negated-domain.aspf",
+          "line": 2,
+          "column": 35
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["CF Syntax restrictions", "Variable milestone plan"],
+        "notes": "Default-negated ordinary atoms do not provide source-level safety for variables used in n-atoms."
       }
     }
   ]

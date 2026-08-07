@@ -9,6 +9,7 @@ from typing import Never
 
 from aspf_next.errors import UnsupportedSyntaxError
 from aspf_next.ir import (
+    ApplicationArgument,
     AspfStatement,
     FunctionApplication,
     GroundTerm,
@@ -20,6 +21,7 @@ from aspf_next.ir import (
     OrdinaryStatement,
     Program,
     ProgramStatement,
+    VariableTerm,
 )
 from aspf_next.source import (
     ScannedStatement,
@@ -37,7 +39,9 @@ _LEGACY_VISIBILITY = re.compile(r"#(?:show|hide)\s+#nherb\b")
 _SYMBOLIC_CONSTANT = re.compile(r"[a-z][A-Za-z0-9_]*")
 _INTEGER = re.compile(r"-?\d+")
 _FUNCTION_TERM = re.compile(r"([a-z][A-Za-z0-9_]*)\s*\(")
-_VARIABLE = re.compile(r"(?:\b[A-Z][A-Za-z0-9_]*\b|\b_[A-Za-z0-9_]*\b)")
+_ORDINARY_VARIABLE = re.compile(r"(?<![A-Za-z0-9_])([A-Z][A-Za-z0-9_]*)(?![A-Za-z0-9_])")
+_NON_HERBRAND_VARIABLE = re.compile(r"(?<![A-Za-z0-9_])(_[A-Za-z0-9_]*)(?![A-Za-z0-9_])")
+_VARIABLE = re.compile(r"(?<![A-Za-z0-9_])([A-Z][A-Za-z0-9_]*|_[A-Za-z0-9_]*)(?![A-Za-z0-9_])")
 _EXECUTABLE_IDENTIFIER = re.compile(r"(?<![A-Za-z0-9_])([a-z][A-Za-z0-9_]*)(?![A-Za-z0-9_])")
 _RESERVED_IDENTIFIER = re.compile(r"(?<![A-Za-z0-9_])(__aspf_[A-Za-z0-9_]*)(?![A-Za-z0-9_])")
 
@@ -215,6 +219,7 @@ def _parse_statement(
 
     parsed_n_atoms = tuple(n_atoms)
     _reject_declared_symbols(context, source, declared, parsed_n_atoms)
+    _validate_n_atom_variable_safety(context, source, parsed_n_atoms, separator)
     return AspfStatement(text, context.statement.span, parsed_n_atoms)
 
 
@@ -400,7 +405,7 @@ def _parse_application_left(
     declared: dict[str, int],
     operator_offset: int,
     operator: NAtomOperator,
-) -> tuple[int, int, str, list[GroundTerm]]:
+) -> tuple[int, int, str, list[ApplicationArgument]]:
     end = _trim_code_end(context.code, 0, operator_offset)
     if end <= 0:
         _unsupported(
@@ -471,22 +476,175 @@ def _parse_application_left(
             f"non-Herbrand function '{name}' expects {declared[name]} argument(s), "
             f"got {len(argument_parts)}",
         )
-    arguments: list[GroundTerm] = []
+    arguments: list[ApplicationArgument] = []
     search_start = open_paren + 1
     for part in argument_parts:
         relative = context.code.find(part, search_start, end - 1)
         arguments.append(
-            _parse_ground_term(
+            _parse_application_argument(
                 part,
                 context=context,
                 source=source,
                 local_offset=relative,
                 declared=declared,
-                as_value=False,
             )
         )
         search_start = relative + len(part)
     return name_start, end, name, arguments
+
+
+def _parse_application_argument(
+    text: str,
+    *,
+    context: _StatementContext,
+    source: SourceText,
+    local_offset: int,
+    declared: dict[str, int],
+) -> ApplicationArgument:
+    stripped = text.strip()
+    term_offset = local_offset + (len(text) - len(text.lstrip()))
+    if _ORDINARY_VARIABLE.fullmatch(stripped):
+        absolute_start = context.statement.span.start + term_offset
+        return VariableTerm(
+            stripped,
+            SourceSpan(absolute_start, absolute_start + len(stripped)),
+        )
+
+    executable = executable_mask(stripped)
+    variable = _VARIABLE.search(executable)
+    if variable:
+        variable_name = variable.group(1)
+        variable_offset = term_offset + variable.start(1)
+        if variable_name == "_":
+            _unsupported(
+                source,
+                context,
+                variable_offset,
+                "anonymous variables are not supported inside n-atoms",
+            )
+        if _NON_HERBRAND_VARIABLE.fullmatch(variable_name):
+            _unsupported(
+                source,
+                context,
+                variable_offset,
+                f"non-Herbrand variables such as '{variable_name}' are not supported by "
+                "the reference backend",
+            )
+        _unsupported(
+            source,
+            context,
+            variable_offset,
+            "variables are supported only as complete direct arguments of a "
+            "non-Herbrand application",
+        )
+
+    return _parse_ground_term(
+        text,
+        context=context,
+        source=source,
+        local_offset=local_offset,
+        declared=declared,
+        as_value=False,
+    )
+
+
+def _validate_n_atom_variable_safety(
+    context: _StatementContext,
+    source: SourceText,
+    n_atoms: tuple[NAtom, ...],
+    separator: int | None,
+) -> None:
+    variables = sorted(
+        (
+            argument
+            for n_atom in n_atoms
+            for argument in n_atom.application.arguments
+            if isinstance(argument, VariableTerm)
+        ),
+        key=lambda variable: variable.span.start,
+    )
+    if not variables:
+        return
+
+    domain_variables = _ordinary_domain_variables(context, n_atoms, separator)
+    checked: set[str] = set()
+    for variable in variables:
+        if variable.name in checked:
+            continue
+        checked.add(variable.name)
+        if variable.name in domain_variables:
+            continue
+        local_offset = variable.span.start - context.statement.span.start
+        _unsupported(
+            source,
+            context,
+            local_offset,
+            f"variable '{variable.name}' in a non-Herbrand application must occur in an "
+            "ordinary positive body atom in the same rule",
+        )
+
+
+def _ordinary_domain_variables(
+    context: _StatementContext,
+    n_atoms: tuple[NAtom, ...],
+    separator: int | None,
+) -> set[str]:
+    if separator is None:
+        return set()
+
+    result: set[str] = set()
+    n_atom_starts = {
+        n_atom.span.start - context.statement.span.start
+        for n_atom in n_atoms
+        if n_atom.role is NAtomRole.BODY
+    }
+    for start, end in _body_literal_ranges(context, separator):
+        if any(start <= n_atom_start < end for n_atom_start in n_atom_starts):
+            continue
+        atom_bounds = _positive_symbolic_atom_bounds(context.executable, start, end)
+        if atom_bounds is None:
+            continue
+        atom_start, atom_end = atom_bounds
+        result.update(
+            match.group(1)
+            for match in _ORDINARY_VARIABLE.finditer(context.executable, atom_start, atom_end)
+        )
+    return result
+
+
+def _body_literal_ranges(context: _StatementContext, separator: int) -> tuple[tuple[int, int], ...]:
+    start = separator + 2
+    end = _statement_period(context)
+    ranges: list[tuple[int, int]] = []
+    for offset, point in context.points.items():
+        if not start <= offset < end:
+            continue
+        if point.paren_depth or point.bracket_depth or point.brace_depth:
+            continue
+        if context.statement.text[offset] in {",", ";"}:
+            ranges.append((start, offset))
+            start = offset + 1
+    ranges.append((start, end))
+    return tuple(ranges)
+
+
+def _positive_symbolic_atom_bounds(executable: str, start: int, end: int) -> tuple[int, int] | None:
+    atom_start = _skip_space(executable, start, end)
+    atom_end = _trim_code_end(executable, atom_start, end)
+    if atom_start >= atom_end:
+        return None
+
+    predicate = _SYMBOLIC_CONSTANT.match(executable, atom_start, atom_end)
+    if predicate is None:
+        return None
+    cursor = _skip_space(executable, predicate.end(), atom_end)
+    if cursor == atom_end:
+        return atom_start, atom_end
+    if executable[cursor] != "(" or executable[atom_end - 1] != ")":
+        return None
+    if _matching_open_paren(executable, atom_end - 1) != cursor:
+        return None
+    return atom_start, atom_end
 
 
 def _literal_bounds(
@@ -566,12 +724,36 @@ def _parse_ground_term(
 ) -> GroundTerm:
     stripped = text.strip()
     term_offset = local_offset + (len(text) - len(text.lstrip()))
-    if _VARIABLE.search(executable_mask(stripped)):
+    variable = _VARIABLE.search(executable_mask(stripped))
+    if variable:
+        variable_name = variable.group(1)
+        variable_offset = term_offset + variable.start(1)
+        if variable_name == "_":
+            _unsupported(
+                source,
+                context,
+                variable_offset,
+                "anonymous variables are not supported inside n-atoms",
+            )
+        if _NON_HERBRAND_VARIABLE.fullmatch(variable_name):
+            _unsupported(
+                source,
+                context,
+                variable_offset,
+                f"non-Herbrand variables such as '{variable_name}' are not supported by "
+                "the reference backend",
+            )
+        message = (
+            "variables as n-atom values are not supported in the first variable milestone"
+            if as_value
+            else "variables are supported only as complete direct arguments of a "
+            "non-Herbrand application"
+        )
         _unsupported(
             source,
             context,
-            term_offset,
-            "variables, including non-Herbrand variables, are not supported inside n-atoms",
+            variable_offset,
+            message,
         )
     if _INTEGER.fullmatch(stripped):
         return GroundTerm(stripped, GroundTermKind.INTEGER)

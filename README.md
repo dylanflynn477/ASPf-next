@@ -49,7 +49,7 @@ solvent(account1) balance(account1)#=500
 SATISFIABLE
 ```
 
-Continue with the [six guided examples](examples/README.md) or the
+Continue with the [seven guided examples](examples/README.md) or the
 [step-by-step quickstart](docs/quickstart.md). The examples include partiality,
 a conditional assignment, a conflicting-value program, ordered integer
 comparisons, and ordinary ASP model enumeration.
@@ -59,13 +59,14 @@ comparisons, and ordinary ASP model enumeration.
 The implemented slice supports:
 
 - `#nherb f/n.` declarations, including zero-arity functions;
-- ground function applications and `#=` assignments as facts or complete rule
-  heads;
-- positive, ground `#=` comparisons as complete rule-body literals;
-- positive, ground `#!=` comparisons as complete rule-body literals, with both
-  operands required to be defined;
-- positive, fully ground `#<`, `#<=`, `#>`, and `#>=` body comparisons against
-  integer literals, requiring a defined integer application value;
+- function applications and `#=` assignments as facts or complete rule heads;
+- positive `#=` and `#!=` comparisons as complete rule-body literals, with
+  defined-value semantics;
+- positive `#<`, `#<=`, `#>`, and `#>=` body comparisons against integer
+  literals, requiring a defined integer application value;
+- ordinary uppercase variables as direct application arguments when every such
+  variable also occurs in an ordinary, unnegated positive body atom in the same
+  rule;
 - integer, symbolic constant, and string values;
 - ordinary Clingo statements that do not contain ASP{f} syntax in this slice;
 - `%` and `%* ... *%` comments, quoted strings, multiline statements, and
@@ -103,6 +104,11 @@ compares it with the ground right operand. For example,
 `different :- balance(account1) #!= 600.` succeeds only when
 `balance(account1)` has a defined value other than `600`. It is false when the
 application is undefined; `#!=` is never interpreted as the absence of `#=`.
+
+Direct key arguments may use independently domain-safe ordinary variables. For
+example, `low(A) :- account(A), balance(A) #< 1000.` is accepted because
+`account(A)` supplies `A`'s source-level grounding domain. The generated private
+lookup never supplies that safety, and the right operand remains ground.
 
 Ordered comparisons follow the same defined-value discipline but are numeric
 only. The reference backend records which assignment values are integer
@@ -146,7 +152,9 @@ The current development branch deliberately rejects:
   except a complete positive body literal;
 - non-integer right operands for `#<`, `#<=`, `#>`, and `#>=`;
 - default-negated n-atoms;
-- variables, including `_v` non-Herbrand variables, inside n-atoms;
+- variables as n-atom values, variables nested inside application arguments,
+  anonymous variables, and variables without an ordinary positive body domain;
+- `_v` non-Herbrand variables in every n-atom position;
 - arithmetic expressions inside n-atoms;
 - aggregates, choices, disjunctions, or conditional literals containing
   n-atoms;
@@ -186,11 +194,14 @@ interchangeable. ASPf-next is not affiliated with Potassco.
 - [0.1.0-alpha release notes](docs/releases/0.1.0-alpha.md)
 - [`#!=` development notes](docs/releases/not-equal-development.md)
 - [ordered-comparison development notes](docs/releases/ordered-comparisons-development.md)
+- [domain-safe variable development notes](docs/releases/domain-safe-variables-development.md)
+- [variable semantics research](docs/design/variable-semantics.md)
+- [restricted variable milestone plan](docs/design/variable-milestone-plan.md)
 
 ## Roadmap and status
 
 The package metadata remains `0.1.0a1`, and that release has not been
-published. The current comparison work is an unreleased development increment
+published. The current comparison and restricted-variable work is unreleased development
 and has not been assigned a release number. This remains pre-alpha research
 software. The [roadmap](docs/roadmap.md) separates implemented reference
 frontend work from later compatibility candidates and longer-term

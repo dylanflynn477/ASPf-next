@@ -1,0 +1,13 @@
+#nherb balance/1.
+
+account(checking;savings).
+balance(checking) #= 500.
+balance(savings) #= 1500.
+
+low(A) :-
+    account(A),
+    balance(A) #< 1000.
+
+nonzero(A) :-
+    account(A),
+    balance(A) #!= 0.

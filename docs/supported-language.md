@@ -38,17 +38,42 @@ label(product(7), "lot-a")
 mode
 ```
 
-Arguments must be ground. The current term grammar accepts:
+The current argument grammar accepts:
 
 - integers, including negative integers;
 - lowercase symbolic constants;
 - quoted Clingo strings;
 - recursively ground ordinary function terms.
+- an ordinary uppercase variable as one complete, direct argument, provided it
+  satisfies the source-level safety rule below.
 
-Variables, `_v`-style non-Herbrand variables, arithmetic expressions, intervals,
-and nested declared non-Herbrand applications are rejected. Zero-arity functions
-use the bare form `mode`; `mode()` is also accepted as input and normalized to
-`mode`.
+Variables nested inside compound arguments, `_v`-style non-Herbrand variables,
+anonymous variables, arithmetic expressions, intervals, and nested declared
+non-Herbrand applications are rejected. Zero-arity functions use the bare form
+`mode`; `mode()` is also accepted as input and normalized to `mode`.
+
+## Domain-safe ordinary variables
+
+An ordinary uppercase variable may replace one complete application argument:
+
+```asp
+#nherb balance/1.
+account(checking;savings).
+low(A) :- account(A), balance(A) #< 1000.
+balance(A) #= 0 :- account(A), empty(A).
+```
+
+Every variable used in any n-atom key in a rule must also occur in an ordinary,
+unnegated positive symbolic body atom in that same rule. The domain atom may
+appear before or after the n-atom. A generated `__aspf_value` lookup, another
+n-atom, ordinary equality or comparison, a default-negated atom, and a
+classically negated atom do not establish source-variable safety.
+
+This deliberately narrower rule is checked before lowering. It prevents a
+private backend variable or lookup from accidentally widening the source
+grounding domain. Variables on the right, variables inside a compound key
+argument such as `balance(owner(A))`, anonymous `_`, and non-Herbrand variables
+such as `_V` remain unsupported.
 
 ## Values
 
@@ -59,9 +84,9 @@ exactly one:
 - symbolic constant: `employed`;
 - string: `"cold brew"`.
 
-Variables, arithmetic, intervals, tuples, and compound function terms are not
-values in this milestone. A declared non-Herbrand application used as a value
-receives a specific diagnostic.
+Variables of every kind, arithmetic, intervals, tuples, and compound function
+terms are not values in this milestone. A declared non-Herbrand application
+used as a value receives a specific diagnostic.
 
 The right operand of `#<`, `#<=`, `#>`, and `#>=` is narrower: it must be an
 integer literal. Symbolic constants and strings are rejected in that position.
@@ -96,9 +121,10 @@ integer value and the usual arithmetic relation holds against the integer
 literal on the right. Undefined, symbolic, and string values make the literal
 false. No value is coerced to an integer.
 
-The ordinary parts of a rule can still use Clingo variables. Only the n-atom
-itself must be ground in this milestone. Several positive n-atoms may appear as
-separate comma-delimited body literals.
+The ordinary parts of a rule can use normal Clingo variables. A direct n-atom
+key argument may use the domain-safe subset described above; its right operand
+must remain ground. Several positive n-atoms may appear as separate
+comma-delimited body literals.
 
 The following positions are unsupported:
 
@@ -114,12 +140,12 @@ The following positions are unsupported:
 ## Operators
 
 `#=` is supported in the head and positive-body positions described above.
-`#!=` is supported only as a complete, positive, ground body literal with a
-declared application on the left and a supported ground value on the right.
-`#<`, `#<=`, `#>`, and `#>=` are supported only as complete, positive, fully
-ground body literals with an integer literal on the right. Operator tokens are
-represented explicitly in typed IR; they are not implemented through text-wide
-replacement.
+`#!=` is supported only as a complete, positive body literal with a declared
+application on the left and a supported ground value on the right. `#<`, `#<=`,
+`#>`, and `#>=` are supported only as complete, positive body literals with an
+integer literal on the right. The left key may contain direct domain-safe
+ordinary variables. Operator tokens are represented explicitly in typed IR;
+they are not implemented through text-wide replacement.
 
 ## Comments, strings, and statements
 
