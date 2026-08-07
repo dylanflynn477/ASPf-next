@@ -24,8 +24,14 @@ releases. Python package metadata uses the equivalent PEP 440 version.
   lowering through an explicit value lookup.
 - Focused frontend, lowering, solver, CLI, and conformance regressions for
   inequality behavior and its unsupported contexts.
+- Positive, fully ground `#<`, `#<=`, `#>`, and `#>=` comparisons as complete
+  rule-body literals with integer literals on the right.
+- Definedness- and type-aware reference lowering that tags integer assignment
+  values before applying a shared ordinary comparison path.
+- Ordered-comparison conformance fixtures, CLI regressions, and a sixth guided
+  example covering negative, zero, and positive values.
 
-No release number has been assigned to the `#!=` development increment.
+No release number has been assigned to these comparison development increments.
 
 ## 0.1.0-alpha - Unreleased
 

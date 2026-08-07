@@ -1,6 +1,6 @@
 # Semantics notes
 
-This milestone implements only the semantic commitments stated here. Historical
+The current frontend implements only the semantic commitments stated here. Historical
 ASP{f} behavior outside this list must not be inferred from the implementation.
 
 ## Partial functions
@@ -43,6 +43,17 @@ causal, closed-world, inertia, or choice semantics is introduced.
 `__aspf_value(f(a),v)`. It succeeds exactly when that value atom is true. If
 `f(a)` is undefined or has another value, the body is false.
 
+`f(a) #!= v` first looks up a defined value and then compares it with `v`. It is
+false when `f(a)` is undefined, rather than treating absence of equality as
+inequality.
+
+`f(a) #< n`, `#<=`, `#>`, and `#>=` require a defined integer value and an
+integer literal `n`. The reference backend tags integer assignment literals with
+`__aspf_integer/1`; an ordered body requires both that tag and the value lookup.
+Undefined, symbolic, and string values therefore make the ordered comparison
+false. No coercion or general Clingo term ordering is exposed as numeric
+semantics.
+
 Default-negated comparisons are deferred because simply negating the internal
 atom would conflate “undefined” and “defined with a different value” without an
 explicit compatibility decision.
@@ -51,8 +62,9 @@ explicit compatibility decision.
 
 Values are Clingo ground symbols in the restricted grammar: integers, symbolic
 constants, or strings. Equality and inequality in the functionality constraint
-therefore use Clingo's ground-symbol comparison. This milestone does not define
-numeric coercion, arithmetic evaluation, or cross-type ASP{f} relations.
+therefore use Clingo's ground-symbol comparison. Ordered comparisons are
+integer-only as described above. The frontend does not define numeric coercion,
+arithmetic evaluation, or cross-type ASP{f} relations.
 
 ## Ordinary ASP and `#show`
 

@@ -81,8 +81,8 @@ solvent(account1) :- balance(account1) #= 500.
 ```
 
 The rule derives `solvent(account1)` because the application has the tested
-value. The current frontend requires n-atoms to be ground and does not support default
-negation.
+value. The current frontend requires n-atoms to be ground and does not support
+default negation.
 
 ## 6. Compare with a different defined value
 
@@ -100,7 +100,29 @@ If no value had been assigned to `balance(account1)`, the `#!=` literal would
 be false. It means “defined and different,” not “no matching equality was
 found.”
 
-## 7. Inspect the reference lowering
+## 7. Compare defined integers in order
+
+Run the ordered-comparison example:
+
+```console
+aspf examples/06_ordered_comparisons.aspf
+```
+
+It uses every ordered operator:
+
+```asp
+below_zero :- temperature(freezer) #< 0.
+at_most_zero :- temperature(freezer) #<= 0.
+above_zero :- temperature(room) #> 0.
+at_least_twenty :- temperature(room) #>= 20.
+```
+
+The application and right operand must be fully ground, and the right operand
+must be an integer literal. A comparison succeeds only when the application has
+a defined integer value satisfying the usual arithmetic relation. Undefined,
+symbolic, and string values make it false; no coercion is performed.
+
+## 8. Inspect the reference lowering
 
 ```console
 aspf hello.aspf --emit-lowered
@@ -110,6 +132,7 @@ The significant lowered lines are:
 
 ```asp
 __aspf_value(balance(account1),500).
+__aspf_integer(500).
 :- __aspf_value(K,V1), __aspf_value(K,V2), V1 != V2.
 ```
 
@@ -126,7 +149,18 @@ __aspf_value(balance(account1),_AspfNeq0), _AspfNeq0 != 600
 The required `__aspf_value/2` lookup is what makes an undefined application
 fail the comparison.
 
-## 8. Use JSON output
+An ordered comparison additionally requires the private integer marker:
+
+```asp
+__aspf_value(balance(account1),_AspfCmp0),
+__aspf_integer(_AspfCmp0),
+_AspfCmp0 >= 100
+```
+
+That marker prevents Clingo's general ordering of symbolic terms from being
+mistaken for numeric ASP{f} comparison.
+
+## 9. Use JSON output
 
 ```console
 aspf examples/03_conditional_assignment.aspf --json
@@ -157,7 +191,7 @@ aspf examples/03_conditional_assignment.aspf --json
 The JSON object separates ordinary shown atoms from reconstructed assignments.
 Use `--models 0` when every model is required.
 
-## 9. Understand partiality
+## 10. Understand partiality
 
 Run:
 
@@ -170,7 +204,7 @@ therefore includes `balance(account2)#=500` and no assignment for `account1`.
 Declarations introduce possible function applications; they do not add values
 or a totality rule.
 
-## 10. Understand conflicting assignments
+## 11. Understand conflicting assignments
 
 ```console
 aspf examples/04_conflicting_values.aspf
@@ -183,22 +217,22 @@ UNSATISFIABLE
 The same ground application is assigned both `500` and `600`, violating the
 functionality constraint.
 
-## 11. Recognize unsupported syntax
+## 12. Recognize unsupported syntax
 
-For example, `#>=` is outside milestone 0.1:
+For example, an ordered comparison cannot use a symbolic right operand:
 
 ```asp
 #nherb balance/1.
-ok :- balance(account1) #>= 500.
+ok :- balance(account1) #>= high.
 ```
 
 Running it produces a location-aware error resembling:
 
 ```text
-aspf: error: unsupported.aspf:2:25: operator '#>=' is not supported; only '#=' and restricted positive body '#!=' are supported
+aspf: error: unsupported.aspf:2:29: operator '#>=' requires an integer literal on the right
 ```
 
-The same explicit rejection policy covers arithmetic, variables, aggregates
-containing n-atoms, default-negated n-atoms, and other deferred constructs. See
-the [compatibility matrix](compatibility-matrix.md) before adapting historical
-ASP{f} programs.
+The same explicit rejection policy covers arithmetic, variables, comparisons in
+heads, aggregates containing n-atoms, default-negated n-atoms, and other
+deferred constructs. See the [compatibility matrix](compatibility-matrix.md)
+before adapting historical ASP{f} programs.

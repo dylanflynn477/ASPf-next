@@ -63,6 +63,9 @@ Variables, arithmetic, intervals, tuples, and compound function terms are not
 values in this milestone. A declared non-Herbrand application used as a value
 receives a specific diagnostic.
 
+The right operand of `#<`, `#<=`, `#>`, and `#>=` is narrower: it must be an
+integer literal. Symbolic constants and strings are rejected in that position.
+
 ## Rule positions
 
 Facts and complete rule heads may assign values:
@@ -77,12 +80,21 @@ Positive, complete body literals may compare against a value:
 ```asp
 solvent(A) :- account(A), balance(account1) #= 500.
 different :- balance(account1) #!= 600.
+negative :- balance(account1) #< 0.
+within_limit :- balance(account1) #<= 500.
+positive :- balance(account1) #> 0.
+minimum_met :- balance(account1) #>= 100.
 ```
 
 A positive `#!=` comparison is true only when the left application has a
 defined value and that value differs from the right operand. An undefined
 application makes the literal false. Inequality is not negation-as-failure and
 is not implemented as the absence of an equality atom.
+
+An ordered comparison is true only when the left application has a defined
+integer value and the usual arithmetic relation holds against the integer
+literal on the right. Undefined, symbolic, and string values make the literal
+false. No value is coerced to an integer.
 
 The ordinary parts of a rule can still use Clingo variables. Only the n-atom
 itself must be ground in this milestone. Several positive n-atoms may appear as
@@ -92,7 +104,8 @@ The following positions are unsupported:
 
 - `not f(a) #= v`;
 - `not f(a) #!= v`;
-- `f(a) #!= v` in a fact or rule head;
+- default-negated ordered comparisons;
+- `f(a) op v` in a fact or rule head for every `op` other than `#=`;
 - n-atoms inside aggregates, choice rules, conditional literals, or disjunctions;
 - a head that combines an assignment with another head element;
 - nested or parenthesized n-atoms;
@@ -103,11 +116,10 @@ The following positions are unsupported:
 `#=` is supported in the head and positive-body positions described above.
 `#!=` is supported only as a complete, positive, ground body literal with a
 declared application on the left and a supported ground value on the right.
-Each ordered comparison is explicitly diagnosed at its source location:
-
-```text
-#<  #<=  #>  #>=
-```
+`#<`, `#<=`, `#>`, and `#>=` are supported only as complete, positive, fully
+ground body literals with an integer literal on the right. Operator tokens are
+represented explicitly in typed IR; they are not implemented through text-wide
+replacement.
 
 ## Comments, strings, and statements
 

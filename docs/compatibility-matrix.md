@@ -5,7 +5,7 @@ translation. “Pass-through” means the frontend preserves the construct and
 Clingo supplies its ordinary ASP semantics. No row implies full historical
 ASP{f} compatibility.
 
-| Construct | 0.1 status | Backend or diagnostic |
+| Construct | Current status | Backend or diagnostic |
 | --- | --- | --- |
 | `#nherb f/n.` | Supported | Frontend declaration IR |
 | Zero-arity `f #= v` | Supported | Reference lowering |
@@ -13,6 +13,7 @@ ASP{f} compatibility.
 | Conditional assignment head | Supported | Reference lowering |
 | Positive body `#=` | Supported | Reference lowering |
 | Positive ground body `#!=` | Supported | Defined value lookup plus ordinary inequality |
+| Positive fully ground body `#<`, `#<=`, `#>`, `#>=` with integer RHS | Supported | Defined integer lookup plus ordinary comparison |
 | Integer value | Supported | Clingo number symbol |
 | Symbolic constant value | Supported | Clingo function symbol, arity 0 |
 | String value | Supported | Clingo string symbol |
@@ -26,8 +27,9 @@ ASP{f} compatibility.
 | Multiline statements | Supported | Source scanner |
 | User executable identifier beginning `__aspf_` | Unsupported | Location-aware error |
 | Declared symbol outside a supported n-atom key | Unsupported | Location-aware error |
-| Head or default-negated `#!=` | Unsupported | Location-aware error |
-| `#<`, `#<=`, `#>`, `#>=` | Unsupported | Location-aware error |
+| Non-integer value used by an ordered comparison | False | No coercion; integer tag is absent |
+| Non-integer right operand for an ordered comparison | Unsupported | Location-aware error |
+| Head or default-negated comparison other than `#=` | Unsupported | Location-aware error |
 | Default-negated n-atoms | Unsupported | Location-aware error |
 | Variables in n-atoms | Unsupported | Location-aware error |
 | `_v` non-Herbrand variables | Unsupported | Location-aware error |

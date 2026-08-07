@@ -49,10 +49,10 @@ solvent(account1) balance(account1)#=500
 SATISFIABLE
 ```
 
-Continue with the [five guided examples](examples/README.md) or the
+Continue with the [six guided examples](examples/README.md) or the
 [step-by-step quickstart](docs/quickstart.md). The examples include partiality,
-a conditional assignment, a conflicting-value program, and ordinary ASP model
-enumeration.
+a conditional assignment, a conflicting-value program, ordered integer
+comparisons, and ordinary ASP model enumeration.
 
 ## What the current development branch can do
 
@@ -64,6 +64,8 @@ The implemented slice supports:
 - positive, ground `#=` comparisons as complete rule-body literals;
 - positive, ground `#!=` comparisons as complete rule-body literals, with both
   operands required to be defined;
+- positive, fully ground `#<`, `#<=`, `#>`, and `#>=` body comparisons against
+  integer literals, requiring a defined integer application value;
 - integer, symbolic constant, and string values;
 - ordinary Clingo statements that do not contain ASP{f} syntax in this slice;
 - `%` and `%* ... *%` comments, quoted strings, multiline statements, and
@@ -102,6 +104,12 @@ compares it with the ground right operand. For example,
 `balance(account1)` has a defined value other than `600`. It is false when the
 application is undefined; `#!=` is never interpreted as the absence of `#=`.
 
+Ordered comparisons follow the same defined-value discipline but are numeric
+only. The reference backend records which assignment values are integer
+literals, requires that marker during lookup, and then applies the corresponding
+ordinary Clingo comparison. Symbolic constants and strings are never coerced or
+exposed to Clingo's general term ordering.
+
 ```text
 ASP{f} source → scanner → validation → typed IR → reference lowering
                → Clingo 5.8 → normalized ASP{f}-style output
@@ -134,8 +142,9 @@ aspf examples/05_multiple_models.aspf --models 0
 
 The current development branch deliberately rejects:
 
-- `#!=` in rule heads or anywhere except a complete positive body literal;
-- `#<`, `#<=`, `#>`, and `#>=`;
+- comparisons other than `#=` in rule heads, under default negation, or anywhere
+  except a complete positive body literal;
+- non-integer right operands for `#<`, `#<=`, `#>`, and `#>=`;
 - default-negated n-atoms;
 - variables, including `_v` non-Herbrand variables, inside n-atoms;
 - arithmetic expressions inside n-atoms;
@@ -176,12 +185,13 @@ interchangeable. ASPf-next is not affiliated with Potassco.
 - [Roadmap](docs/roadmap.md)
 - [0.1.0-alpha release notes](docs/releases/0.1.0-alpha.md)
 - [`#!=` development notes](docs/releases/not-equal-development.md)
+- [ordered-comparison development notes](docs/releases/ordered-comparisons-development.md)
 
 ## Roadmap and status
 
 The package metadata remains `0.1.0a1`, and that release has not been
-published. The current `#!=` work is an unreleased development increment and
-has not been assigned a release number. This remains pre-alpha research
+published. The current comparison work is an unreleased development increment
+and has not been assigned a release number. This remains pre-alpha research
 software. The [roadmap](docs/roadmap.md) separates implemented reference
 frontend work from later compatibility candidates and longer-term
 native-backend research. Those directions are proposals, not promises.

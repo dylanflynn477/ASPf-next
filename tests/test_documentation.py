@@ -24,6 +24,7 @@ def test_readme_contains_required_scope_and_attribution() -> None:
     assert "examples/01_basic_assignment.aspf" in readme
     assert "docs/specification-traceability.md" in readme
     assert "docs/releases/not-equal-development.md" in readme
+    assert "docs/releases/ordered-comparisons-development.md" in readme
     assert "undefined" in readme and "#!=" in readme
 
 
@@ -76,6 +77,7 @@ def test_productization_documents_exist() -> None:
         "docs/portfolio-copy.md",
         "docs/releases/0.1.0-alpha.md",
         "docs/releases/not-equal-development.md",
+        "docs/releases/ordered-comparisons-development.md",
         ".github/ISSUE_TEMPLATE/bug_report.yml",
         ".github/ISSUE_TEMPLATE/feature_request.yml",
         ".github/pull_request_template.md",
@@ -98,6 +100,7 @@ def test_conformance_traceability_and_decisions_cover_the_current_boundary() -> 
         "Assignment rule head",
         "Positive body equality",
         "Positive body inequality",
+        "Positive body ordered comparison",
         "Constants and values",
         "Ordinary ASP interaction",
         "Variables and arithmetic",
@@ -144,6 +147,30 @@ def test_not_equal_documentation_records_the_semantic_boundary() -> None:
     assert "undefined application makes the literal false" in " ".join(supported.split())
     assert "not __aspf_value" in development
     assert "has not been assigned a release number" in " ".join(development.split())
+
+
+def test_ordered_comparison_documentation_records_numeric_boundary() -> None:
+    required_documents = (
+        "README.md",
+        "docs/supported-language.md",
+        "docs/compatibility-matrix.md",
+        "docs/quickstart.md",
+        "docs/roadmap.md",
+        "CHANGELOG.md",
+        "docs/releases/ordered-comparisons-development.md",
+    )
+
+    for relative_path in required_documents:
+        content = (PROJECT_ROOT / relative_path).read_text(encoding="utf-8")
+        assert "#<" in content and "#>=" in content, relative_path
+
+    development = (
+        PROJECT_ROOT / "docs" / "releases" / "ordered-comparisons-development.md"
+    ).read_text(encoding="utf-8")
+    normalized = " ".join(development.split())
+    assert "defined integer value" in normalized
+    assert "No coercion is performed" in normalized
+    assert "has not been assigned a release number" in normalized
 
 
 def test_relative_markdown_links_resolve() -> None:

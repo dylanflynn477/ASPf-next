@@ -2,7 +2,7 @@
 
 ## Current pipeline
 
-The first milestone follows this explicit pipeline:
+The implemented frontend follows this explicit pipeline:
 
 ```mermaid
 flowchart TD
@@ -33,11 +33,12 @@ Each boundary has a distinct responsibility:
    term grammar, and rejects ambiguous or deferred syntax. Ordinary statements
    remain source text.
 3. **ASP{f} IR** (`ir.py`) records declarations, ordinary statements, structured
-   applications, values, head/body roles, and absolute source spans. No Clingo
-   solver object is part of the IR.
+   applications, typed operators and values, head/body roles, and absolute
+   source spans. No Clingo solver object is part of the IR.
 4. **Reference lowering** (`lowering.py`) replaces only the validated IR spans
-   with `__aspf_value/2` atoms and appends the functionality constraint. It never
-   adds totality.
+   with private relational atoms and appends the functionality constraint.
+   Ordered comparisons also use `__aspf_integer/1` to distinguish integer
+   assignment values from strings and symbols. It never adds totality.
 5. **Solving** (`solver.py`) uses the public Clingo 5.8 Python `Control` API to
    add, ground, and solve the lowered program. `--models 0` maps to unbounded
    model enumeration.
@@ -80,6 +81,19 @@ a declaration. Undefinedness is represented by absence. This small encoding is
 easy to inspect with `--emit-lowered`, making it useful as an executable semantic
 reference for future backends.
 
+For an ordered comparison, the backend requires both a value lookup and a
+private integer marker before applying the ordinary relation:
+
+```asp
+__aspf_value(K,V), __aspf_integer(V), V < 0
+```
+
+The marker is emitted only for integer literals that can be assigned by a
+validated `#=` rule. This prevents Clingo's ordering over arbitrary ground terms
+from becoming accidental numeric coercion. Private `#defined` directives keep
+Clingo from reporting intentionally absent private atoms as undefined ordinary
+predicates; they derive no atoms and do not make functions total.
+
 ## Future native backend (not implemented)
 
 A later, separately reviewed backend may translate validated ASP{f} IR to Clingo
@@ -98,7 +112,7 @@ That backend would need an explicit semantic design for:
 - equivalence tests against the reference backend; and
 - performance measurements that separate grounding size from solving cost.
 
-No theory definition, propagator, native arithmetic, or optimization work belongs
-to the first milestone. The frontend and IR are separated so a native backend can
-be added without changing the legacy-syntax scanner or silently changing the
-reference semantics.
+No theory definition, propagator, native arithmetic, or optimization work
+belongs to the current comparison increment. The frontend and IR are separated
+so a native backend can be added without changing the legacy-syntax scanner or
+silently changing the reference semantics.
