@@ -1,0 +1,2 @@
+#nherb value/0.
+okay :- value #>= high.

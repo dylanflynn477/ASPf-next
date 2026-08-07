@@ -652,6 +652,249 @@
       }
     },
     {
+      "id": "ordered-all-true",
+      "category": "accepted-syntax",
+      "sources": ["fixtures/accepted-syntax/ordered-all-true.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": [
+              "different",
+              "equal",
+              "greater",
+              "greater_equal",
+              "less",
+              "less_equal"
+            ],
+            "assignments": [
+              "value(negative)#=-1",
+              "value(positive)#=1",
+              "value(zero)#=0"
+            ]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["BG12 §2 PDF pp. 3–4"],
+        "notes": "All four ordered relations use their usual arithmetic interpretation after a defined integer value is found."
+      }
+    },
+    {
+      "id": "ordered-all-false",
+      "category": "satisfiable",
+      "sources": ["fixtures/satisfiable/ordered-all-false.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {"ordinary_atoms": [], "assignments": ["value#=0"]}
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["BG12 §2 PDF pp. 3–4"],
+        "notes": "A defined integer value that does not satisfy the arithmetic relation makes each ordered literal false."
+      }
+    },
+    {
+      "id": "ordered-undefined",
+      "category": "partiality",
+      "sources": ["fixtures/partiality/ordered-undefined.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {"ordinary_atoms": ["present"], "assignments": []}
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["BG12 §2 PDF pp. 3–4"],
+        "notes": "Every ordered relation is false when the non-Herbrand application is undefined."
+      }
+    },
+    {
+      "id": "ordered-noninteger-left",
+      "category": "satisfiable",
+      "sources": ["fixtures/satisfiable/ordered-noninteger-left.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": [],
+            "assignments": ["value(string)#=\"5\"", "value(symbol)#=active"]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["BG12 §2 PDF pp. 3–4", "Task 4 integer-only boundary"],
+        "notes": "ASPf-next does not coerce strings or symbolic constants and does not expose Clingo term ordering as numeric comparison."
+      }
+    },
+    {
+      "id": "ordered-multiple-models",
+      "category": "multiple-models",
+      "sources": ["fixtures/multiple-models/ordered-varying.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 2,
+        "models": [
+          {
+            "ordinary_atoms": ["choose(one)"],
+            "assignments": ["level(item)#=1"]
+          },
+          {
+            "ordinary_atoms": ["choose(two)", "different", "ordered"],
+            "assignments": ["level(item)#=2"]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["BG12 §2 PDF pp. 3–4", "B12 §3 pp. 28–29"],
+        "notes": "Ordered and not-equal comparisons are evaluated from the value defined independently in each model."
+      }
+    },
+    {
+      "id": "ordered-comments-and-multiline",
+      "category": "comments-layout",
+      "sources": ["fixtures/comments-layout/ordered-multiline.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": [
+              "comfortable",
+              "label(\"temperature(room) #<= 30 and #> 0\")"
+            ],
+            "assignments": ["temperature(room)#=21"]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["scanner contract", "BG12 §2 PDF pp. 3–4"],
+        "notes": "Active multiline ordered syntax is recognized while comments and quoted strings remain inert."
+      }
+    },
+    {
+      "id": "ordered-multi-file",
+      "category": "multi-file",
+      "sources": [
+        "fixtures/multi-file/ordered-declarations.aspf",
+        "fixtures/multi-file/ordered-rules.aspf"
+      ],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {"ordinary_atoms": ["negative"], "assignments": ["value#=-1"]}
+        ]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["cross-file declaration pass", "BG12 §2 PDF pp. 3–4"],
+        "notes": "The existing shared declaration pass applies unchanged to ordered comparisons."
+      }
+    },
+    {
+      "id": "rejected-ordered-head",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/ordered-head.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "complete positive rule-body literal",
+          "source": "fixtures/rejected-syntax/ordered-head.aspf",
+          "line": 2,
+          "column": 7
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["BG12 §2 PDF p. 3"],
+        "notes": "Ordered t-atoms are dependent body literals; ASPf-next explicitly rejects them in rule heads."
+      }
+    },
+    {
+      "id": "rejected-ordered-right-symbol",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/ordered-right-symbol.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "requires an integer literal on the right",
+          "source": "fixtures/rejected-syntax/ordered-right-symbol.aspf",
+          "line": 2,
+          "column": 19
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["BG12 §2 PDF pp. 3–4", "Task 4 integer-only boundary"],
+        "notes": "The right operand is restricted to an integer literal without coercion."
+      }
+    },
+    {
+      "id": "rejected-ordered-default-negated",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/ordered-default-negated.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "default-negated n-atoms",
+          "source": "fixtures/rejected-syntax/ordered-default-negated.aspf",
+          "line": 2,
+          "column": 9
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["BG12 §2 PDF pp. 3–4"],
+        "notes": "Default-negated ordered comparisons remain outside the positive-body Task 4 boundary."
+      }
+    },
+    {
+      "id": "rejected-ordered-application-value",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/ordered-application-value.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "cannot be used as the value",
+          "source": "fixtures/rejected-syntax/ordered-application-value.aspf",
+          "line": 3,
+          "column": 18
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["BG12 §2 PDF p. 3", "Task 4 integer-only boundary"],
+        "notes": "Comparison between two declared non-Herbrand applications is historical but explicitly deferred."
+      }
+    },
+    {
       "id": "rejected-global-declaration",
       "category": "rejected-syntax",
       "sources": ["fixtures/rejected-syntax/global-declaration.aspf"],

@@ -1,0 +1,3 @@
+#nherb left/0.
+#nherb right/1.
+okay :- left #<= right(a).

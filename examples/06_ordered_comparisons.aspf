@@ -1,0 +1,9 @@
+#nherb temperature/1.
+
+temperature(freezer) #= -5.
+temperature(room) #= 21.
+
+below_zero :- temperature(freezer) #< 0.
+at_most_zero :- temperature(freezer) #<= 0.
+above_zero :- temperature(room) #> 0.
+at_least_twenty :- temperature(room) #>= 20.

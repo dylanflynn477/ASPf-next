@@ -1,0 +1,8 @@
+#nherb temperature/1.
+temperature(room) #= 21.
+% temperature(room) #< 0 is inert.
+comfortable :-
+    temperature(
+        room
+    ) #>= 20.
+label("temperature(room) #<= 30 and #> 0").

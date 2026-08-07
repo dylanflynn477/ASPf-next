@@ -1,0 +1,6 @@
+#nherb value/0.
+present.
+less :- value #< 0.
+less_equal :- value #<= 0.
+greater :- value #> 0.
+greater_equal :- value #>= 0.
