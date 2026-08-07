@@ -20,6 +20,36 @@ class NAtomOperator(Enum):
 
     EQUAL = "#="
     NOT_EQUAL = "#!="
+    LESS_THAN = "#<"
+    LESS_EQUAL = "#<="
+    GREATER_THAN = "#>"
+    GREATER_EQUAL = "#>="
+
+    @property
+    def is_ordered(self) -> bool:
+        """Whether the operator requires integer operands."""
+
+        return self in {
+            NAtomOperator.LESS_THAN,
+            NAtomOperator.LESS_EQUAL,
+            NAtomOperator.GREATER_THAN,
+            NAtomOperator.GREATER_EQUAL,
+        }
+
+    @property
+    def clingo_symbol(self) -> str:
+        """Return the corresponding ordinary Clingo comparison spelling."""
+
+        return self.value[1:]
+
+
+class GroundTermKind(Enum):
+    """The validated lexical kind of a ground term."""
+
+    INTEGER = "integer"
+    SYMBOL = "symbol"
+    STRING = "string"
+    FUNCTION = "function"
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,6 +57,7 @@ class GroundTerm:
     """A validated, ground Clingo term retained in source form."""
 
     text: str
+    kind: GroundTermKind
 
 
 @dataclass(frozen=True, slots=True)

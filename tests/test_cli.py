@@ -106,20 +106,88 @@ def test_multiple_files_share_declarations(tmp_path: Path, capsys) -> None:  # t
     assert "status(alice)#=employed" in capsys.readouterr().out
 
 
-def test_unsupported_diagnostic_includes_file_line_and_column(
+@pytest.mark.parametrize(
+    ("operator", "assigned", "right"),
+    [("#<", -1, 0), ("#<=", 0, 0), ("#>", 1, 0), ("#>=", 0, 0)],
+)
+def test_ordered_comparisons_work_across_multiple_files(
     tmp_path: Path,
-    capsys,  # type: ignore[no-untyped-def]
+    capsys: pytest.CaptureFixture[str],
+    operator: str,
+    assigned: int,
+    right: int,
+) -> None:
+    declarations = write_program(tmp_path, "#nherb value/0.\n", "declarations.aspf")
+    rules = write_program(
+        tmp_path,
+        f"value #= {assigned}.\nokay :- value {operator} {right}.\n",
+        "rules.aspf",
+    )
+
+    assert main([str(declarations), str(rules)]) == 0
+    assert "okay" in capsys.readouterr().out
+
+
+def test_ordered_comparison_human_json_and_lowered_output(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     path = write_program(
         tmp_path,
-        "#nherb balance/1.\nok :- balance(a) #>= 1.\n",
-        "bad.aspf",
+        "#nherb balance/1.\nbalance(a) #= 2.\nok :- balance(a) #>= 1.\n",
+        "ordered.aspf",
+    )
+
+    assert main([str(path)]) == 0
+    human = capsys.readouterr().out
+    assert "ok balance(a)#=2" in human
+    assert "__aspf_" not in human
+
+    assert main([str(path), "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["models"][0]["ordinary_atoms"] == ["ok"]
+    assert payload["models"][0]["assignments"] == ["balance(a)#=2"]
+
+    assert main([str(path), "--emit-lowered"]) == 0
+    lowered = capsys.readouterr().out
+    assert "__aspf_integer(2)." in lowered
+    assert "_AspfCmp0 >= 1" in lowered
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "#nherb value/0.\nokay :- value #< 0.\n",
+        "#nherb value/0.\nvalue #= symbolic.\nokay :- value #>= 0.\n",
+    ],
+)
+def test_false_ordered_comparisons_do_not_leak_internal_diagnostics(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], source: str
+) -> None:
+    path = write_program(tmp_path, source, "quiet.aspf")
+
+    assert main([str(path)]) == 0
+    captured = capsys.readouterr()
+    assert captured.err == ""
+    assert "__aspf_" not in captured.out
+
+
+@pytest.mark.parametrize("operator", ["#<", "#<=", "#>", "#>="])
+def test_cli_rejects_ordered_comparison_rule_head_with_location(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    operator: str,
+) -> None:
+    path = write_program(
+        tmp_path,
+        f"#nherb balance/1.\nbalance(a) {operator} 1.\n",
+        "ordered-head.aspf",
     )
 
     assert main([str(path)]) == 2
     error = capsys.readouterr().err
-    assert f"{path}:2:" in error
-    assert "#>=" in error
+    assert f"{path}:2:12" in error
+    assert f"operator '{operator}'" in error
 
 
 @pytest.mark.parametrize(

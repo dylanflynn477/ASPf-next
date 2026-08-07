@@ -12,6 +12,7 @@ from aspf_next.ir import (
     AspfStatement,
     FunctionApplication,
     GroundTerm,
+    GroundTermKind,
     NAtom,
     NAtomOperator,
     NAtomRole,
@@ -39,7 +40,6 @@ _FUNCTION_TERM = re.compile(r"([a-z][A-Za-z0-9_]*)\s*\(")
 _VARIABLE = re.compile(r"(?:\b[A-Z][A-Za-z0-9_]*\b|\b_[A-Za-z0-9_]*\b)")
 _EXECUTABLE_IDENTIFIER = re.compile(r"(?<![A-Za-z0-9_])([a-z][A-Za-z0-9_]*)(?![A-Za-z0-9_])")
 _RESERVED_IDENTIFIER = re.compile(r"(?<![A-Za-z0-9_])(__aspf_[A-Za-z0-9_]*)(?![A-Za-z0-9_])")
-_UNSUPPORTED_OPERATORS = ("#<=", "#>=", "#<", "#>")
 
 
 @dataclass(frozen=True, slots=True)
@@ -171,17 +171,6 @@ def _parse_statement(
             "legacy '#show #nherb' and '#hide #nherb' directives are not supported",
         )
 
-    for unsupported_operator in _UNSUPPORTED_OPERATORS:
-        offset = context.executable.find(unsupported_operator)
-        if offset >= 0:
-            _unsupported(
-                source,
-                context,
-                offset,
-                f"operator '{unsupported_operator}' is not supported; only '#=' and "
-                "restricted '#!=' are",
-            )
-
     operators = _find_n_atom_operators(context.executable)
     if not operators:
         _reject_declared_symbols(context, source, declared, ())
@@ -303,12 +292,13 @@ def _parse_n_atom(
     role: NAtomRole,
     separator: int | None,
 ) -> NAtom:
-    if operator is NAtomOperator.NOT_EQUAL and role is NAtomRole.HEAD:
+    if operator is not NAtomOperator.EQUAL and role is NAtomRole.HEAD:
         _unsupported(
             source,
             context,
             operator_offset,
-            "operator '#!=' is supported only as a complete positive rule-body literal",
+            f"operator '{operator.value}' is supported only as a complete positive "
+            "rule-body literal",
         )
     application_start, _application_end, name, arguments = _parse_application_left(
         context, source, declared, operator_offset, operator
@@ -362,6 +352,13 @@ def _parse_n_atom(
         declared=declared,
         as_value=True,
     )
+    if operator.is_ordered and value.kind is not GroundTermKind.INTEGER:
+        _unsupported(
+            source,
+            context,
+            value_start,
+            f"operator '{operator.value}' requires an integer literal on the right",
+        )
 
     if role is NAtomRole.HEAD:
         head_start = _skip_space(
@@ -576,10 +573,12 @@ def _parse_ground_term(
             term_offset,
             "variables, including non-Herbrand variables, are not supported inside n-atoms",
         )
-    if _INTEGER.fullmatch(stripped) or _SYMBOLIC_CONSTANT.fullmatch(stripped):
-        return GroundTerm(stripped)
+    if _INTEGER.fullmatch(stripped):
+        return GroundTerm(stripped, GroundTermKind.INTEGER)
+    if _SYMBOLIC_CONSTANT.fullmatch(stripped):
+        return GroundTerm(stripped, GroundTermKind.SYMBOL)
     if _is_string(stripped):
-        return GroundTerm(stripped)
+        return GroundTerm(stripped, GroundTermKind.STRING)
 
     function_match = _FUNCTION_TERM.match(stripped)
     if function_match and stripped.endswith(")"):
@@ -610,7 +609,7 @@ def _parse_ground_term(
                     declared=declared,
                     as_value=as_value,
                 )
-            return GroundTerm(stripped)
+            return GroundTerm(stripped, GroundTermKind.FUNCTION)
 
     _unsupported(
         source,

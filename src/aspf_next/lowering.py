@@ -5,9 +5,21 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from aspf_next.ir import AspfStatement, NAtom, NAtomOperator, OrdinaryStatement, Program
+from aspf_next.ir import (
+    AspfStatement,
+    GroundTermKind,
+    NAtom,
+    NAtomOperator,
+    NAtomRole,
+    OrdinaryStatement,
+    Program,
+)
 
 INTERNAL_VALUE_PREDICATE = "__aspf_value"
+INTERNAL_INTEGER_PREDICATE = "__aspf_integer"
+INTERNAL_DEFINITIONS = (
+    f"#defined {INTERNAL_VALUE_PREDICATE}/2.\n#defined {INTERNAL_INTEGER_PREDICATE}/1."
+)
 FUNCTIONALITY_CONSTRAINT = ":- __aspf_value(K,V1), __aspf_value(K,V2), V1 != V2."
 _IDENTIFIER = re.compile(r"(?<![A-Za-z0-9_])([A-Za-z_][A-Za-z0-9_]*)(?![A-Za-z0-9_])")
 
@@ -34,6 +46,20 @@ def lower_program(program: Program) -> LoweredProgram:
     if program.declarations:
         if source and not source.endswith("\n"):
             source += "\n"
+        integer_values = sorted(
+            {
+                n_atom.value.text
+                for statement in program.statements
+                if isinstance(statement, AspfStatement)
+                for n_atom in statement.n_atoms
+                if n_atom.role is NAtomRole.HEAD
+                and n_atom.operator is NAtomOperator.EQUAL
+                and n_atom.value.kind is GroundTermKind.INTEGER
+            },
+            key=int,
+        )
+        source += "".join(f"{INTERNAL_INTEGER_PREDICATE}({value}).\n" for value in integer_values)
+        source += f"{INTERNAL_DEFINITIONS}\n"
         source += f"{FUNCTIONALITY_CONSTRAINT}\n"
     return LoweredProgram(source, program.filename)
 
@@ -55,17 +81,25 @@ def _lower_statement(statement: AspfStatement) -> str:
         if n_atom.operator is NAtomOperator.EQUAL:
             replacement = render_internal_atom(n_atom)
         else:
-            value_variable = f"_AspfNeq{variable_index}"
+            variable_stem = "_AspfCmp" if n_atom.operator.is_ordered else "_AspfNeq"
+            value_variable = f"{variable_stem}{variable_index}"
             while value_variable in identifiers:
                 variable_index += 1
-                value_variable = f"_AspfNeq{variable_index}"
+                value_variable = f"{variable_stem}{variable_index}"
             identifiers.add(value_variable)
             variable_index += 1
-            replacement = (
-                f"{INTERNAL_VALUE_PREDICATE}"
-                f"({n_atom.application.render()},{value_variable}), "
-                f"{value_variable} != {n_atom.value.text}"
+            lookup_predicate = (
+                INTERNAL_INTEGER_PREDICATE
+                if n_atom.operator.is_ordered
+                else INTERNAL_VALUE_PREDICATE
             )
+            lookups = [
+                f"{INTERNAL_VALUE_PREDICATE}({n_atom.application.render()},{value_variable})"
+            ]
+            if lookup_predicate != INTERNAL_VALUE_PREDICATE:
+                lookups.append(f"{lookup_predicate}({value_variable})")
+            lookups.append(f"{value_variable} {n_atom.operator.clingo_symbol} {n_atom.value.text}")
+            replacement = ", ".join(lookups)
         replacements.append((local_start, local_end, replacement))
 
     for start, end, replacement in sorted(replacements, reverse=True):
