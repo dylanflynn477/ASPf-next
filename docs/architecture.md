@@ -29,12 +29,13 @@ Each boundary has a distinct responsibility:
    parentheses, brackets, and braces. It finds top-level statement boundaries
    without rewriting source globally.
 2. **Compatibility parsing** (`frontend.py`) collects declarations, recognizes
-   supported n-atoms in valid rule positions, validates the restricted ground
-   term grammar, and rejects ambiguous or deferred syntax. Ordinary statements
-   remain source text.
+   supported n-atoms in valid rule positions, validates the restricted term
+   grammar and source-variable safety, and rejects ambiguous or deferred syntax.
+   Ordinary statements remain source text.
 3. **ASP{f} IR** (`ir.py`) records declarations, ordinary statements, structured
-   applications, typed operators and values, head/body roles, and absolute
-   source spans. No Clingo solver object is part of the IR.
+   applications, distinct ground and variable arguments, typed operators and
+   values, head/body roles, and absolute source spans. No Clingo solver object
+   is part of the IR.
 4. **Reference lowering** (`lowering.py`) replaces only the validated IR spans
    with private relational atoms and appends the functionality constraint.
    Ordered comparisons also use `__aspf_integer/1` to distinguish integer
@@ -93,6 +94,13 @@ validated `#=` rule. This prevents Clingo's ordering over arbitrary ground terms
 from becoming accidental numeric coercion. Private `#defined` directives keep
 Clingo from reporting intentionally absent private atoms as undefined ordinary
 predicates; they derive no atoms and do not make functions total.
+
+When a direct key argument is a source variable, the frontend first requires an
+independent occurrence in an ordinary, unnegated positive symbolic body atom.
+Lowering then preserves the variable in the relational key. Clingo grounds the
+ordinary domain atom and private lookup together. Generated `__aspf_` atoms and
+helper variables are intentionally excluded from source safety analysis, so the
+backend cannot manufacture a grounding domain that the input program lacked.
 
 ## Future native backend (not implemented)
 

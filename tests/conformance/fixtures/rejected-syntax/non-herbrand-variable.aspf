@@ -1,0 +1,3 @@
+#nherb balance/1.
+account(a).
+low :- account(a), balance(_V) #< 1000.

@@ -1,0 +1,4 @@
+#nherb status/1.
+person(alice;bob).
+status(P) #= active :- person(P).
+active_status(P) :- person(P), status(P) #= active.

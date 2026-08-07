@@ -21,9 +21,9 @@ right operand must be an integer literal. The comparison is true only when the
 application has a defined integer value and the usual arithmetic relation holds.
 Undefined, symbolic, and string values make it false. No coercion is performed.
 
-Variables remain rejected inside n-atoms. The ordinary ASP portions of a rule
-may still contain variables, but the application in an ordered n-atom must be
-fully ground.
+At the time this increment was completed, variables remained rejected inside
+n-atoms. The later domain-safe-variable increment supersedes that restriction
+for direct key arguments only.
 
 ## Reference lowering
 
@@ -50,7 +50,10 @@ Private `#defined` directives prevent intentionally false lookup cases from
 printing internal predicate names in Clingo informational diagnostics. They do
 not derive values or alter partiality.
 
-## Still unsupported
+## Boundary at this increment
+
+The following list records the boundary when ordered comparisons were first
+added. Later development notes may supersede individual items.
 
 - ordered comparisons in facts or rule heads;
 - default-negated ordered comparisons;
@@ -62,4 +65,6 @@ not derive values or alter partiality.
 
 See the [supported-language document](../supported-language.md) for the
 normative boundary and the [traceability matrix](../specification-traceability.md)
-for the primary semantic basis.
+for the primary semantic basis. The later
+[domain-safe variable notes](domain-safe-variables-development.md) document the
+narrow variable subset now accepted in ordered keys.

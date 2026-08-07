@@ -20,12 +20,14 @@ reference backend lowers supported non-Herbrand assignments to ordinary Clingo
 enumerates models, exposes the translation for inspection, and reconstructs
 stable ASP{f}-style human and JSON output. The repository includes focused
 semantic-boundary tests, Python 3.11/3.12 CI, guided examples, and explicit
-provenance documentation. Version 0.1.0-alpha is intentionally experimental. It
-does not implement inequalities, arithmetic, variables inside n-atoms,
-aggregates containing n-atoms, or a native propagator, and it does not claim
-full historical compatibility or historical grounding efficiency. The result
-is a tested research baseline for evaluating future compatibility work without
-silently inventing language behavior.
+provenance documentation. The development branch adds definedness-aware
+inequality and integer ordering plus ordinary variables in direct application
+arguments under a conservative positive-domain rule. Version 0.1.0-alpha is
+intentionally experimental. Arithmetic, broader variables, aggregates
+containing n-atoms, and a native propagator remain unimplemented, and the
+project does not claim full historical compatibility or historical grounding
+efficiency. The result is a tested research baseline for evaluating future
+compatibility work without silently inventing language behavior.
 
 ## Technical highlights
 
@@ -35,6 +37,8 @@ silently inventing language behavior.
   Clingo solving, and model normalization.
 - Explicit functionality and partiality through an inspectable
   `__aspf_value/2` translation.
+- Source-level safety validation for ordinary variables in direct
+  non-Herbrand application arguments.
 - Location-aware rejection for unsupported or ambiguous ASP{f}-shaped syntax.
 - Automated examples and quality gates across Python 3.11 and 3.12.
 

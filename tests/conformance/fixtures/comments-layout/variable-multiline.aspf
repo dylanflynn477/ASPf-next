@@ -1,0 +1,9 @@
+#nherb balance/1.
+account(a;b).
+balance(a) #= 500.
+low(A) :-
+    % balance(B) #< 0 and account(B) are inert.
+    label("balance(C) and account(C)"),
+    balance(A) #< 1000,
+    account(A).
+label("balance(C) and account(C)").

@@ -31,6 +31,28 @@ semantics.
 Functionality is global across declared function names because the key includes
 the complete application term. Thus `left(a)` and `right(a)` are distinct keys.
 
+## Domain-safe source variables and grounding
+
+An ordinary uppercase variable may occur as one complete application argument
+only when an ordinary, unnegated positive symbolic body atom in the same rule
+also contains that variable. For example:
+
+```asp
+low(A) :- account(A), balance(A) #< 1000.
+```
+
+The ordinary `account(A)` atom supplies the source grounding domain. Lowering
+retains `A` in the key, so Clingo produces ground lookups such as
+`__aspf_value(balance(checking),V)` only for the ordinary rule instances.
+Grounding a variable key does not define it and does not add a totality rule.
+
+Source safety is deliberately checked before lowering. A generated private
+lookup or comparison variable cannot make a source variable safe, nor can
+another n-atom, ordinary equality, negation, or a classically negated atom. The
+right operand remains ground. This is a conservative compatibility subset, not
+a claim that historical equality-provided safety or non-Herbrand variables have
+been implemented.
+
 ## Head assignments
 
 An assignment fact lowers to an internal fact. A conditional head assignment
@@ -83,6 +105,8 @@ about every historical ASP{f} version:
 - zero-arity functions normalize to a bare key such as `mode`;
 - ordinary recursively ground compound terms are accepted as application
   arguments, but not as values;
+- ordinary variables are accepted only as direct key arguments with an
+  independent positive symbolic body domain;
 - ordinary atoms are sorted first and reconstructed assignments second for
   stable human output;
 - unsupported ASP{f}-shaped syntax is rejected before Clingo receives it.

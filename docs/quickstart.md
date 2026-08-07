@@ -81,8 +81,8 @@ solvent(account1) :- balance(account1) #= 500.
 ```
 
 The rule derives `solvent(account1)` because the application has the tested
-value. The current frontend requires n-atoms to be ground and does not support
-default negation.
+value. N-atom right operands must be ground, and default negation is not
+supported.
 
 ## 6. Compare with a different defined value
 
@@ -117,12 +117,33 @@ above_zero :- temperature(room) #> 0.
 at_least_twenty :- temperature(room) #>= 20.
 ```
 
-The application and right operand must be fully ground, and the right operand
-must be an integer literal. A comparison succeeds only when the application has
-a defined integer value satisfying the usual arithmetic relation. Undefined,
-symbolic, and string values make it false; no coercion is performed.
+The right operand must be a ground integer literal. A comparison succeeds only
+when the application has a defined integer value satisfying the usual
+arithmetic relation. Undefined, symbolic, and string values make it false; no
+coercion is performed.
 
-## 8. Inspect the reference lowering
+## 8. Use a domain-safe variable
+
+Run the restricted variable example:
+
+```console
+aspf examples/07_domain_safe_variables.aspf
+```
+
+Its body comparisons use `A` directly as a key argument:
+
+```asp
+low(A) :- account(A), balance(A) #< 1000.
+nonzero(A) :- account(A), balance(A) #!= 0.
+```
+
+The ordinary positive atom `account(A)` supplies `A`'s grounding domain. Every
+variable in an n-atom key needs such an independent domain occurrence in the
+same rule. Another n-atom, ordinary equality, negation, or a generated private
+lookup cannot supply it. Values and right operands remain ground, and nested or
+non-Herbrand variables remain unsupported.
+
+## 9. Inspect the reference lowering
 
 ```console
 aspf hello.aspf --emit-lowered
@@ -160,7 +181,7 @@ _AspfCmp0 >= 100
 That marker prevents Clingo's general ordering of symbolic terms from being
 mistaken for numeric ASP{f} comparison.
 
-## 9. Use JSON output
+## 10. Use JSON output
 
 ```console
 aspf examples/03_conditional_assignment.aspf --json
@@ -191,7 +212,7 @@ aspf examples/03_conditional_assignment.aspf --json
 The JSON object separates ordinary shown atoms from reconstructed assignments.
 Use `--models 0` when every model is required.
 
-## 10. Understand partiality
+## 11. Understand partiality
 
 Run:
 
@@ -204,7 +225,7 @@ therefore includes `balance(account2)#=500` and no assignment for `account1`.
 Declarations introduce possible function applications; they do not add values
 or a totality rule.
 
-## 11. Understand conflicting assignments
+## 12. Understand conflicting assignments
 
 ```console
 aspf examples/04_conflicting_values.aspf
@@ -217,7 +238,7 @@ UNSATISFIABLE
 The same ground application is assigned both `500` and `600`, violating the
 functionality constraint.
 
-## 12. Recognize unsupported syntax
+## 13. Recognize unsupported syntax
 
 For example, an ordered comparison cannot use a symbolic right operand:
 
@@ -232,7 +253,8 @@ Running it produces a location-aware error resembling:
 aspf: error: unsupported.aspf:2:29: operator '#>=' requires an integer literal on the right
 ```
 
-The same explicit rejection policy covers arithmetic, variables, comparisons in
-heads, aggregates containing n-atoms, default-negated n-atoms, and other
-deferred constructs. See the [compatibility matrix](compatibility-matrix.md)
-before adapting historical ASP{f} programs.
+The same explicit rejection policy covers arithmetic, variables outside the
+restricted direct-key subset, comparisons in heads, aggregates containing
+n-atoms, default-negated n-atoms, and other deferred constructs. See the
+[compatibility matrix](compatibility-matrix.md) before adapting historical
+ASP{f} programs.

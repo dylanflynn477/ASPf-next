@@ -1,10 +1,11 @@
 # Restricted ordinary-variable milestone plan
 
-Status: implementation-ready proposal. This document does not enable variable syntax.
+Status: implemented as an unreleased development increment. This document
+records the design contract used by the implementation.
 
 ## Decision
 
-**GO WITH CONDITIONS.** The next implementation task may add ordinary variables only in
+**GO WITH CONDITIONS.** The implementation adds ordinary variables only in
 direct argument positions of declared non-Herbrand applications, and only when every such
 variable has an independent domain occurrence in an ordinary positive body atom in the same
 rule.
@@ -463,13 +464,12 @@ The following work must be proposed and reviewed separately:
 
 None should be folded into the first implementation for convenience.
 
-## Exact next implementation task
+## Implemented task checklist
 
-Create a feature branch from the commit that adds these design documents and implement
-**domain-safe ordinary variables in direct declared-key arguments** with the grammar and
-safety condition above.
+The implementation adds **domain-safe ordinary variables in direct declared-key
+arguments** with the grammar and safety condition above.
 
-The task should:
+The implementation contract was to:
 
 1. add a typed ordinary-variable argument node with source spans;
 2. add a conservative per-rule ordinary-domain safety analysis;

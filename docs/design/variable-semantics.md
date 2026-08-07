@@ -1,11 +1,12 @@
 # Variable semantics research
 
-Status: architecture research, not an implemented language commitment.
+Status: primary-source design basis for the implemented restricted subset.
 
-This document records the primary-source basis for a future variable milestone in
-ASPf-next. It separates historical ASP{f}, historical Clingo{f}, current Clingo behavior,
-and possible ASPf-next restrictions. No historical implementation source code was
-consulted, and no production behavior follows from this document by itself.
+This document records the primary-source basis for ASPf-next's first restricted
+variable milestone. The recommended direct-key, independently domain-safe
+subset is now implemented as an unreleased development increment. The document
+separates historical ASP{f}, historical Clingo{f}, current Clingo behavior, and
+ASPf-next restrictions. No historical implementation source code was consulted.
 
 ## Executive conclusion
 
@@ -517,9 +518,9 @@ purpose. It also ignores defining equalities and n-stratification.
 
 | Area | Historical language/system | Current ASPf-next architecture |
 | --- | --- | --- |
-| ordinary variables | supported broadly through grounding | rejected inside n-atoms |
-| seed equality safety | may provide safe variable occurrences | no source-variable safety model yet |
-| dependent comparison safety | variables must be safe elsewhere | all variables rejected, so safely narrower |
+| ordinary variables | supported broadly through grounding | direct key arguments only, with an independent positive body domain |
+| seed equality safety | may provide safe variable occurrences | equality does not supply safety; an ordinary positive body atom is required |
+| dependent comparison safety | variables must be safe elsewhere | enforced before lowering through the narrower ordinary-domain rule |
 | n-variables | grounder-inert, equality-defined, n-stratified | no representation or backend mechanism |
 | declared names outside n-atoms | treated as ordinary Herbrand terms in Clingo{f} | rejected to prevent semantic leakage |
 | application-to-application comparison | supported | rejected |

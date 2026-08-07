@@ -61,6 +61,22 @@ EXAMPLES = PROJECT_ROOT / "examples"
                 )
             },
         ),
+        (
+            "07_domain_safe_variables.aspf",
+            SolveStatus.SATISFIABLE,
+            1,
+            {
+                (
+                    "account(checking)",
+                    "account(savings)",
+                    "low(checking)",
+                    "nonzero(checking)",
+                    "nonzero(savings)",
+                    "balance(checking)#=500",
+                    "balance(savings)#=1500",
+                )
+            },
+        ),
     ],
 )
 def test_documented_example(
@@ -82,7 +98,7 @@ def test_examples_guide_covers_every_program() -> None:
     guide = (EXAMPLES / "README.md").read_text(encoding="utf-8")
     programs = sorted(EXAMPLES.glob("*.aspf"))
 
-    assert len(programs) == 6
+    assert len(programs) == 7
     for program in programs:
         assert program.name in guide
 

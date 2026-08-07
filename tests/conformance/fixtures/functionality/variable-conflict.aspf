@@ -1,0 +1,4 @@
+#nherb status/1.
+person(alice).
+status(P) #= active :- person(P).
+status(P) #= inactive :- person(P).

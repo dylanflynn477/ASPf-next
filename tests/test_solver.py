@@ -257,3 +257,62 @@ def test_solver_rejects_user_identifier_in_internal_namespace() -> None:
 def test_solver_rejects_declared_symbol_as_ordinary_predicate() -> None:
     with pytest.raises(UnsupportedSyntaxError, match="may only be used as the key"):
         solve("#nherb balance/1.\nbalance(account1).\n")
+
+
+def test_domain_safe_variable_comparisons_preserve_definedness() -> None:
+    result = solve(
+        """#nherb balance/1.
+account(a;b;c).
+balance(a) #= 500.
+balance(b) #= 1500.
+equal(A) :- account(A), balance(A) #= 500.
+different(A) :- account(A), balance(A) #!= 500.
+low(A) :- account(A), balance(A) #< 1000.
+"""
+    )
+
+    assert result.models[0].ordinary_atoms == (
+        "account(a)",
+        "account(b)",
+        "account(c)",
+        "different(b)",
+        "equal(a)",
+        "low(a)",
+    )
+    assert result.models[0].assignments == ("balance(a)#=500", "balance(b)#=1500")
+
+
+@pytest.mark.parametrize(
+    ("operator", "assigned", "right"),
+    [("#<", -1, 0), ("#<=", 0, 0), ("#>", 1, 0), ("#>=", 0, 0)],
+)
+def test_domain_safe_variable_supports_every_ordered_operator(
+    operator: str, assigned: int, right: int
+) -> None:
+    result = solve(
+        "#nherb value/1.\nitem(a;b).\n"
+        f"value(a) #= {assigned}.\nok(X) :- item(X), value(X) {operator} {right}.\n"
+    )
+
+    assert "ok(a)" in result.models[0].ordinary_atoms
+    assert "ok(b)" not in result.models[0].ordinary_atoms
+
+
+def test_domain_safe_variable_assignment_head_grounds_over_ordinary_domain() -> None:
+    result = solve("#nherb status/1.\nperson(alice;bob).\nstatus(P) #= active :- person(P).\n")
+
+    assert result.models[0].assignments == (
+        "status(alice)#=active",
+        "status(bob)#=active",
+    )
+
+
+def test_domain_safe_variable_head_assignments_retain_functionality() -> None:
+    result = solve(
+        "#nherb status/1.\nperson(alice).\n"
+        "status(P) #= active :- person(P).\n"
+        "status(P) #= inactive :- person(P).\n"
+    )
+
+    assert result.status is SolveStatus.UNSATISFIABLE
+    assert result.models == ()

@@ -215,3 +215,60 @@ def test_cli_rejects_semantic_boundary_violations_with_location(
     assert captured.out == ""
     assert f"{path}:2:{column}" in captured.err
     assert message in captured.err
+
+
+def test_domain_safe_variable_human_json_and_lowered_output(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    path = write_program(
+        tmp_path,
+        "#nherb balance/1.\naccount(a;b).\nbalance(a) #= 500.\n"
+        "low(A) :- account(A), balance(A) #< 1000.\n",
+        "variables.aspf",
+    )
+
+    assert main([str(path)]) == 0
+    human = capsys.readouterr().out
+    assert "account(a) account(b) low(a) balance(a)#=500" in human
+    assert "__aspf_" not in human
+
+    assert main([str(path), "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["models"][0]["ordinary_atoms"] == ["account(a)", "account(b)", "low(a)"]
+    assert payload["models"][0]["assignments"] == ["balance(a)#=500"]
+
+    assert main([str(path), "--emit-lowered"]) == 0
+    lowered = capsys.readouterr().out
+    assert "__aspf_value(balance(A),_AspfCmp0)" in lowered
+    assert "__aspf_integer(_AspfCmp0)" in lowered
+
+
+def test_domain_safe_variables_work_across_multiple_files(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    declarations = write_program(tmp_path, "#nherb status/1.\n", "declarations.aspf")
+    rules = write_program(
+        tmp_path,
+        "person(alice;bob).\nstatus(P) #= active :- person(P).\n",
+        "rules.aspf",
+    )
+
+    assert main([str(declarations), str(rules)]) == 0
+    output = capsys.readouterr().out
+    assert "status(alice)#=active" in output
+    assert "status(bob)#=active" in output
+
+
+def test_cli_rejects_unsafe_n_atom_variable_before_clingo_grounding(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    source = "#nherb balance/1.\ndifferent(A) :- balance(A) #!= 1000.\n"
+    path = write_program(tmp_path, source, "unsafe-variable.aspf")
+
+    assert main([str(path)]) == 2
+    captured = capsys.readouterr()
+    expected_column = source.splitlines()[1].index("balance(A)") + len("balance(") + 1
+    assert captured.out == ""
+    assert f"{path}:2:{expected_column}" in captured.err
+    assert "ordinary positive body atom" in captured.err

@@ -40,31 +40,38 @@ explicit value lookup followed by ordinary inequality; it does not treat
 inequality as the absence of equality. No release number has been assigned to
 this increment.
 
-Positive fully ground `#<`, `#<=`, `#>`, and `#>=` body literals are also
-implemented on the development branch for integer values and integer right
-operands only. Undefined and non-integer application values make the comparison
-false. No coercion, arithmetic, or variable support is included, and no release
-number has been assigned.
+Positive `#<`, `#<=`, `#>`, and `#>=` body literals are also implemented on the
+development branch for integer values and integer right operands only.
+Undefined and non-integer application values make the comparison false. No
+coercion or arithmetic is included, and no release number has been assigned.
+
+Domain-safe ordinary uppercase variables are implemented only as complete,
+direct application arguments. Every such variable must have an independent occurrence
+in an ordinary, unnegated positive symbolic body atom in the same rule. Right
+operands remain ground; nested argument variables, equality-provided safety,
+anonymous variables, and `_v` non-Herbrand variables remain unsupported. This
+increment also has no release number.
 
 ## Next compatibility candidates
 
-Arithmetic expressions, variables inside n-atoms, application-to-application
-comparisons, and every broader n-atom context remain deferred. Each candidate
-requires its own primary-source review, explicit undefinedness rule, typed IR,
-conservative diagnostics, and focused conformance cases.
+Arithmetic expressions, broader variable positions and safety rules,
+application-to-application comparisons, and every broader n-atom context remain
+deferred. Each candidate requires its own primary-source review, explicit
+undefinedness rule, typed IR, conservative diagnostics, and focused conformance
+cases.
 
 ## Later research
 
 Longer-term topics may include:
 
 - additional comparisons and arithmetic;
-- non-Herbrand variables;
+- non-Herbrand variables and broader ordinary-variable semantics;
 - aggregates containing n-atoms;
 - an alternative backend using Clingo theory atoms or a custom propagator;
 - equivalence and grounding-size studies comparing backends; and
 - an explainable portfolio-risk demonstration built only after the language
   semantics it needs are specified and tested.
 
-None of these later language capabilities is implemented by the
-ordered-comparison increment. A native backend would be a separate research
+None of these later language capabilities is implemented by the current
+increments. A native backend would be a separate research
 milestone, not a silent replacement for the reference translation.

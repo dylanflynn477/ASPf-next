@@ -27,8 +27,9 @@ aspf examples/01_basic_assignment.aspf
 ```
 
 The single model contains `solvent(account1)` and
-`balance(account1)#=500`. The comparison is positive and ground; variables and
-default-negated n-atoms are not supported.
+`balance(account1)#=500`. The comparison is positive and ground. Restricted
+domain-safe key variables are demonstrated in example 07; default-negated
+n-atoms are not supported.
 
 ## 02 — Partiality
 
@@ -132,3 +133,25 @@ aspf examples/06_ordered_comparisons.aspf
 All four ordinary atoms are derived. Ordered comparisons require a defined
 integer value and an integer literal on the right. Undefined, symbolic, and
 string-valued applications make these comparisons false.
+
+## 07 — Domain-safe variables
+
+[`07_domain_safe_variables.aspf`](07_domain_safe_variables.aspf) uses an
+ordinary variable directly as the argument of a declared application.
+
+```console
+aspf examples/07_domain_safe_variables.aspf
+```
+
+Expected model:
+
+```text
+Answer: 1
+account(checking) account(savings) low(checking) nonzero(checking) nonzero(savings) balance(checking)#=500 balance(savings)#=1500
+SATISFIABLE
+```
+
+`A` is accepted because the ordinary positive body atom `account(A)` supplies
+its domain. The `savings` balance is defined but not low; an account with no
+balance assignment would remain undefined and satisfy neither ordered
+comparison nor `#!=`.

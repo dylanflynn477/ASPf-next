@@ -30,8 +30,14 @@ releases. Python package metadata uses the equivalent PEP 440 version.
   values before applying a shared ordinary comparison path.
 - Ordered-comparison conformance fixtures, CLI regressions, and a sixth guided
   example covering negative, zero, and positive values.
+- Typed ordinary variables in direct non-Herbrand application arguments, with
+  source spans and a conservative source-level domain-safety check.
+- Domain-safe variable lowering for assignment heads and all six supported body
+  operators while keeping every right operand ground.
+- Focused frontend, lowering, solver, CLI, and conformance regressions plus a
+  seventh guided example for restricted ordinary variables.
 
-No release number has been assigned to these comparison development increments.
+No release number has been assigned to these development increments.
 
 ## 0.1.0-alpha - Unreleased
 

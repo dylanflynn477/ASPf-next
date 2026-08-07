@@ -1,0 +1,2 @@
+#nherb balance/1.
+different(A) :- balance(A) #!= 1000.
