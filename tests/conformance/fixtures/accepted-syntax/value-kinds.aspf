@@ -1,0 +1,6 @@
+#nherb mode/0.
+#nherb temperature/1.
+#nherb label/1.
+mode #= active.
+temperature(room1) #= -3.
+label(item1) #= "cold brew".

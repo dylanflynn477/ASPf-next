@@ -1,0 +1,3 @@
+#nherb status/1.
+active(alice).
+status(alice) #= employed :- active(alice).

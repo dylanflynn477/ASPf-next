@@ -17,7 +17,9 @@ reviewable.
 - Every compatibility feature requires focused frontend, lowering, solver, CLI,
   and documentation coverage appropriate to the change.
 
-See [`docs/provenance.md`](docs/provenance.md) before proposing semantic work.
+See [`docs/provenance.md`](docs/provenance.md) and the
+[specification traceability matrix](docs/specification-traceability.md) before
+proposing semantic work.
 
 ## Development setup
 
@@ -48,3 +50,8 @@ Keep pull requests narrow and explain:
 
 Documentation and examples should use only programs accepted by the current
 frontend. Do not bundle native-backend experiments with reference-backend fixes.
+
+When a change affects a documented semantic boundary, add or update a case in
+[`tests/conformance/manifest.json`](tests/conformance/manifest.json). Each case
+must state whether it represents source-backed historical behavior or an
+ASPf-next-specific boundary.

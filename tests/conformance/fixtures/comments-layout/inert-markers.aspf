@@ -1,0 +1,4 @@
+#nherb mode/0.
+label("__aspf_value mode #>= 7").
+% mode. __aspf_injected(a). mode #!= disabled.
+mode #= active.

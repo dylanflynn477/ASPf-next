@@ -1,0 +1,2 @@
+#nherb balance/1.
+ok :- not balance(account1) #= 500.

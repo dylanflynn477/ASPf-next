@@ -7,7 +7,18 @@ releases. Python package metadata uses the equivalent PEP 440 version.
 
 ## Unreleased
 
-No changes yet.
+### Added
+
+- Primary-source traceability for every milestone 0.1 construct and known
+  compatibility deviation.
+- A manifest-driven conformance corpus covering accepted and rejected syntax,
+  solving behavior, partiality, functionality, model enumeration, source
+  layout, and multiple files.
+- Architecture decision records for clean-room development, reference
+  lowering, partiality, conservative rejection, and the private backend
+  namespace.
+
+No ASP{f} language feature is added by these changes.
 
 ## 0.1.0-alpha - Unreleased
 

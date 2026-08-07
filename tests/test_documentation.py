@@ -22,6 +22,7 @@ def test_readme_contains_required_scope_and_attribution() -> None:
     assert "Try it in under two minutes" in readme
     assert "Status: pre-alpha" in readme
     assert "examples/01_basic_assignment.aspf" in readme
+    assert "docs/specification-traceability.md" in readme
 
 
 def test_architecture_documents_required_pipeline_and_future_backend() -> None:
@@ -79,6 +80,42 @@ def test_productization_documents_exist() -> None:
 
     for relative_path in expected:
         assert (PROJECT_ROOT / relative_path).is_file(), relative_path
+
+
+def test_conformance_traceability_and_decisions_cover_the_current_boundary() -> None:
+    traceability = (PROJECT_ROOT / "docs" / "specification-traceability.md").read_text(
+        encoding="utf-8"
+    )
+    for construct in (
+        "Explicit declaration",
+        "Partial function assignment",
+        "Functionality",
+        "Undefined applications",
+        "Assignment fact",
+        "Assignment rule head",
+        "Positive body equality",
+        "Constants and values",
+        "Ordinary ASP interaction",
+        "Variables and arithmetic",
+        "Declaration/use restrictions",
+        "Reserved internal identifiers",
+    ):
+        assert f"| {construct} |" in traceability
+
+    decision_files = sorted((PROJECT_ROOT / "docs" / "decisions").glob("*.md"))
+    assert [path.name for path in decision_files] == [
+        "0001-clean-room-implementation.md",
+        "0002-reference-lowering-before-native-backend.md",
+        "0003-partial-not-total-functions.md",
+        "0004-conservative-unsupported-syntax.md",
+        "0005-reserved-backend-namespace.md",
+    ]
+    for decision_file in decision_files:
+        decision = decision_file.read_text(encoding="utf-8")
+        assert "Status: Accepted" in decision
+        assert "## Context" in decision
+        assert "## Decision" in decision
+        assert "## Consequences" in decision
 
 
 def test_relative_markdown_links_resolve() -> None:
