@@ -316,3 +316,158 @@ def test_domain_safe_variable_head_assignments_retain_functionality() -> None:
 
     assert result.status is SolveStatus.UNSATISFIABLE
     assert result.models == ()
+
+
+def application_comparison_program(
+    operator: str,
+    left_value: str | None,
+    right_value: str | None,
+) -> str:
+    assignments = ""
+    if left_value is not None:
+        assignments += f"actual #= {left_value}.\n"
+    if right_value is not None:
+        assignments += f"expected #= {right_value}.\n"
+    return (
+        f"#nherb actual/0.\n#nherb expected/0.\n{assignments}holds :- actual {operator} expected.\n"
+    )
+
+
+@pytest.mark.parametrize(
+    ("left_value", "right_value", "expected"),
+    [
+        ("10", "10", True),
+        ("10", "20", False),
+        (None, "10", False),
+        ("10", None, False),
+        (None, None, False),
+        ("active", "active", True),
+        ('"same"', '"same"', True),
+    ],
+)
+def test_application_equality_requires_two_defined_equal_values(
+    left_value: str | None, right_value: str | None, expected: bool
+) -> None:
+    result = solve(application_comparison_program("#=", left_value, right_value))
+
+    assert ("holds" in result.models[0].ordinary_atoms) is expected
+
+
+@pytest.mark.parametrize(
+    ("left_value", "right_value", "expected"),
+    [
+        ("10", "20", True),
+        ("10", "10", False),
+        (None, "10", False),
+        ("10", None, False),
+        (None, None, False),
+        ("active", "idle", True),
+        ('"left"', '"right"', True),
+    ],
+)
+def test_application_inequality_requires_two_defined_different_values(
+    left_value: str | None, right_value: str | None, expected: bool
+) -> None:
+    result = solve(application_comparison_program("#!=", left_value, right_value))
+
+    assert ("holds" in result.models[0].ordinary_atoms) is expected
+
+
+@pytest.mark.parametrize(
+    ("operator", "left_value", "right_value", "expected"),
+    [
+        ("#<", "-2", "0", True),
+        ("#<=", "0", "0", True),
+        ("#>", "2", "-1", True),
+        ("#>=", "0", "0", True),
+        ("#<", "1", "0", False),
+        ("#<=", "1", "0", False),
+        ("#>", "-1", "0", False),
+        ("#>=", "-1", "0", False),
+        ("#<", None, "0", False),
+        ("#<", "0", None, False),
+        ("#<", "symbolic", "1", False),
+        ("#<", "1", "symbolic", False),
+        ("#<", '"0"', "1", False),
+        ("#<", "1", '"2"', False),
+        ("#<", "-10", "5", True),
+    ],
+)
+def test_ordered_application_comparison_requires_two_defined_integers(
+    operator: str,
+    left_value: str | None,
+    right_value: str | None,
+    expected: bool,
+) -> None:
+    result = solve(application_comparison_program(operator, left_value, right_value))
+
+    assert ("holds" in result.models[0].ordinary_atoms) is expected
+
+
+def test_application_comparison_supports_same_domain_variable_on_both_sides() -> None:
+    result = solve(
+        """#nherb actual/1.
+#nherb expected/1.
+account(a;b;c).
+actual(a) #= 10.
+expected(a) #= 10.
+actual(b) #= 20.
+expected(b) #= 25.
+same(A) :- account(A), actual(A) #= expected(A).
+different(A) :- account(A), actual(A) #!= expected(A).
+"""
+    )
+
+    assert "same(a)" in result.models[0].ordinary_atoms
+    assert "different(b)" in result.models[0].ordinary_atoms
+    assert "same(c)" not in result.models[0].ordinary_atoms
+    assert "different(c)" not in result.models[0].ordinary_atoms
+
+
+def test_application_comparison_supports_two_independently_safe_variables() -> None:
+    result = solve(
+        """#nherb actual/1.
+#nherb expected/1.
+account(a;b).
+actual(a) #= match.
+expected(b) #= match.
+pair(A,B) :- account(A), account(B), actual(A) #= expected(B).
+"""
+    )
+
+    assert "pair(a,b)" in result.models[0].ordinary_atoms
+
+
+def test_assignment_head_and_application_comparison_coexist_without_copying() -> None:
+    result = solve(
+        """#nherb actual/1.
+#nherb expected/1.
+account(a).
+expected(a) #= 10.
+actual(A) #= 10 :- account(A).
+same(A) :- account(A), actual(A) #= expected(A).
+"""
+    )
+
+    assert "same(a)" in result.models[0].ordinary_atoms
+    assert result.models[0].assignments == ("actual(a)#=10", "expected(a)#=10")
+
+
+def test_application_comparisons_follow_ordinary_choices_across_models() -> None:
+    result = solve(
+        """#nherb actual/0.
+#nherb expected/0.
+1 { choose(equal); choose(different) } 1.
+expected #= 10.
+actual #= 10 :- choose(equal).
+actual #= 20 :- choose(different).
+same :- actual #= expected.
+changed :- actual #!= expected.
+""",
+        models=0,
+    )
+
+    assert {model.ordinary_atoms for model in result.models} == {
+        ("changed", "choose(different)"),
+        ("choose(equal)", "same"),
+    }

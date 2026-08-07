@@ -1,0 +1,3 @@
+#nherb actual/1.
+#nherb expected/1.
+actual(a) #= expected(a).

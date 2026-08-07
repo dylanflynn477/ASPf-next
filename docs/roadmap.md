@@ -33,15 +33,14 @@ Implemented without changing the milestone 0.1 accepted language:
 
 ## Implemented compatibility increments
 
-Positive ground `#!=` is implemented on the development branch only as a
-complete positive body literal. Both operands must be defined, so an undefined
-left application makes the comparison false. The reference backend performs an
-explicit value lookup followed by ordinary inequality; it does not treat
-inequality as the absence of equality. No release number has been assigned to
-this increment.
+Positive ground `#!=` is implemented as a complete positive body literal. Both
+operands must be defined, so an undefined left application makes the comparison
+false. The reference backend performs an explicit value lookup followed by
+ordinary inequality; it does not treat inequality as the absence of equality.
+No release number has been assigned to this increment.
 
-Positive `#<`, `#<=`, `#>`, and `#>=` body literals are also implemented on the
-development branch for integer values and integer right operands only.
+Positive `#<`, `#<=`, `#>`, and `#>=` body literals are also implemented for
+integer values and integer scalar right operands.
 Undefined and non-integer application values make the comparison false. No
 coercion or arithmetic is included, and no release number has been assigned.
 
@@ -52,13 +51,19 @@ operands remain ground; nested argument variables, equality-provided safety,
 anonymous variables, and `_v` non-Herbrand variables remain unsupported. This
 increment also has no release number.
 
+Typed scalar and application operands are implemented in distinct assignment
+and body-comparison IR nodes. Positive application-to-application equality and
+inequality require both values to be defined; all four ordered operators also
+require both runtime values to be integers. Application comparison remains
+body-only and does not provide source-variable safety or assignment/copy
+semantics.
+
 ## Next compatibility candidates
 
-Arithmetic expressions, broader variable positions and safety rules,
-application-to-application comparisons, and every broader n-atom context remain
-deferred. Each candidate requires its own primary-source review, explicit
-undefinedness rule, typed IR, conservative diagnostics, and focused conformance
-cases.
+Arithmetic expressions, broader variable positions and safety rules, and every
+broader n-atom context remain deferred. Each candidate requires its own
+primary-source review, explicit undefinedness rule, typed IR, conservative
+diagnostics, and focused conformance cases.
 
 ## Later research
 

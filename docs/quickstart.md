@@ -81,8 +81,8 @@ solvent(account1) :- balance(account1) #= 500.
 ```
 
 The rule derives `solvent(account1)` because the application has the tested
-value. N-atom right operands must be ground, and default negation is not
-supported.
+value. Scalar n-atom right operands must be ground, and default negation is not
+supported. A later section shows the distinct declared-application operand.
 
 ## 6. Compare with a different defined value
 
@@ -117,7 +117,7 @@ above_zero :- temperature(room) #> 0.
 at_least_twenty :- temperature(room) #>= 20.
 ```
 
-The right operand must be a ground integer literal. A comparison succeeds only
+The scalar right operand must be a ground integer literal. A comparison succeeds only
 when the application has a defined integer value satisfying the usual
 arithmetic relation. Undefined, symbolic, and string values make it false; no
 coercion is performed.
@@ -140,10 +140,32 @@ nonzero(A) :- account(A), balance(A) #!= 0.
 The ordinary positive atom `account(A)` supplies `A`'s grounding domain. Every
 variable in an n-atom key needs such an independent domain occurrence in the
 same rule. Another n-atom, ordinary equality, negation, or a generated private
-lookup cannot supply it. Values and right operands remain ground, and nested or
-non-Herbrand variables remain unsupported.
+lookup cannot supply it. Scalar values and right operands remain ground, and
+nested or non-Herbrand variables remain unsupported.
 
-## 9. Inspect the reference lowering
+## 9. Compare two partial applications
+
+Run the application-comparison example:
+
+```console
+aspf examples/08_application_comparisons.aspf
+```
+
+Its rules compare observed and expected values:
+
+```asp
+matches(A) :- account(A), actual(A) #= expected(A).
+changed(A) :- account(A), actual(A) #!= expected(A).
+above_expected(A) :- account(A), actual(A) #> expected(A).
+```
+
+Both applications must be defined. Two undefined applications are neither equal
+nor unequal, and ordered comparison also requires both values to be integers.
+The ordinary `account(A)` atom independently supplies variable safety for both
+keys. Application equality is body-only: `actual(a) #= expected(a).` is rejected
+rather than interpreted as a copy assignment.
+
+## 10. Inspect the reference lowering
 
 ```console
 aspf hello.aspf --emit-lowered
@@ -181,7 +203,17 @@ _AspfCmp0 >= 100
 That marker prevents Clingo's general ordering of symbolic terms from being
 mistaken for numeric ASP{f} comparison.
 
-## 10. Use JSON output
+Application equality uses a shared retrieved value:
+
+```asp
+__aspf_value(actual(A),_AspfCmp0),
+__aspf_value(expected(A),_AspfCmp0)
+```
+
+Application ordering retrieves both values and applies an integer marker to
+each before evaluating the relation.
+
+## 11. Use JSON output
 
 ```console
 aspf examples/03_conditional_assignment.aspf --json
@@ -212,7 +244,7 @@ aspf examples/03_conditional_assignment.aspf --json
 The JSON object separates ordinary shown atoms from reconstructed assignments.
 Use `--models 0` when every model is required.
 
-## 11. Understand partiality
+## 12. Understand partiality
 
 Run:
 
@@ -225,7 +257,7 @@ therefore includes `balance(account2)#=500` and no assignment for `account1`.
 Declarations introduce possible function applications; they do not add values
 or a totality rule.
 
-## 12. Understand conflicting assignments
+## 13. Understand conflicting assignments
 
 ```console
 aspf examples/04_conflicting_values.aspf
@@ -238,7 +270,7 @@ UNSATISFIABLE
 The same ground application is assigned both `500` and `600`, violating the
 functionality constraint.
 
-## 13. Recognize unsupported syntax
+## 14. Recognize unsupported syntax
 
 For example, an ordered comparison cannot use a symbolic right operand:
 
@@ -250,7 +282,7 @@ ok :- balance(account1) #>= high.
 Running it produces a location-aware error resembling:
 
 ```text
-aspf: error: unsupported.aspf:2:29: operator '#>=' requires an integer literal on the right
+aspf: error: unsupported.aspf:2:29: operator '#>=' requires an integer literal on the right or a declared application
 ```
 
 The same explicit rejection policy covers arithmetic, variables outside the

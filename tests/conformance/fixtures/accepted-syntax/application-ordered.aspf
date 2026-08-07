@@ -1,0 +1,16 @@
+#nherb actual/1.
+#nherb expected/1.
+
+actual(lt) #= -1.
+expected(lt) #= 0.
+actual(le) #= 0.
+expected(le) #= 0.
+actual(gt) #= 1.
+expected(gt) #= 0.
+actual(ge) #= 0.
+expected(ge) #= 0.
+
+lt :- actual(lt) #< expected(lt).
+le :- actual(le) #<= expected(le).
+gt :- actual(gt) #> expected(gt).
+ge :- actual(ge) #>= expected(ge).

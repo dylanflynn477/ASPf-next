@@ -1,0 +1,4 @@
+actual(a) #= 1.
+expected(a) #= 1.
+actual(b) #= 2.
+expected(b) #= 3.

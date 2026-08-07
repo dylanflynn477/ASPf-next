@@ -155,3 +155,26 @@ SATISFIABLE
 its domain. The `savings` balance is defined but not low; an account with no
 balance assignment would remain undefined and satisfy neither ordered
 comparison nor `#!=`.
+
+## 08 — Application-to-application comparisons
+
+[`08_application_comparisons.aspf`](08_application_comparisons.aspf) compares
+observed and expected values without copying either partial function.
+
+```console
+aspf examples/08_application_comparisons.aspf
+```
+
+Expected model:
+
+```text
+Answer: 1
+above_expected(b) account(a) account(b) account(c) changed(b) matches(a) actual(a)#=100 actual(b)#=125 expected(a)#=100 expected(b)#=100
+SATISFIABLE
+```
+
+Both applications are defined and equal for `a`, so `matches(a)` is derived.
+They are defined and different for `b`, so `changed(b)` and
+`above_expected(b)` are derived. Neither application is defined for `c`, so
+none of its comparison rules succeeds. Application equality is a positive body
+comparison, not assignment or value-copy syntax.

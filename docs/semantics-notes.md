@@ -48,9 +48,11 @@ Grounding a variable key does not define it and does not add a totality rule.
 
 Source safety is deliberately checked before lowering. A generated private
 lookup or comparison variable cannot make a source variable safe, nor can
-another n-atom, ordinary equality, negation, or a classically negated atom. The
-right operand remains ground. This is a conservative compatibility subset, not
-a claim that historical equality-provided safety or non-Herbrand variables have
+another n-atom, ordinary equality, negation, or a classically negated atom. A
+scalar right operand remains ground. A declared right application may use the
+same direct argument subset, but every variable there also needs an independent
+ordinary domain occurrence. This is a conservative compatibility subset, not a
+claim that historical equality-provided safety or non-Herbrand variables have
 been implemented.
 
 ## Head assignments
@@ -75,6 +77,16 @@ integer literal `n`. The reference backend tags integer assignment literals with
 Undefined, symbolic, and string values therefore make the ordered comparison
 false. No coercion or general Clingo term ordering is exposed as numeric
 semantics.
+
+For `f(a) #= g(a)` and `f(a) #!= g(a)`, both declared applications are looked
+up. Equality shares one generated value variable; inequality retrieves two and
+compares them explicitly. Thus either undefined operand makes both literals
+false. Application equality is body-only and does not copy a value in a rule
+head.
+
+Ordered application comparison retrieves both values and requires an integer
+marker for each before applying the arithmetic relation. This preserves the
+same integer-only boundary and prevents Clingo term ordering on either side.
 
 Default-negated comparisons are deferred because simply negating the internal
 atom would conflate “undefined” and “defined with a different value” without an

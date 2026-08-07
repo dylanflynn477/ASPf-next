@@ -272,3 +272,83 @@ def test_cli_rejects_unsafe_n_atom_variable_before_clingo_grounding(
     assert captured.out == ""
     assert f"{path}:2:{expected_column}" in captured.err
     assert "ordinary positive body atom" in captured.err
+
+
+def test_application_comparison_human_json_and_lowered_output(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    path = write_program(
+        tmp_path,
+        """#nherb actual/1.
+#nherb expected/1.
+account(a;b).
+actual(a) #= 10.
+expected(a) #= 10.
+actual(b) #= 20.
+expected(b) #= 25.
+same(A) :- account(A), actual(A) #= expected(A).
+changed(A) :- account(A), actual(A) #!= expected(A).
+""",
+        "applications.aspf",
+    )
+
+    assert main([str(path)]) == 0
+    human = capsys.readouterr().out
+    assert "same(a)" in human
+    assert "changed(b)" in human
+    assert "__aspf_" not in human
+
+    assert main([str(path), "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert "same(a)" in payload["models"][0]["ordinary_atoms"]
+    assert "changed(b)" in payload["models"][0]["ordinary_atoms"]
+
+    assert main([str(path), "--emit-lowered"]) == 0
+    lowered = capsys.readouterr().out
+    assert "__aspf_value(actual(A),_AspfCmp0)" in lowered
+    assert "__aspf_value(expected(A),_AspfCmp0)" in lowered
+    assert "_AspfCmp0 != _AspfCmp1" in lowered
+
+
+def test_application_comparisons_work_across_four_input_files(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    declarations = write_program(
+        tmp_path,
+        "#nherb actual/1.\n#nherb expected/1.\n",
+        "declarations.aspf",
+    )
+    domains = write_program(tmp_path, "account(a;b).\n", "domains.aspf")
+    assignments = write_program(
+        tmp_path,
+        "actual(a) #= 1.\nexpected(a) #= 1.\nactual(b) #= 2.\nexpected(b) #= 3.\n",
+        "assignments.aspf",
+    )
+    comparisons = write_program(
+        tmp_path,
+        "same(A) :- account(A), actual(A) #= expected(A).\n"
+        "changed(A) :- account(A), actual(A) #!= expected(A).\n",
+        "comparisons.aspf",
+    )
+
+    assert main([str(declarations), str(domains), str(assignments), str(comparisons)]) == 0
+    output = capsys.readouterr().out
+    assert "same(a)" in output
+    assert "changed(b)" in output
+
+
+def test_cli_rejects_application_comparison_head_at_right_operand(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    source = "#nherb actual/1.\n#nherb expected/1.\nactual(a) #= expected(a).\n"
+    path = write_program(tmp_path, source, "copy.aspf")
+
+    assert main([str(path)]) == 2
+    captured = capsys.readouterr()
+    expected_column = source.splitlines()[2].index("expected") + 1
+    assert captured.out == ""
+    assert f"{path}:3:{expected_column}" in captured.err
+    assert "rule head remains a scalar assignment" in captured.err

@@ -6,13 +6,15 @@ import re
 from dataclasses import dataclass
 
 from aspf_next.ir import (
+    ApplicationOperand,
     AspfStatement,
+    Assignment,
+    BodyComparison,
     GroundTermKind,
-    NAtom,
     NAtomOperator,
-    NAtomRole,
     OrdinaryStatement,
     Program,
+    ScalarOperand,
 )
 
 INTERNAL_VALUE_PREDICATE = "__aspf_value"
@@ -30,6 +32,28 @@ class LoweredProgram:
 
     source: str
     origin: str
+
+
+@dataclass(slots=True)
+class TemporaryAllocator:
+    """Allocate deterministic statement-local variables without collisions."""
+
+    used_identifiers: set[str]
+    next_index: int = 0
+
+    def __post_init__(self) -> None:
+        self.used_identifiers = set(self.used_identifiers)
+
+    def new(self, stem: str) -> str:
+        """Return the first unused ``stem + integer`` name."""
+
+        while True:
+            candidate = f"{stem}{self.next_index}"
+            self.next_index += 1
+            if candidate in self.used_identifiers:
+                continue
+            self.used_identifiers.add(candidate)
+            return candidate
 
 
 def lower_program(program: Program) -> LoweredProgram:
@@ -52,9 +76,7 @@ def lower_program(program: Program) -> LoweredProgram:
                 for statement in program.statements
                 if isinstance(statement, AspfStatement)
                 for n_atom in statement.n_atoms
-                if n_atom.role is NAtomRole.HEAD
-                and n_atom.operator is NAtomOperator.EQUAL
-                and n_atom.value.kind is GroundTermKind.INTEGER
+                if isinstance(n_atom, Assignment) and n_atom.value.kind is GroundTermKind.INTEGER
             },
             key=int,
         )
@@ -64,44 +86,82 @@ def lower_program(program: Program) -> LoweredProgram:
     return LoweredProgram(source, program.filename)
 
 
-def render_internal_atom(n_atom: NAtom) -> str:
+def render_internal_atom(assignment: Assignment) -> str:
     """Render the ordinary predicate used by the reference backend."""
 
-    return f"{INTERNAL_VALUE_PREDICATE}({n_atom.application.render()},{n_atom.value.text})"
+    return _render_value_lookup(assignment.target, assignment.value.text)
 
 
 def _lower_statement(statement: AspfStatement) -> str:
     text = statement.text
     replacements: list[tuple[int, int, str]] = []
-    identifiers = set(_IDENTIFIER.findall(text))
-    variable_index = 0
+    temps = TemporaryAllocator(set(_IDENTIFIER.findall(text)))
     for n_atom in statement.n_atoms:
         local_start = n_atom.span.start - statement.span.start
         local_end = n_atom.span.end - statement.span.start
-        if n_atom.operator is NAtomOperator.EQUAL:
+        if isinstance(n_atom, Assignment):
             replacement = render_internal_atom(n_atom)
         else:
-            variable_stem = "_AspfCmp" if n_atom.operator.is_ordered else "_AspfNeq"
-            value_variable = f"{variable_stem}{variable_index}"
-            while value_variable in identifiers:
-                variable_index += 1
-                value_variable = f"{variable_stem}{variable_index}"
-            identifiers.add(value_variable)
-            variable_index += 1
-            lookup_predicate = (
-                INTERNAL_INTEGER_PREDICATE
-                if n_atom.operator.is_ordered
-                else INTERNAL_VALUE_PREDICATE
-            )
-            lookups = [
-                f"{INTERNAL_VALUE_PREDICATE}({n_atom.application.render()},{value_variable})"
-            ]
-            if lookup_predicate != INTERNAL_VALUE_PREDICATE:
-                lookups.append(f"{lookup_predicate}({value_variable})")
-            lookups.append(f"{value_variable} {n_atom.operator.clingo_symbol} {n_atom.value.text}")
-            replacement = ", ".join(lookups)
+            replacement = _lower_comparison(n_atom, temps)
         replacements.append((local_start, local_end, replacement))
 
     for start, end, replacement in sorted(replacements, reverse=True):
         text = f"{text[:start]}{replacement}{text[end:]}"
     return text
+
+
+def _lower_comparison(comparison: BodyComparison, temps: TemporaryAllocator) -> str:
+    if isinstance(comparison.right, ScalarOperand):
+        return _lower_scalar_comparison(comparison, comparison.right, temps)
+    return _lower_application_comparison(comparison, comparison.right, temps)
+
+
+def _lower_scalar_comparison(
+    comparison: BodyComparison,
+    right: ScalarOperand,
+    temps: TemporaryAllocator,
+) -> str:
+    if comparison.operator is NAtomOperator.EQUAL:
+        return _render_value_lookup(comparison.left, right.text)
+
+    stem = "_AspfCmp" if comparison.operator.is_ordered else "_AspfNeq"
+    value_variable = temps.new(stem)
+    literals = [_render_value_lookup(comparison.left, value_variable)]
+    if comparison.operator.is_ordered:
+        literals.append(f"{INTERNAL_INTEGER_PREDICATE}({value_variable})")
+    literals.append(f"{value_variable} {comparison.operator.clingo_symbol} {right.text}")
+    return ", ".join(literals)
+
+
+def _lower_application_comparison(
+    comparison: BodyComparison,
+    right: ApplicationOperand,
+    temps: TemporaryAllocator,
+) -> str:
+    left_value = temps.new("_AspfCmp")
+    if comparison.operator is NAtomOperator.EQUAL:
+        return ", ".join(
+            (
+                _render_value_lookup(comparison.left, left_value),
+                _render_value_lookup(right, left_value),
+            )
+        )
+
+    right_value = temps.new("_AspfCmp")
+    literals = [
+        _render_value_lookup(comparison.left, left_value),
+        _render_value_lookup(right, right_value),
+    ]
+    if comparison.operator.is_ordered:
+        literals.extend(
+            (
+                f"{INTERNAL_INTEGER_PREDICATE}({left_value})",
+                f"{INTERNAL_INTEGER_PREDICATE}({right_value})",
+            )
+        )
+    literals.append(f"{left_value} {comparison.operator.clingo_symbol} {right_value}")
+    return ", ".join(literals)
+
+
+def _render_value_lookup(application: ApplicationOperand, value: str) -> str:
+    return f"{INTERNAL_VALUE_PREDICATE}({application.render()},{value})"

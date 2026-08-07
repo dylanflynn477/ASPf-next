@@ -32,10 +32,17 @@ releases. Python package metadata uses the equivalent PEP 440 version.
   example covering negative, zero, and positive values.
 - Typed ordinary variables in direct non-Herbrand application arguments, with
   source spans and a conservative source-level domain-safety check.
-- Domain-safe variable lowering for assignment heads and all six supported body
-  operators while keeping every right operand ground.
+- Domain-safe variable lowering for assignment heads and all six supported
+  scalar body operators while keeping each scalar right operand ground.
 - Focused frontend, lowering, solver, CLI, and conformance regressions plus a
   seventh guided example for restricted ordinary variables.
+- Typed scalar and application operands with distinct assignment and positive
+  body-comparison IR nodes.
+- Definedness-aware application-to-application `#=` and `#!=`, plus integer-only
+  application-to-application `#<`, `#<=`, `#>`, and `#>=` comparisons.
+- A deterministic statement-local temporary allocator, expanded conformance
+  coverage, multi-file and multi-model regressions, and an eighth guided
+  example for comparing expected and observed values.
 
 No release number has been assigned to these development increments.
 
@@ -57,7 +64,8 @@ No release number has been assigned to these development increments.
 
 ### Known limitations
 
-The release does not implement inequalities, default-negated n-atoms,
-arithmetic inside n-atoms, variables inside n-atoms, n-atoms in aggregates or
+The current unreleased package does not implement default-negated n-atoms,
+right-side scalar variables, historical equality-provided safety,
+non-Herbrand variables, arithmetic inside n-atoms, n-atoms in aggregates or
 choices, or a native theory-atom/propagator backend. It does not claim full
 historical ASP{f} compatibility.

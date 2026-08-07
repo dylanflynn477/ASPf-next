@@ -1,0 +1,11 @@
+#nherb actual/1.
+#nherb expected/1.
+
+account(a;b;c).
+actual(a) #= 10.
+expected(a) #= 10.
+actual(b) #= 20.
+expected(b) #= 25.
+
+same(A) :- account(A), actual(A) #= expected(A).
+changed(A) :- account(A), actual(A) #!= expected(A).

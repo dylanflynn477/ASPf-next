@@ -33,9 +33,10 @@ Each boundary has a distinct responsibility:
    grammar and source-variable safety, and rejects ambiguous or deferred syntax.
    Ordinary statements remain source text.
 3. **ASP{f} IR** (`ir.py`) records declarations, ordinary statements, structured
-   applications, distinct ground and variable arguments, typed operators and
-   values, head/body roles, and absolute source spans. No Clingo solver object
-   is part of the IR.
+   applications, distinct ground and variable arguments, typed scalar and
+   application operands, separate assignment and body-comparison nodes, typed
+   operators, and absolute source spans. No Clingo solver object is part of the
+   IR.
 4. **Reference lowering** (`lowering.py`) replaces only the validated IR spans
    with private relational atoms and appends the functionality constraint.
    Ordered comparisons also use `__aspf_integer/1` to distinguish integer
@@ -101,6 +102,14 @@ Lowering then preserves the variable in the relational key. Clingo grounds the
 ordinary domain atom and private lookup together. Generated `__aspf_` atoms and
 helper variables are intentionally excluded from source safety analysis, so the
 backend cannot manufacture a grounding domain that the input program lacked.
+
+Application equality uses two positive value lookups with one shared generated
+value variable. Inequality uses two lookups and an explicit `!=` relation.
+Ordering uses two lookups, integer markers for both values, and the arithmetic
+relation. A small statement-local allocator chooses deterministic generated
+variables while skipping every identifier in that source statement. Because
+all comparison paths require positive lookups, an undefined operand makes every
+positive application comparison false.
 
 ## Future native backend (not implemented)
 
