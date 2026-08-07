@@ -1,0 +1,5 @@
+#nherb level/1.
+1 { choose(one); choose(two) } 1.
+level(item) #= 1 :- choose(one).
+level(item) #= 2 :- choose(two).
+different :- level(item) #!= 1.

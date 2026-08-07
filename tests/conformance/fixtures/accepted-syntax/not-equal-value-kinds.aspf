@@ -1,0 +1,9 @@
+#nherb label/1.
+#nherb temperature/1.
+#nherb mode/0.
+label(item) #= "cold".
+temperature(room) #= -3.
+mode #= active.
+string_different :- label(item) #!= "hot".
+negative_different :- temperature(room) #!= -2.
+zero_different :- mode #!= idle.

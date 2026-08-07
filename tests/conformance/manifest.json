@@ -409,24 +409,246 @@
       }
     },
     {
-      "id": "rejected-not-equal",
+      "id": "not-equal-defined-different",
+      "category": "satisfiable",
+      "sources": ["fixtures/satisfiable/not-equal-defined-different.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": ["different"],
+            "assignments": ["balance(account1)#=600"]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B12 §3 pp. 28–29", "B13 §2 p. 550", "CF Syntax"],
+        "notes": "A positive inequality is true when the application has a defined value different from the ground constant."
+      }
+    },
+    {
+      "id": "not-equal-defined-equal",
+      "category": "satisfiable",
+      "sources": ["fixtures/satisfiable/not-equal-defined-equal.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": [],
+            "assignments": ["balance(account1)#=500"]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B12 §3 pp. 28–29", "B13 §2 p. 550"],
+        "notes": "A defined value equal to the comparison constant makes inequality false."
+      }
+    },
+    {
+      "id": "not-equal-undefined",
+      "category": "partiality",
+      "sources": ["fixtures/partiality/not-equal-undefined.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": ["account(account1)"],
+            "assignments": []
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B12 §3 pp. 28–29", "B13 §2 p. 550"],
+        "notes": "Undefinedness does not satisfy inequality; the left application must have an actual value."
+      }
+    },
+    {
+      "id": "not-equal-value-kinds",
+      "category": "accepted-syntax",
+      "sources": ["fixtures/accepted-syntax/not-equal-value-kinds.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": [
+              "negative_different",
+              "string_different",
+              "zero_different"
+            ],
+            "assignments": [
+              "label(item)#=\"cold\"",
+              "mode#=active",
+              "temperature(room)#=-3"
+            ]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B12 §3 pp. 28–29", "milestone 0.1 value grammar"],
+        "notes": "The source-backed inequality rule is applied to the existing restricted string, integer, symbolic, and zero-arity surface."
+      }
+    },
+    {
+      "id": "not-equal-multiple-models",
+      "category": "multiple-models",
+      "sources": ["fixtures/multiple-models/not-equal-varying.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 2,
+        "models": [
+          {
+            "ordinary_atoms": ["choose(one)"],
+            "assignments": ["level(item)#=1"]
+          },
+          {
+            "ordinary_atoms": ["choose(two)", "different"],
+            "assignments": ["level(item)#=2"]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B12 §3 pp. 28–29"],
+        "notes": "Inequality is evaluated independently in each model from the value assigned in that model."
+      }
+    },
+    {
+      "id": "not-equal-comments-and-multiline",
+      "category": "comments-layout",
+      "sources": ["fixtures/comments-layout/not-equal-multiline.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": ["different", "label(\"#!= remains text\")"],
+            "assignments": ["balance(account1)#=600"]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["ADR 0004"],
+        "notes": "The new operator uses the existing location-aware scanner; comments and strings remain inert."
+      }
+    },
+    {
+      "id": "rejected-not-equal-head",
       "category": "rejected-syntax",
-      "sources": ["fixtures/rejected-syntax/not-equal.aspf"],
+      "sources": ["fixtures/rejected-syntax/not-equal-head.aspf"],
       "expect": {
         "parse": "rejected",
         "solve_status": "NOT_RUN",
         "model_count": null,
         "diagnostic": {
-          "contains": "operator '#!=' is not supported",
-          "source": "fixtures/rejected-syntax/not-equal.aspf",
+          "contains": "only as a complete positive rule-body literal",
+          "source": "fixtures/rejected-syntax/not-equal-head.aspf",
           "line": 2,
-          "column": 32
+          "column": 19
         }
       },
       "source_basis": {
         "kind": "aspf-next-boundary",
-        "references": ["B12 §3 pp. 28–29", "B13 §2 p. 550", "CF Syntax"],
-        "notes": "Inequality is historical ASP{f} syntax but remains explicitly deferred after milestone 0.1."
+        "references": ["B12 §2–3"],
+        "notes": "Historical inequality is a dependent literal; this milestone explicitly rejects it in rule heads."
+      }
+    },
+    {
+      "id": "rejected-not-equal-default-negated",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/not-equal-default-negated.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "default-negated n-atoms",
+          "source": "fixtures/rejected-syntax/not-equal-default-negated.aspf",
+          "line": 2,
+          "column": 14
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B12 §3 pp. 29–30"],
+        "notes": "Default-negated inequality has broader historical semantics and remains deferred."
+      }
+    },
+    {
+      "id": "rejected-not-equal-aggregate",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/not-equal-aggregate.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "aggregates or choice constructs",
+          "source": "fixtures/rejected-syntax/not-equal-aggregate.aspf",
+          "line": 2,
+          "column": 45
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B13 §2"],
+        "notes": "N-atoms in aggregates belong to a broader historical surface and remain outside this milestone."
+      }
+    },
+    {
+      "id": "rejected-not-equal-choice",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/not-equal-choice.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "aggregates or choice constructs",
+          "source": "fixtures/rejected-syntax/not-equal-choice.aspf",
+          "line": 2,
+          "column": 33
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B13 §3 p. 552"],
+        "notes": "Clingo{f} allowed broader choice syntax; this milestone accepts only a complete positive body literal."
+      }
+    },
+    {
+      "id": "rejected-not-equal-application-value",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/not-equal-application-value.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "cannot be used as the value",
+          "source": "fixtures/rejected-syntax/not-equal-application-value.aspf",
+          "line": 3,
+          "column": 26
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B12 §2–3", "CF Syntax"],
+        "notes": "Comparisons between two non-Herbrand applications are historical but explicitly deferred here."
       }
     },
     {
