@@ -1,0 +1,10 @@
+#nherb actual/1.
+#nherb expected/1.
+
+item(a;b;c;d).
+actual(a) #= 1.
+expected(a) #= 1.
+expected(b) #= 1.
+actual(c) #= 1.
+
+same(X) :- item(X), actual(X) #= expected(X).

@@ -631,24 +631,19 @@
       }
     },
     {
-      "id": "rejected-not-equal-application-value",
-      "category": "rejected-syntax",
-      "sources": ["fixtures/rejected-syntax/not-equal-application-value.aspf"],
+      "id": "application-inequality-both-undefined",
+      "category": "partiality",
+      "sources": ["fixtures/partiality/application-inequality-both-undefined.aspf"],
       "expect": {
-        "parse": "rejected",
-        "solve_status": "NOT_RUN",
-        "model_count": null,
-        "diagnostic": {
-          "contains": "cannot be used as the value",
-          "source": "fixtures/rejected-syntax/not-equal-application-value.aspf",
-          "line": 3,
-          "column": 26
-        }
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [{"ordinary_atoms": [], "assignments": []}]
       },
       "source_basis": {
-        "kind": "aspf-next-boundary",
-        "references": ["B12 §2–3", "CF Syntax"],
-        "notes": "Comparisons between two non-Herbrand applications are historical but explicitly deferred here."
+        "kind": "historical-behavior",
+        "references": ["B12 §3 pp. 28–29", "B13 §2 p. 550", "CF Syntax"],
+        "notes": "A positive dependent inequality needs two defined values; two undefined applications are not unequal."
       }
     },
     {
@@ -874,24 +869,19 @@
       }
     },
     {
-      "id": "rejected-ordered-application-value",
-      "category": "rejected-syntax",
-      "sources": ["fixtures/rejected-syntax/ordered-application-value.aspf"],
+      "id": "application-ordered-both-undefined",
+      "category": "partiality",
+      "sources": ["fixtures/partiality/application-ordered-both-undefined.aspf"],
       "expect": {
-        "parse": "rejected",
-        "solve_status": "NOT_RUN",
-        "model_count": null,
-        "diagnostic": {
-          "contains": "cannot be used as the value",
-          "source": "fixtures/rejected-syntax/ordered-application-value.aspf",
-          "line": 3,
-          "column": 18
-        }
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [{"ordinary_atoms": [], "assignments": []}]
       },
       "source_basis": {
-        "kind": "aspf-next-boundary",
-        "references": ["BG12 §2 PDF p. 3", "Task 4 integer-only boundary"],
-        "notes": "Comparison between two declared non-Herbrand applications is historical but explicitly deferred."
+        "kind": "historical-behavior",
+        "references": ["BG12 §2 PDF pp. 3–4"],
+        "notes": "An ordered dependent n-atom is false unless both application values are defined."
       }
     },
     {
@@ -1180,6 +1170,192 @@
         "kind": "aspf-next-boundary",
         "references": ["CF Syntax restrictions", "Variable milestone plan"],
         "notes": "Default-negated ordinary atoms do not provide source-level safety for variables used in n-atoms."
+      }
+    },
+    {
+      "id": "application-equality-and-inequality",
+      "category": "satisfiable",
+      "sources": ["fixtures/satisfiable/application-comparisons.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": [
+              "account(a)",
+              "account(b)",
+              "account(c)",
+              "changed(b)",
+              "same(a)"
+            ],
+            "assignments": [
+              "actual(a)#=10",
+              "actual(b)#=20",
+              "expected(a)#=10",
+              "expected(b)#=25"
+            ]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B12 §3 pp. 28–29", "B13 §2 p. 550", "CF Syntax"],
+        "notes": "Dependent equality and inequality compare two defined application values; the independently safe variable boundary is the existing ASPf-next restriction."
+      }
+    },
+    {
+      "id": "application-ordered-comparisons",
+      "category": "accepted-syntax",
+      "sources": ["fixtures/accepted-syntax/application-ordered.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": ["ge", "gt", "le", "lt"],
+            "assignments": [
+              "actual(ge)#=0",
+              "actual(gt)#=1",
+              "actual(le)#=0",
+              "actual(lt)#=-1",
+              "expected(ge)#=0",
+              "expected(gt)#=0",
+              "expected(le)#=0",
+              "expected(lt)#=0"
+            ]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["BG12 §2 PDF pp. 3–4"],
+        "notes": "The source supports ordered dependent n-atoms; ASPf-next narrows both runtime application values to its existing integer-only boundary."
+      }
+    },
+    {
+      "id": "application-equality-undefined-sides",
+      "category": "partiality",
+      "sources": ["fixtures/partiality/application-equality-undefined-sides.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": ["item(a)", "item(b)", "item(c)", "item(d)", "same(a)"],
+            "assignments": [
+              "actual(a)#=1",
+              "actual(c)#=1",
+              "expected(a)#=1",
+              "expected(b)#=1"
+            ]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B12 §3 pp. 28–29", "B13 §2 pp. 550–551"],
+        "notes": "Dependent equality is false for an undefined left operand, undefined right operand, or two undefined operands."
+      }
+    },
+    {
+      "id": "application-comparison-multiple-models",
+      "category": "multiple-models",
+      "sources": ["fixtures/multiple-models/application-comparisons.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 2,
+        "models": [
+          {
+            "ordinary_atoms": ["changed", "choose(different)"],
+            "assignments": ["actual#=20", "expected#=10"]
+          },
+          {
+            "ordinary_atoms": ["choose(equal)", "same"],
+            "assignments": ["actual#=10", "expected#=10"]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B12 §3 pp. 28–29", "B13 §2 p. 550"],
+        "notes": "Application comparison is evaluated from the two values present independently in each model."
+      }
+    },
+    {
+      "id": "rejected-application-comparison-head",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/application-comparison-head.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "rule head remains a scalar assignment",
+          "source": "fixtures/rejected-syntax/application-comparison-head.aspf",
+          "line": 3,
+          "column": 14
+        }
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B12 §2 pp. 26–28", "B13 §2 p. 549"],
+        "notes": "Rule heads are seed assignments; application equality is dependent and is never interpreted as value-copy assignment."
+      }
+    },
+    {
+      "id": "rejected-application-comparison-unsafe-right",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/application-comparison-unsafe-right.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "must occur in an ordinary positive body atom",
+          "source": "fixtures/rejected-syntax/application-comparison-unsafe-right.aspf",
+          "line": 3,
+          "column": 48
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["CF Syntax restrictions", "Variable semantics design"],
+        "notes": "The right application and generated private lookup cannot make its source variable safe."
+      }
+    },
+    {
+      "id": "application-comparison-multi-file",
+      "category": "multi-file",
+      "sources": [
+        "fixtures/multi-file/application-declarations.aspf",
+        "fixtures/multi-file/application-domains.aspf",
+        "fixtures/multi-file/application-assignments.aspf",
+        "fixtures/multi-file/application-rules.aspf"
+      ],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": ["account(a)", "account(b)", "changed(b)", "same(a)"],
+            "assignments": [
+              "actual(a)#=1",
+              "actual(b)#=2",
+              "expected(a)#=1",
+              "expected(b)#=3"
+            ]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["Cross-file declaration pass", "Application operand design"],
+        "notes": "Declarations, domains, assignments, and comparison rules share one intentional frontend namespace across ordered input files."
       }
     }
   ]

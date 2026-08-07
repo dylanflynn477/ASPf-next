@@ -1,0 +1,10 @@
+#nherb actual/0.
+#nherb expected/0.
+
+1 { choose(equal); choose(different) } 1.
+expected #= 10.
+actual #= 10 :- choose(equal).
+actual #= 20 :- choose(different).
+
+same :- actual #= expected.
+changed :- actual #!= expected.

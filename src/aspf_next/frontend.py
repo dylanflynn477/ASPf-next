@@ -10,17 +10,21 @@ from typing import Never
 from aspf_next.errors import UnsupportedSyntaxError
 from aspf_next.ir import (
     ApplicationArgument,
+    ApplicationOperand,
     AspfStatement,
+    Assignment,
+    BodyComparison,
+    ComparisonOperand,
     FunctionApplication,
     GroundTerm,
     GroundTermKind,
     NAtom,
     NAtomOperator,
-    NAtomRole,
     NHerbDeclaration,
     OrdinaryStatement,
     Program,
     ProgramStatement,
+    ScalarOperand,
     VariableTerm,
 )
 from aspf_next.source import (
@@ -200,11 +204,7 @@ def _parse_statement(
                 operator_offset,
                 "nested n-atoms are not supported",
             )
-        role = (
-            NAtomRole.BODY
-            if separator is not None and operator_offset > separator
-            else NAtomRole.HEAD
-        )
+        is_body = separator is not None and operator_offset > separator
         n_atoms.append(
             _parse_n_atom(
                 context,
@@ -212,7 +212,7 @@ def _parse_statement(
                 declared,
                 operator_offset,
                 comparison_operator,
-                role,
+                is_body,
                 separator,
             )
         )
@@ -242,10 +242,11 @@ def _reject_declared_symbols(
 ) -> None:
     key_name_spans = tuple(
         (
-            n_atom.span.start - context.statement.span.start,
-            n_atom.span.start - context.statement.span.start + len(n_atom.application.name),
+            operand.span.start - context.statement.span.start,
+            operand.span.start - context.statement.span.start + len(operand.application.name),
         )
         for n_atom in n_atoms
+        for operand in _application_operands(n_atom)
     )
     for match in _EXECUTABLE_IDENTIFIER.finditer(context.executable):
         name = match.group(1)
@@ -294,10 +295,10 @@ def _parse_n_atom(
     declared: dict[str, int],
     operator_offset: int,
     operator: NAtomOperator,
-    role: NAtomRole,
+    is_body: bool,
     separator: int | None,
 ) -> NAtom:
-    if operator is not NAtomOperator.EQUAL and role is NAtomRole.HEAD:
+    if operator is not NAtomOperator.EQUAL and not is_body:
         _unsupported(
             source,
             context,
@@ -305,11 +306,10 @@ def _parse_n_atom(
             f"operator '{operator.value}' is supported only as a complete positive "
             "rule-body literal",
         )
-    application_start, _application_end, name, arguments = _parse_application_left(
-        context, source, declared, operator_offset, operator
-    )
-    literal_start, literal_end = _literal_bounds(context, operator_offset, role, separator)
-    if role is NAtomRole.BODY:
+    left = _parse_application_left(context, source, declared, operator_offset, operator)
+    application_start = left.span.start - context.statement.span.start
+    literal_start, literal_end = _literal_bounds(context, operator_offset, is_body, separator)
+    if is_body:
         conditional_offset = next(
             (
                 offset
@@ -348,24 +348,35 @@ def _parse_n_atom(
     value_end = _trim_code_end(context.code, value_start, literal_end)
     if value_start >= value_end:
         _unsupported(source, context, operator_offset, f"missing value after '{operator.value}'")
-    value_text = context.statement.text[value_start:value_end]
-    value = _parse_ground_term(
-        value_text,
-        context=context,
-        source=source,
-        local_offset=value_start,
-        declared=declared,
-        as_value=True,
+    right = _parse_right_operand(
+        context,
+        source,
+        declared,
+        value_start,
+        value_end,
     )
-    if operator.is_ordered and value.kind is not GroundTermKind.INTEGER:
+    if not is_body and isinstance(right, ApplicationOperand):
+        _unsupported(
+            source,
+            context,
+            right.span.start - context.statement.span.start,
+            "application-to-application comparison is supported only as a complete "
+            "positive rule-body literal; a '#=' rule head remains a scalar assignment",
+        )
+    if (
+        operator.is_ordered
+        and isinstance(right, ScalarOperand)
+        and right.kind is not GroundTermKind.INTEGER
+    ):
         _unsupported(
             source,
             context,
             value_start,
-            f"operator '{operator.value}' requires an integer literal on the right",
+            f"operator '{operator.value}' requires an integer literal on the right or a "
+            "declared application",
         )
 
-    if role is NAtomRole.HEAD:
+    if not is_body:
         head_start = _skip_space(
             context.code, 0, separator if separator is not None else literal_end
         )
@@ -389,14 +400,11 @@ def _parse_n_atom(
 
     absolute_start = context.statement.span.start + application_start
     absolute_end = context.statement.span.start + value_end
-    application = FunctionApplication(name, tuple(arguments))
-    return NAtom(
-        application,
-        value,
-        operator,
-        role,
-        SourceSpan(absolute_start, absolute_end),
-    )
+    span = SourceSpan(absolute_start, absolute_end)
+    if is_body:
+        return BodyComparison(left, right, operator, span)
+    assert isinstance(right, ScalarOperand)
+    return Assignment(left, right, span)
 
 
 def _parse_application_left(
@@ -405,7 +413,7 @@ def _parse_application_left(
     declared: dict[str, int],
     operator_offset: int,
     operator: NAtomOperator,
-) -> tuple[int, int, str, list[ApplicationArgument]]:
+) -> ApplicationOperand:
     end = _trim_code_end(context.code, 0, operator_offset)
     if end <= 0:
         _unsupported(
@@ -420,26 +428,14 @@ def _parse_application_left(
             context.code[name_start - 1].isalnum() or context.code[name_start - 1] == "_"
         ):
             name_start -= 1
-        name = context.code[name_start:end]
-        if not _SYMBOLIC_CONSTANT.fullmatch(name):
-            _unsupported(
-                source,
-                context,
-                name_start,
-                f"left side of '{operator.value}' must be a declared function application",
-            )
-        if name not in declared:
-            _unsupported(
-                source, context, name_start, f"non-Herbrand function '{name}' is not declared"
-            )
-        if declared[name] != 0:
-            _unsupported(
-                source,
-                context,
-                name_start,
-                f"non-Herbrand function '{name}' expects {declared[name]} argument(s), got 0",
-            )
-        return name_start, end, name, []
+        return _parse_application_operand(
+            context,
+            source,
+            declared,
+            name_start,
+            end,
+            side=f"left side of '{operator.value}'",
+        )
 
     open_paren = _matching_open_paren(context.code, end - 1)
     if open_paren is None:
@@ -455,42 +451,110 @@ def _parse_application_left(
         context.code[name_start - 1].isalnum() or context.code[name_start - 1] == "_"
     ):
         name_start -= 1
-    name = context.code[name_start:name_end]
-    if not _SYMBOLIC_CONSTANT.fullmatch(name):
-        _unsupported(
-            source,
-            context,
-            name_start,
-            f"left side of '{operator.value}' must use a lowercase declared function name",
-        )
-    if name not in declared:
-        _unsupported(source, context, name_start, f"non-Herbrand function '{name}' is not declared")
+    return _parse_application_operand(
+        context,
+        source,
+        declared,
+        name_start,
+        end,
+        side=f"left side of '{operator.value}'",
+    )
 
-    arguments_text = context.code[open_paren + 1 : end - 1]
-    argument_parts = _split_arguments(arguments_text)
-    if len(argument_parts) != declared[name]:
+
+def _parse_right_operand(
+    context: _StatementContext,
+    source: SourceText,
+    declared: dict[str, int],
+    start: int,
+    end: int,
+) -> ComparisonOperand:
+    code = context.code[start:end]
+    stripped = code.strip()
+    term_start = start + (len(code) - len(code.lstrip()))
+    term_end = term_start + len(stripped)
+    if _SYMBOLIC_CONSTANT.fullmatch(stripped) and stripped in declared:
+        return _parse_application_operand(
+            context, source, declared, term_start, term_end, side="right operand"
+        )
+
+    function_match = _FUNCTION_TERM.match(stripped)
+    if function_match and stripped.endswith(")"):
+        open_offset = stripped.find("(")
+        if _matching_open_paren(stripped, len(stripped) - 1) == open_offset:
+            return _parse_application_operand(
+                context, source, declared, term_start, term_end, side="right operand"
+            )
+
+    term = _parse_ground_term(
+        context.statement.text[start:end],
+        context=context,
+        source=source,
+        local_offset=start,
+        declared=declared,
+        as_value=True,
+    )
+    absolute_start = context.statement.span.start + term_start
+    return ScalarOperand(term, SourceSpan(absolute_start, absolute_start + len(stripped)))
+
+
+def _parse_application_operand(
+    context: _StatementContext,
+    source: SourceText,
+    declared: dict[str, int],
+    start: int,
+    end: int,
+    *,
+    side: str,
+) -> ApplicationOperand:
+    start = _skip_space(context.code, start, end)
+    end = _trim_code_end(context.code, start, end)
+    text = context.code[start:end]
+    if _SYMBOLIC_CONSTANT.fullmatch(text):
+        name = text
+        argument_ranges: list[tuple[int, int]] = []
+    else:
+        match = _FUNCTION_TERM.match(text)
+        if match is None or not text.endswith(")"):
+            _unsupported(
+                source,
+                context,
+                start,
+                f"{side} must be a declared function application",
+            )
+        open_offset = text.find("(")
+        if _matching_open_paren(text, len(text) - 1) != open_offset:
+            _unsupported(
+                source,
+                context,
+                start,
+                f"{side} must be one complete declared function application",
+            )
+        name = match.group(1)
+        argument_ranges = _split_argument_ranges(text, open_offset + 1, len(text) - 1)
+
+    if name not in declared:
+        _unsupported(source, context, start, f"non-Herbrand function '{name}' is not declared")
+    if len(argument_ranges) != declared[name]:
         _unsupported(
             source,
             context,
-            name_start,
+            start,
             f"non-Herbrand function '{name}' expects {declared[name]} argument(s), "
-            f"got {len(argument_parts)}",
+            f"got {len(argument_ranges)}",
         )
-    arguments: list[ApplicationArgument] = []
-    search_start = open_paren + 1
-    for part in argument_parts:
-        relative = context.code.find(part, search_start, end - 1)
-        arguments.append(
-            _parse_application_argument(
-                part,
-                context=context,
-                source=source,
-                local_offset=relative,
-                declared=declared,
-            )
+    arguments = [
+        _parse_application_argument(
+            text[argument_start:argument_end],
+            context=context,
+            source=source,
+            local_offset=start + argument_start,
+            declared=declared,
         )
-        search_start = relative + len(part)
-    return name_start, end, name, arguments
+        for argument_start, argument_end in argument_ranges
+    ]
+    absolute_start = context.statement.span.start + start
+    application = FunctionApplication(name, tuple(arguments))
+    return ApplicationOperand(application, SourceSpan(absolute_start, absolute_start + len(text)))
 
 
 def _parse_application_argument(
@@ -558,7 +622,8 @@ def _validate_n_atom_variable_safety(
         (
             argument
             for n_atom in n_atoms
-            for argument in n_atom.application.arguments
+            for operand in _application_operands(n_atom)
+            for argument in operand.application.arguments
             if isinstance(argument, VariableTerm)
         ),
         key=lambda variable: variable.span.start,
@@ -596,7 +661,7 @@ def _ordinary_domain_variables(
     n_atom_starts = {
         n_atom.span.start - context.statement.span.start
         for n_atom in n_atoms
-        if n_atom.role is NAtomRole.BODY
+        if isinstance(n_atom, BodyComparison)
     }
     for start, end in _body_literal_ranges(context, separator):
         if any(start <= n_atom_start < end for n_atom_start in n_atom_starts):
@@ -650,10 +715,10 @@ def _positive_symbolic_atom_bounds(executable: str, start: int, end: int) -> tup
 def _literal_bounds(
     context: _StatementContext,
     operator_offset: int,
-    role: NAtomRole,
+    is_body: bool,
     separator: int | None,
 ) -> tuple[int, int]:
-    if role is NAtomRole.HEAD:
+    if not is_body:
         end = separator if separator is not None else _statement_period(context)
         return 0, end
 
@@ -711,6 +776,41 @@ def _split_arguments(text: str) -> list[str]:
             start = point.offset + 1
     parts.append(text[start:].strip())
     return parts
+
+
+def _split_argument_ranges(text: str, start: int, end: int) -> list[tuple[int, int]]:
+    if not text[start:end].strip():
+        return []
+    ranges: list[tuple[int, int]] = []
+    part_start = start
+    for point in scan_points(text):
+        if not start <= point.offset < end:
+            continue
+        if (
+            text[point.offset] == ","
+            and point.paren_depth == 1
+            and not (point.bracket_depth or point.brace_depth)
+        ):
+            ranges.append(_trim_argument_range(text, part_start, point.offset))
+            part_start = point.offset + 1
+    ranges.append(_trim_argument_range(text, part_start, end))
+    return ranges
+
+
+def _trim_argument_range(text: str, start: int, end: int) -> tuple[int, int]:
+    while start < end and text[start].isspace():
+        start += 1
+    while end > start and text[end - 1].isspace():
+        end -= 1
+    return start, end
+
+
+def _application_operands(n_atom: NAtom) -> tuple[ApplicationOperand, ...]:
+    if isinstance(n_atom, Assignment):
+        return (n_atom.target,)
+    if isinstance(n_atom.right, ApplicationOperand):
+        return n_atom.left, n_atom.right
+    return (n_atom.left,)
 
 
 def _parse_ground_term(

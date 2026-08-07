@@ -1,0 +1,2 @@
+same(A) :- account(A), actual(A) #= expected(A).
+changed(A) :- account(A), actual(A) #!= expected(A).

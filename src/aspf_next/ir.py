@@ -4,15 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from typing import TypeAlias
 
 from aspf_next.source import SourceSpan
-
-
-class NAtomRole(Enum):
-    """Where an n-atom occurs in a rule."""
-
-    HEAD = "head"
-    BODY = "body"
 
 
 class NAtomOperator(Enum):
@@ -92,14 +86,61 @@ class FunctionApplication:
 
 
 @dataclass(frozen=True, slots=True)
-class NAtom:
-    """A supported assignment or positive comparison."""
+class ScalarOperand:
+    """A restricted ground scalar operand with its source span."""
+
+    term: GroundTerm
+    span: SourceSpan
+
+    @property
+    def text(self) -> str:
+        """Return the validated source spelling."""
+
+        return self.term.text
+
+    @property
+    def kind(self) -> GroundTermKind:
+        """Return the scalar's validated lexical kind."""
+
+        return self.term.kind
+
+
+@dataclass(frozen=True, slots=True)
+class ApplicationOperand:
+    """A declared non-Herbrand application operand and its source span."""
 
     application: FunctionApplication
-    value: GroundTerm
-    operator: NAtomOperator
-    role: NAtomRole
     span: SourceSpan
+
+    def render(self) -> str:
+        """Render the application in the reference backend's key syntax."""
+
+        return self.application.render()
+
+
+ComparisonOperand: TypeAlias = ScalarOperand | ApplicationOperand
+
+
+@dataclass(frozen=True, slots=True)
+class Assignment:
+    """A seed assignment from an application target to a ground scalar."""
+
+    target: ApplicationOperand
+    value: ScalarOperand
+    span: SourceSpan
+
+
+@dataclass(frozen=True, slots=True)
+class BodyComparison:
+    """A positive dependent comparison in a rule body."""
+
+    left: ApplicationOperand
+    right: ComparisonOperand
+    operator: NAtomOperator
+    span: SourceSpan
+
+
+NAtom: TypeAlias = Assignment | BodyComparison
 
 
 @dataclass(frozen=True, slots=True)

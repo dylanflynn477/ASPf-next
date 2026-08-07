@@ -5,11 +5,14 @@ import pytest
 from aspf_next.errors import UnsupportedSyntaxError
 from aspf_next.frontend import parse_program
 from aspf_next.ir import (
+    ApplicationOperand,
     AspfStatement,
+    Assignment,
+    BodyComparison,
     GroundTermKind,
     NAtomOperator,
-    NAtomRole,
     OrdinaryStatement,
+    ScalarOperand,
     VariableTerm,
 )
 
@@ -20,10 +23,10 @@ def test_parses_declaration_and_basic_assignment() -> None:
     assert [(item.name, item.arity) for item in program.declarations] == [("balance", 1)]
     statement = program.statements[0]
     assert isinstance(statement, AspfStatement)
-    assert statement.n_atoms[0].application.render() == "balance(account1)"
-    assert statement.n_atoms[0].value.text == "500"
-    assert statement.n_atoms[0].operator is NAtomOperator.EQUAL
-    assert statement.n_atoms[0].role is NAtomRole.HEAD
+    assignment = statement.n_atoms[0]
+    assert isinstance(assignment, Assignment)
+    assert assignment.target.render() == "balance(account1)"
+    assert assignment.value.text == "500"
 
 
 def test_parses_positive_body_comparison_and_multiline_rule() -> None:
@@ -38,8 +41,9 @@ solvent(account1) :-
 
     statement = program.statements[0]
     assert isinstance(statement, AspfStatement)
-    assert statement.n_atoms[0].role is NAtomRole.BODY
-    assert statement.n_atoms[0].span.start < statement.n_atoms[0].span.end
+    comparison = statement.n_atoms[0]
+    assert isinstance(comparison, BodyComparison)
+    assert comparison.span.start < comparison.span.end
 
 
 def test_parses_positive_ground_not_equal_body_literal() -> None:
@@ -51,10 +55,11 @@ def test_parses_positive_ground_not_equal_body_literal() -> None:
     statement = program.statements[0]
     assert isinstance(statement, AspfStatement)
     comparison = statement.n_atoms[0]
-    assert comparison.application.render() == "balance(account1)"
-    assert comparison.value.text == "500"
+    assert isinstance(comparison, BodyComparison)
+    assert comparison.left.render() == "balance(account1)"
+    assert isinstance(comparison.right, ScalarOperand)
+    assert comparison.right.text == "500"
     assert comparison.operator is NAtomOperator.NOT_EQUAL
-    assert comparison.role is NAtomRole.BODY
 
 
 def test_preserves_ordinary_statement_text() -> None:
@@ -78,7 +83,9 @@ balance(
 
     statement = program.statements[0]
     assert isinstance(statement, AspfStatement)
-    assert statement.n_atoms[0].application.arguments[0].text == "account1"
+    assignment = statement.n_atoms[0]
+    assert isinstance(assignment, Assignment)
+    assert assignment.target.application.arguments[0].text == "account1"
 
 
 @pytest.mark.parametrize(
@@ -138,7 +145,7 @@ def test_declared_symbol_text_in_comments_and_strings_is_inert() -> None:
 def test_rejects_declared_zero_arity_symbol_as_n_atom_value() -> None:
     source = "#nherb mode/0.\n#nherb status/1.\nstatus(alice) #= mode.\n"
 
-    with pytest.raises(UnsupportedSyntaxError, match="may only be used as the key") as caught:
+    with pytest.raises(UnsupportedSyntaxError, match="only as a complete positive") as caught:
         parse_program(source, filename="value.aspf")
 
     assert caught.value.location.line == 3
@@ -195,9 +202,10 @@ def test_parses_each_positive_ground_ordered_operator(
 
     assert isinstance(statement, AspfStatement)
     comparison = statement.n_atoms[0]
+    assert isinstance(comparison, BodyComparison)
     assert comparison.operator is operator
-    assert comparison.role is NAtomRole.BODY
-    assert comparison.value.kind is GroundTermKind.INTEGER
+    assert isinstance(comparison.right, ScalarOperand)
+    assert comparison.right.kind is GroundTermKind.INTEGER
 
 
 @pytest.mark.parametrize("operator", ["#<", "#<=", "#>", "#>="])
@@ -263,10 +271,10 @@ label("balance(account1) #<= 0 #> -10 #>= -5").
     asp_statements = [
         statement for statement in program.statements if isinstance(statement, AspfStatement)
     ]
-    assert [atom.operator for statement in asp_statements for atom in statement.n_atoms] == [
-        NAtomOperator.EQUAL,
-        operator,
-    ]
+    atoms = [atom for statement in asp_statements for atom in statement.n_atoms]
+    assert isinstance(atoms[0], Assignment)
+    assert isinstance(atoms[1], BodyComparison)
+    assert atoms[1].operator is operator
 
 
 @pytest.mark.parametrize("operator", ["#<", "#<=", "#>", "#>="])
@@ -363,10 +371,10 @@ label("balance(account1) #!= 500").
     asp_statements = [
         statement for statement in program.statements if isinstance(statement, AspfStatement)
     ]
-    assert [atom.operator for statement in asp_statements for atom in statement.n_atoms] == [
-        NAtomOperator.EQUAL,
-        NAtomOperator.NOT_EQUAL,
-    ]
+    atoms = [atom for statement in asp_statements for atom in statement.n_atoms]
+    assert isinstance(atoms[0], Assignment)
+    assert isinstance(atoms[1], BodyComparison)
+    assert atoms[1].operator is NAtomOperator.NOT_EQUAL
 
 
 @pytest.mark.parametrize(
@@ -392,11 +400,11 @@ label("balance(account1) #!= 500").
         ),
         (
             "#nherb first/1.\n#nherb second/1.\nfirst(a) #= second(a).\n",
-            "cannot be used as the value",
+            "only as a complete positive rule-body literal",
         ),
         (
             "#nherb first/1.\nfirst(a) #= ordinary(value).\n",
-            "only integer, symbolic constant, and string values",
+            "non-Herbrand function 'ordinary' is not declared",
         ),
     ],
 )
@@ -422,11 +430,13 @@ def test_accepts_integer_symbol_string_and_ordinary_ground_function_terms() -> N
 
     statement = program.statements[0]
     assert isinstance(statement, AspfStatement)
-    assert [term.text for term in statement.n_atoms[0].application.arguments] == [
+    assignment = statement.n_atoms[0]
+    assert isinstance(assignment, Assignment)
+    assert [term.text for term in assignment.target.application.arguments] == [
         "product(7)",
         '"lot-a"',
     ]
-    assert statement.n_atoms[0].value.text == "available"
+    assert assignment.value.text == "available"
 
 
 def test_accepts_zero_arity_non_herbrand_function() -> None:
@@ -434,7 +444,9 @@ def test_accepts_zero_arity_non_herbrand_function() -> None:
 
     statement = program.statements[0]
     assert isinstance(statement, AspfStatement)
-    assert statement.n_atoms[0].application.render() == "mode"
+    assignment = statement.n_atoms[0]
+    assert isinstance(assignment, Assignment)
+    assert assignment.target.render() == "mode"
 
 
 def test_parses_domain_safe_variable_as_typed_direct_application_argument() -> None:
@@ -444,10 +456,12 @@ def test_parses_domain_safe_variable_as_typed_direct_application_argument() -> N
     statement = program.statements[0]
 
     assert isinstance(statement, AspfStatement)
-    argument = statement.n_atoms[0].application.arguments[0]
+    comparison = statement.n_atoms[0]
+    assert isinstance(comparison, BodyComparison)
+    argument = comparison.left.application.arguments[0]
     assert isinstance(argument, VariableTerm)
     assert argument.name == argument.text == "A"
-    assert program.statements[0].n_atoms[0].application.render() == "balance(A)"
+    assert comparison.left.render() == "balance(A)"
     assert argument.span.start == source.index("balance(A)") + len("balance(")
 
 
@@ -463,7 +477,9 @@ def test_accepts_domain_safe_variable_for_every_operator_regardless_of_body_orde
 
     statement = program.statements[0]
     assert isinstance(statement, AspfStatement)
-    assert statement.n_atoms[0].application.render() == "balance(A)"
+    comparison_node = statement.n_atoms[0]
+    assert isinstance(comparison_node, BodyComparison)
+    assert comparison_node.left.render() == "balance(A)"
 
 
 def test_accepts_domain_safe_variable_in_assignment_head() -> None:
@@ -473,8 +489,9 @@ def test_accepts_domain_safe_variable_in_assignment_head() -> None:
 
     statement = program.statements[1]
     assert isinstance(statement, AspfStatement)
-    assert statement.n_atoms[0].role is NAtomRole.HEAD
-    assert statement.n_atoms[0].application.render() == "status(P)"
+    assignment = statement.n_atoms[0]
+    assert isinstance(assignment, Assignment)
+    assert assignment.target.render() == "status(P)"
 
 
 @pytest.mark.parametrize("operator", ["#=", "#!=", "#<", "#<=", "#>", "#>="])
@@ -549,4 +566,157 @@ low(A) :-
 
     statement = program.statements[0]
     assert isinstance(statement, AspfStatement)
-    assert statement.n_atoms[0].application.render() == "balance(A)"
+    comparison = statement.n_atoms[0]
+    assert isinstance(comparison, BodyComparison)
+    assert comparison.left.render() == "balance(A)"
+
+
+def test_parses_typed_application_operands_with_precise_spans() -> None:
+    source = """#nherb actual/1.
+#nherb expected/1.
+account(a).
+same(A) :- account(A), actual(A) #= expected(A).
+"""
+
+    program = parse_program(source, filename="operands.aspf")
+    statement = program.statements[1]
+
+    assert isinstance(statement, AspfStatement)
+    comparison = statement.n_atoms[0]
+    assert isinstance(comparison, BodyComparison)
+    assert isinstance(comparison.left, ApplicationOperand)
+    assert isinstance(comparison.right, ApplicationOperand)
+    assert comparison.left.render() == "actual(A)"
+    assert comparison.right.render() == "expected(A)"
+    assert comparison.operator is NAtomOperator.EQUAL
+    assert comparison.right.span.start == source.index("expected(A)")
+    assert comparison.right.span.end == comparison.right.span.start + len("expected(A)")
+
+
+def test_scalar_assignment_and_body_comparison_are_distinct_ir_nodes() -> None:
+    program = parse_program("#nherb actual/1.\nactual(a) #= 10.\nsame :- actual(a) #= 10.\n")
+    statements = [
+        statement for statement in program.statements if isinstance(statement, AspfStatement)
+    ]
+
+    assignment = statements[0].n_atoms[0]
+    comparison = statements[1].n_atoms[0]
+    assert isinstance(assignment, Assignment)
+    assert isinstance(assignment.value, ScalarOperand)
+    assert isinstance(comparison, BodyComparison)
+    assert isinstance(comparison.right, ScalarOperand)
+
+
+@pytest.mark.parametrize("operator", ["#=", "#!=", "#<", "#<=", "#>", "#>="])
+def test_accepts_declared_application_as_right_body_operand(operator: str) -> None:
+    program = parse_program(
+        f"#nherb actual/0.\n#nherb expected/0.\nokay :- actual {operator} expected.\n"
+    )
+
+    statement = program.statements[0]
+    assert isinstance(statement, AspfStatement)
+    comparison = statement.n_atoms[0]
+    assert isinstance(comparison, BodyComparison)
+    assert isinstance(comparison.right, ApplicationOperand)
+    assert comparison.right.render() == "expected"
+
+
+def test_accepts_two_independently_safe_application_variables() -> None:
+    program = parse_program(
+        "#nherb actual/1.\n#nherb expected/1.\n"
+        "pair(A,B) :- account(A), account(B), actual(A) #= expected(B).\n"
+    )
+
+    statement = program.statements[0]
+    assert isinstance(statement, AspfStatement)
+    comparison = statement.n_atoms[0]
+    assert isinstance(comparison, BodyComparison)
+    assert comparison.left.render() == "actual(A)"
+    assert isinstance(comparison.right, ApplicationOperand)
+    assert comparison.right.render() == "expected(B)"
+
+
+@pytest.mark.parametrize(
+    ("body", "token"),
+    [
+        ("account(B), actual(A) #= expected(B)", "A"),
+        ("account(A), actual(A) #= expected(B)", "B"),
+        ("actual(A) #= expected(B)", "A"),
+    ],
+)
+def test_rejects_unsafe_variables_from_either_application(body: str, token: str) -> None:
+    source = f"#nherb actual/1.\n#nherb expected/1.\nsame(A,B) :- {body}.\n"
+
+    with pytest.raises(UnsupportedSyntaxError, match="ordinary positive body atom") as caught:
+        parse_program(source, filename="unsafe-operands.aspf")
+
+    assert caught.value.location.line == 3
+    comparison_text = source.splitlines()[2].split(":-", maxsplit=1)[1]
+    expected_column = (
+        source.splitlines()[2].index(comparison_text) + comparison_text.index(token) + 1
+    )
+    assert caught.value.location.column == expected_column
+
+
+@pytest.mark.parametrize(
+    ("right", "message", "token"),
+    [
+        ("missing(A)", "non-Herbrand function 'missing' is not declared", "missing"),
+        ("expected(A,B)", "expects 1 argument", "expected"),
+        ("expected(_V)", "non-Herbrand variables", "_V"),
+        ("expected(owner(A))", "complete direct arguments", "A"),
+    ],
+)
+def test_rejects_invalid_right_application_at_offending_token(
+    right: str, message: str, token: str
+) -> None:
+    source = (
+        "#nherb actual/1.\n#nherb expected/1.\naccount(a).\n"
+        f"same(A) :- account(A), actual(A) #= {right}.\n"
+    )
+
+    with pytest.raises(UnsupportedSyntaxError, match=message) as caught:
+        parse_program(source, filename="right.aspf")
+
+    line = source.splitlines()[3]
+    assert caught.value.location.line == 4
+    assert caught.value.location.column == line.index(token, line.index("#=")) + 1
+
+
+@pytest.mark.parametrize(
+    ("source_tail", "message"),
+    [
+        ("actual(a) #= expected(a).", "only as a complete positive rule-body literal"),
+        ("same :- not actual(a) #= expected(a).", "default-negated n-atoms"),
+        (
+            "same :- #count { X : actual(a) #= expected(a) } > 0.",
+            "aggregates or choice",
+        ),
+        ("{ same : actual(a) #= expected(a) }.", "aggregates or choice"),
+        ("same :- actual(a) #= expected(a) : guard.", "conditional literals"),
+        ("same :- actual(a) #= expected(a) + 1.", "arithmetic"),
+    ],
+)
+def test_rejects_unsupported_application_comparison_placements_and_arithmetic(
+    source_tail: str, message: str
+) -> None:
+    source = "#nherb actual/1.\n#nherb expected/1.\n" + source_tail + "\n"
+
+    with pytest.raises(UnsupportedSyntaxError, match=message) as caught:
+        parse_program(source, filename="placement.aspf")
+
+    assert caught.value.location.filename == "placement.aspf"
+    assert caught.value.location.line == 3
+    assert caught.value.location.column >= 1
+
+
+def test_multiple_application_comparisons_can_share_safe_source_variables() -> None:
+    program = parse_program(
+        "#nherb actual/1.\n#nherb expected/1.\n#nherb baseline/1.\n"
+        "okay(A) :- account(A), actual(A) #= expected(A), actual(A) #!= baseline(A).\n"
+    )
+
+    statement = program.statements[0]
+    assert isinstance(statement, AspfStatement)
+    assert len(statement.n_atoms) == 2
+    assert all(isinstance(atom, BodyComparison) for atom in statement.n_atoms)

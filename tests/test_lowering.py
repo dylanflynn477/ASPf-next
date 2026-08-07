@@ -8,6 +8,7 @@ from aspf_next.lowering import (
     FUNCTIONALITY_CONSTRAINT,
     INTERNAL_DEFINITIONS,
     INTERNAL_INTEGER_PREDICATE,
+    TemporaryAllocator,
     lower_program,
 )
 
@@ -198,3 +199,69 @@ def test_variable_lowering_keeps_generated_comparison_helpers_collision_free() -
 
     assert "__aspf_value(balance(A),_AspfCmp1)" in result
     assert "_AspfCmp1 < 1000" in result
+
+
+def test_temporary_allocator_is_deterministic_and_skips_all_used_names() -> None:
+    allocator = TemporaryAllocator({"_AspfCmp0", "_AspfCmp2", "ordinary"})
+
+    assert allocator.new("_AspfCmp") == "_AspfCmp1"
+    assert allocator.new("_AspfCmp") == "_AspfCmp3"
+    assert allocator.new("_AspfNeq") == "_AspfNeq4"
+
+
+def test_temporary_allocator_copies_its_input_set() -> None:
+    identifiers = {"_AspfCmp0"}
+    allocator = TemporaryAllocator(identifiers)
+
+    assert allocator.new("_AspfCmp") == "_AspfCmp1"
+    assert identifiers == {"_AspfCmp0"}
+
+
+def test_lowers_application_equality_with_one_shared_defined_value() -> None:
+    result = lowered(
+        "#nherb actual/1.\n#nherb expected/1.\nsame(A) :- account(A), actual(A) #= expected(A).\n"
+    )
+
+    assert (
+        "same(A) :- account(A), __aspf_value(actual(A),_AspfCmp0), "
+        "__aspf_value(expected(A),_AspfCmp0)."
+    ) in result
+
+
+def test_lowers_application_inequality_with_two_defined_values() -> None:
+    result = lowered(
+        "#nherb actual/1.\n#nherb expected/1.\n"
+        "different(A) :- account(A), actual(A) #!= expected(A).\n"
+    )
+
+    assert (
+        "different(A) :- account(A), __aspf_value(actual(A),_AspfCmp0), "
+        "__aspf_value(expected(A),_AspfCmp1), _AspfCmp0 != _AspfCmp1."
+    ) in result
+
+
+@pytest.mark.parametrize(
+    ("operator", "clingo_operator"), [("#<", "<"), ("#<=", "<="), ("#>", ">"), ("#>=", ">=")]
+)
+def test_lowers_ordered_application_comparison_with_two_integer_guards(
+    operator: str, clingo_operator: str
+) -> None:
+    result = lowered(f"#nherb actual/0.\n#nherb expected/0.\nokay :- actual {operator} expected.\n")
+
+    assert "__aspf_value(actual,_AspfCmp0)" in result
+    assert "__aspf_value(expected,_AspfCmp1)" in result
+    assert "__aspf_integer(_AspfCmp0)" in result
+    assert "__aspf_integer(_AspfCmp1)" in result
+    assert f"_AspfCmp0 {clingo_operator} _AspfCmp1" in result
+
+
+def test_application_comparison_temporaries_avoid_multiple_source_collisions() -> None:
+    result = lowered(
+        "#nherb actual/1.\n#nherb expected/1.\n"
+        "different(A,_AspfCmp0,_AspfCmp1) :- account(A), marker(_AspfCmp0), "
+        "marker(_AspfCmp1), actual(A) #!= expected(A).\n"
+    )
+
+    assert "__aspf_value(actual(A),_AspfCmp2)" in result
+    assert "__aspf_value(expected(A),_AspfCmp3)" in result
+    assert "_AspfCmp2 != _AspfCmp3" in result
