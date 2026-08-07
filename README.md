@@ -160,6 +160,8 @@ interchangeable. ASPf-next is not affiliated with Potassco.
 - [Supported language](docs/supported-language.md)
 - [Compatibility matrix](docs/compatibility-matrix.md)
 - [Semantics notes](docs/semantics-notes.md)
+- [Specification traceability](docs/specification-traceability.md)
+- [Architecture decision records](docs/decisions/)
 - [Architecture](docs/architecture.md)
 - [Provenance and clean-room policy](docs/provenance.md)
 - [Roadmap](docs/roadmap.md)
@@ -170,8 +172,9 @@ interchangeable. ASPf-next is not affiliated with Potassco.
 The codebase is prepared for `0.1.0-alpha` (Python package version `0.1.0a1`),
 but that release has not been published. This remains pre-alpha research
 software. The [roadmap](docs/roadmap.md) separates the shipped reference
-frontend from possible 0.2 compatibility work and longer-term native-backend
-research. Those directions are proposals, not promises.
+frontend from the 0.2 conformance foundation, possible later compatibility
+work, and longer-term native-backend research. Those directions are proposals,
+not promises.
 
 ## Development and attribution
 

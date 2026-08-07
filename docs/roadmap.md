@@ -21,15 +21,21 @@ Implemented:
 See the [supported-language document](supported-language.md) for the normative
 boundary.
 
-## Potential milestone 0.2
+## Milestone 0.2 conformance foundation
 
-Candidate work, subject to primary-source semantic review:
+In development without changing the accepted language:
 
-- investigate `#!=` semantics and add it only with specification-backed tests;
-- expand conformance tests across source layout and multi-file programs;
-- strengthen traceability from compatibility decisions to historical ASP{f}
-  publications; and
-- refine diagnostics and packaging based on early-user feedback.
+- map every milestone 0.1 construct to primary sources, implementation, tests,
+  and known deviations;
+- execute a machine-readable conformance corpus across source layout and
+  multi-file programs; and
+- record the architectural decisions that protect the semantic boundary.
+
+## Next compatibility candidate
+
+Positive ground `#!=` may be investigated only after the conformance foundation
+is reviewed and merged. Its treatment of undefined applications must come from
+primary sources and must not be implemented as the absence of equality.
 
 ## Later research
 
@@ -43,6 +49,6 @@ Longer-term topics may include:
 - an explainable portfolio-risk demonstration built only after the language
   semantics it needs are specified and tested.
 
-None of these capabilities is implemented in milestone 0.1. A native backend
-would be a separate research milestone, not a silent replacement for the
-reference translation.
+None of these language capabilities is implemented by the conformance
+foundation. A native backend would be a separate research milestone, not a
+silent replacement for the reference translation.
