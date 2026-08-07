@@ -1,0 +1,2 @@
+active(alice).
+status(alice) #= employed :- active(alice).

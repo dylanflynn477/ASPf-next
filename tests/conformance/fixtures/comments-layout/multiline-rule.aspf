@@ -1,0 +1,7 @@
+#nherb balance/1.
+% The assignment spans several physical lines.
+balance(
+    account1
+) #= 500.
+solvent(account1) :-
+    balance(account1) #= 500.

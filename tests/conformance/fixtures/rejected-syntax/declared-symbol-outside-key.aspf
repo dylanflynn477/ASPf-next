@@ -1,0 +1,2 @@
+#nherb balance/1.
+p(balance(account1)).

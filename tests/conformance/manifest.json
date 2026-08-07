@@ -1,0 +1,475 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "accepted-basic-assignment",
+      "category": "accepted-syntax",
+      "sources": ["fixtures/accepted-syntax/basic-assignment.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {"ordinary_atoms": [], "assignments": ["balance(account1)#=500"]}
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B12 §2 pp. 26–27", "B13 §2 p. 549", "CF Syntax"],
+        "notes": "A ground seed assignment is core historical ASP{f} behavior; the hash-prefixed spelling comes from Clingo{f}."
+      }
+    },
+    {
+      "id": "accepted-value-kinds",
+      "category": "accepted-syntax",
+      "sources": ["fixtures/accepted-syntax/value-kinds.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": [],
+            "assignments": [
+              "label(item1)#=\"cold brew\"",
+              "mode#=active",
+              "temperature(room1)#=-3"
+            ]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B12 §2 pp. 26–27", "B13 §2 pp. 548–549"],
+        "notes": "Constants and zero-arity terms are historical; the exact integer, symbolic-constant, and Clingo-string value grammar is the milestone 0.1 boundary."
+      }
+    },
+    {
+      "id": "satisfiable-positive-body-equality",
+      "category": "satisfiable",
+      "sources": ["fixtures/satisfiable/positive-body-equality.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": ["solvent(account1)"],
+            "assignments": ["balance(account1)#=500"]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B12 §3 pp. 28–29", "B13 §2 p. 550"],
+        "notes": "A positive equality body literal succeeds when both sides are defined and equal."
+      }
+    },
+    {
+      "id": "unsatisfiable-ordinary-constraint",
+      "category": "unsatisfiable",
+      "sources": ["fixtures/unsatisfiable/ordinary-constraint.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "UNSATISFIABLE",
+        "model_count": 0,
+        "models": []
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B12 §2 p. 27", "B13 §2 p. 549"],
+        "notes": "Ordinary ASP constraints pass through to modern Clingo unchanged."
+      }
+    },
+    {
+      "id": "partiality-undefined",
+      "category": "partiality",
+      "sources": ["fixtures/partiality/undefined-application.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {"ordinary_atoms": ["account(account1)"], "assignments": []}
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B12 §3 p. 28", "B12 §4 pp. 32–33", "B13 §2 p. 550"],
+        "notes": "No assignment means the application remains undefined; a declaration does not make the function total."
+      }
+    },
+    {
+      "id": "functionality-conflict",
+      "category": "functionality",
+      "sources": ["fixtures/functionality/conflicting-values.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "UNSATISFIABLE",
+        "model_count": 0,
+        "models": []
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B12 §3 p. 28", "B13 §2 p. 550"],
+        "notes": "A consistent answer set cannot assign two distinct values to the same application."
+      }
+    },
+    {
+      "id": "functionality-repeated-value",
+      "category": "functionality",
+      "sources": ["fixtures/functionality/repeated-value.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {"ordinary_atoms": [], "assignments": ["balance(account1)#=500"]}
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B12 §3 p. 28", "B13 §2 p. 550"],
+        "notes": "Functionality excludes different values, not duplicate assertions of the same seed assignment."
+      }
+    },
+    {
+      "id": "conditional-enabled",
+      "category": "conditional-assignments",
+      "sources": ["fixtures/conditional-assignments/enabled.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": ["active(alice)"],
+            "assignments": ["status(alice)#=employed"]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B12 §2 p. 27", "B13 §2 p. 549"],
+        "notes": "A seed assignment may be a rule head and is derived when the body holds."
+      }
+    },
+    {
+      "id": "conditional-disabled",
+      "category": "conditional-assignments",
+      "sources": ["fixtures/conditional-assignments/disabled.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {"ordinary_atoms": ["person(bob)"], "assignments": []}
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B12 §2 p. 27", "B13 §2 p. 549"],
+        "notes": "A false body does not derive the head assignment, leaving the application undefined."
+      }
+    },
+    {
+      "id": "multiple-models-ordinary-choice",
+      "category": "multiple-models",
+      "sources": ["fixtures/multiple-models/ordinary-choice.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 2,
+        "models": [
+          {"ordinary_atoms": ["selected(blue)"], "assignments": []},
+          {"ordinary_atoms": ["selected(red)"], "assignments": []}
+        ]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B12 pp. 24–26"],
+        "notes": "An ordinary Clingo choice with no n-atom is pass-through syntax and exercises all-model enumeration."
+      }
+    },
+    {
+      "id": "multiple-models-conditional-values",
+      "category": "multiple-models",
+      "sources": ["fixtures/multiple-models/conditional-values.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 2,
+        "models": [
+          {
+            "ordinary_atoms": ["selected(blue)"],
+            "assignments": ["color(item)#=blue"]
+          },
+          {
+            "ordinary_atoms": ["selected(red)"],
+            "assignments": ["color(item)#=red"]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B12 §2 p. 27", "B13 §2 p. 549"],
+        "notes": "Ordinary choices can control supported assignment heads without placing n-atoms inside a choice."
+      }
+    },
+    {
+      "id": "comments-multiline-layout",
+      "category": "comments-layout",
+      "sources": ["fixtures/comments-layout/multiline-rule.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": ["solvent(account1)"],
+            "assignments": ["balance(account1)#=500"]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["ADR 0004"],
+        "notes": "Physical line layout and comments must not change the recognized complete n-atom."
+      }
+    },
+    {
+      "id": "comments-inert-markers",
+      "category": "comments-layout",
+      "sources": ["fixtures/comments-layout/inert-markers.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": ["label(\"__aspf_value mode #>= 7\")"],
+            "assignments": ["mode#=active"]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["ADR 0004", "ADR 0005"],
+        "notes": "Reserved names, declared names, and unsupported operators are inert in comments and strings."
+      }
+    },
+    {
+      "id": "multi-file-forward-declaration",
+      "category": "multi-file",
+      "sources": [
+        "fixtures/multi-file/forward-rules.aspf",
+        "fixtures/multi-file/forward-declarations.aspf"
+      ],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {"ordinary_atoms": [], "assignments": ["status(alice)#=employed"]}
+        ]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["ADR 0004"],
+        "notes": "The frontend performs a declaration pass over every input before validating statements, so a later file may declare an earlier use."
+      }
+    },
+    {
+      "id": "multi-file-shared-declaration",
+      "category": "multi-file",
+      "sources": [
+        "fixtures/multi-file/shared-declarations.aspf",
+        "fixtures/multi-file/shared-rules.aspf"
+      ],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": ["active(alice)"],
+            "assignments": ["status(alice)#=employed"]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["ADR 0004"],
+        "notes": "Declarations are shared across the ordered set of CLI input files."
+      }
+    },
+    {
+      "id": "rejected-variable-application",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/variable-application.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "variables, including non-Herbrand variables",
+          "source": "fixtures/rejected-syntax/variable-application.aspf",
+          "line": 2,
+          "column": 9
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B12 §2 pp. 27–28", "B13 §2 pp. 549–550"],
+        "notes": "Variables are historical ASP{f} behavior but deliberately rejected in milestone 0.1 n-atoms."
+      }
+    },
+    {
+      "id": "rejected-arithmetic-value",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/arithmetic-value.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "arithmetic or unsupported term syntax",
+          "source": "fixtures/rejected-syntax/arithmetic-value.aspf",
+          "line": 2,
+          "column": 22
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B13 §2 pp. 548–550", "BG12 §2 PDF pp. 3–4"],
+        "notes": "Arithmetic belongs to the broader historical language and is deliberately not implemented here."
+      }
+    },
+    {
+      "id": "rejected-default-negated-equality",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/default-negated.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "default-negated n-atoms",
+          "source": "fixtures/rejected-syntax/default-negated.aspf",
+          "line": 2,
+          "column": 7
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B12 §2 p. 27", "B13 §2 p. 549"],
+        "notes": "Historical rule syntax permits default-negated literals; milestone 0.1 avoids choosing undefinedness behavior for negated n-atoms."
+      }
+    },
+    {
+      "id": "rejected-reserved-namespace",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/reserved-namespace.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "reserved for aspf-next internals",
+          "source": "fixtures/rejected-syntax/reserved-namespace.aspf",
+          "line": 1,
+          "column": 1
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["ADR 0005"],
+        "notes": "The private prefix is an implementation safety boundary with no claimed historical basis."
+      }
+    },
+    {
+      "id": "rejected-declared-symbol-outside-key",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/declared-symbol-outside-key.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "may only be used as the key of a supported n-atom",
+          "source": "fixtures/rejected-syntax/declared-symbol-outside-key.aspf",
+          "line": 2,
+          "column": 3
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B13 §3 p. 552", "CF Syntax"],
+        "notes": "This intentionally rejects historical Clingo{f}'s scope-dependent Herbrand interpretation."
+      }
+    },
+    {
+      "id": "rejected-not-equal",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/not-equal.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "operator '#!=' is not supported",
+          "source": "fixtures/rejected-syntax/not-equal.aspf",
+          "line": 2,
+          "column": 32
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B12 §3 pp. 28–29", "B13 §2 p. 550", "CF Syntax"],
+        "notes": "Inequality is historical ASP{f} syntax but remains explicitly deferred after milestone 0.1."
+      }
+    },
+    {
+      "id": "rejected-global-declaration",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/global-declaration.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "global '#nherb.' declarations are not supported",
+          "source": "fixtures/rejected-syntax/global-declaration.aspf",
+          "line": 1,
+          "column": 1
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["CF Syntax"],
+        "notes": "Global declaration is documented historical Clingo{f} syntax but is deliberately rejected in favor of explicit f/n declarations."
+      }
+    },
+    {
+      "id": "rejected-conflicting-arity",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/conflicting-arity.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "already declared with arity 1",
+          "source": "fixtures/rejected-syntax/conflicting-arity.aspf",
+          "line": 2,
+          "column": 8
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B13 §3 p. 552"],
+        "notes": "Historical Clingo{f} permits one function name at multiple arities; ASPf-next currently reserves one arity per name."
+      }
+    }
+  ]
+}
