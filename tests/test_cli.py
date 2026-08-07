@@ -36,6 +36,55 @@ def test_emit_lowered_prints_reference_translation(tmp_path: Path, capsys) -> No
     assert "V1 != V2" in output
 
 
+def test_emit_lowered_prints_definedness_aware_not_equal(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = write_program(
+        tmp_path,
+        "#nherb balance/1.\ndifferent :- balance(a) #!= 1.\n",
+    )
+
+    assert main([str(path), "--emit-lowered"]) == 0
+    output = capsys.readouterr().out
+    assert "__aspf_value(balance(a),_AspfNeq0)" in output
+    assert "_AspfNeq0 != 1" in output
+    assert "not __aspf_value" not in output
+
+
+def test_not_equal_human_and_json_output(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = write_program(
+        tmp_path,
+        "#nherb balance/1.\nbalance(a) #= 2.\ndifferent :- balance(a) #!= 1.\n",
+    )
+
+    assert main([str(path)]) == 0
+    human = capsys.readouterr().out
+    assert "different balance(a)#=2" in human
+    assert "__aspf_" not in human
+
+    assert main([str(path), "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["models"][0]["ordinary_atoms"] == ["different"]
+    assert payload["models"][0]["assignments"] == ["balance(a)#=2"]
+
+
+def test_cli_rejects_not_equal_rule_head_with_location(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = write_program(
+        tmp_path,
+        "#nherb balance/1.\nbalance(a) #!= 1.\n",
+        "head.aspf",
+    )
+
+    assert main([str(path)]) == 2
+    error = capsys.readouterr().err
+    assert f"{path}:2:12" in error
+    assert "only as a complete positive rule-body literal" in error
+
+
 def test_json_enumerates_all_models(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
     path = write_program(tmp_path, "1 { selected(a); selected(b) } 1.\n")
 

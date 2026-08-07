@@ -31,6 +31,87 @@ solvent(account1) :- balance(account1) #= 500.
     assert result.models[0].render() == "solvent(account1) balance(account1)#=500"
 
 
+def test_defined_different_value_satisfies_not_equal() -> None:
+    result = solve(
+        "#nherb balance/1.\nbalance(account1) #= 600.\ndifferent :- balance(account1) #!= 500.\n"
+    )
+
+    assert result.models[0].ordinary_atoms == ("different",)
+    assert result.models[0].assignments == ("balance(account1)#=600",)
+
+
+def test_defined_equal_value_does_not_satisfy_not_equal() -> None:
+    result = solve(
+        "#nherb balance/1.\nbalance(account1) #= 500.\ndifferent :- balance(account1) #!= 500.\n"
+    )
+
+    assert result.models[0].ordinary_atoms == ()
+    assert result.models[0].assignments == ("balance(account1)#=500",)
+
+
+def test_undefined_application_does_not_satisfy_not_equal() -> None:
+    result = solve(
+        "#nherb balance/1.\naccount(account1).\ndifferent :- balance(account1) #!= 500.\n"
+    )
+
+    assert result.models[0].ordinary_atoms == ("account(account1)",)
+    assert result.models[0].assignments == ()
+
+
+@pytest.mark.parametrize(
+    ("source", "expected_assignment"),
+    [
+        (
+            '#nherb label/1.\nlabel(item) #= "cold".\ndifferent :- label(item) #!= "hot".\n',
+            'label(item)#="cold"',
+        ),
+        (
+            "#nherb temperature/1.\ntemperature(room) #= -3.\n"
+            "different :- temperature(room) #!= -2.\n",
+            "temperature(room)#=-3",
+        ),
+        (
+            "#nherb mode/0.\nmode #= active.\ndifferent :- mode #!= idle.\n",
+            "mode#=active",
+        ),
+    ],
+)
+def test_not_equal_supports_strings_negative_integers_and_zero_arity(
+    source: str, expected_assignment: str
+) -> None:
+    result = solve(source)
+
+    assert result.models[0].ordinary_atoms == ("different",)
+    assert result.models[0].assignments == (expected_assignment,)
+
+
+def test_equality_and_not_equal_cannot_both_hold_for_the_same_value() -> None:
+    result = solve(
+        "#nherb balance/1.\nbalance(account1) #= 500.\n"
+        "equal :- balance(account1) #= 500.\n"
+        "not_equal :- balance(account1) #!= 500.\n"
+    )
+
+    assert result.models[0].ordinary_atoms == ("equal",)
+
+
+def test_not_equal_tracks_assignments_across_multiple_models() -> None:
+    result = solve(
+        """#nherb level/1.
+1 { choose(one); choose(two) } 1.
+level(item) #= 1 :- choose(one).
+level(item) #= 2 :- choose(two).
+different :- level(item) #!= 1.
+""",
+        models=0,
+    )
+
+    assert {model.atoms for model in result.models} == {
+        ("choose(one)", "level(item)#=1"),
+        ("choose(two)", "different", "level(item)#=2"),
+    }
+
+
 def test_conditional_assignment() -> None:
     result = solve(
         """#nherb status/1.

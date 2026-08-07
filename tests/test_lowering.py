@@ -29,6 +29,42 @@ solvent(account1) :- balance(account1) #= 500.
     assert "solvent(account1) :- __aspf_value(balance(account1),500)." in result
 
 
+def test_lowers_not_equal_to_a_defined_value_lookup_and_comparison() -> None:
+    result = lowered("#nherb balance/1.\ndifferent :- balance(account1) #!= 500.\n")
+
+    assert "different :- __aspf_value(balance(account1),_AspfNeq0), _AspfNeq0 != 500." in result
+    assert "not __aspf_value" not in result
+
+
+def test_not_equal_lowering_uses_collision_free_rule_local_variables() -> None:
+    result = lowered(
+        "#nherb balance/1.\ndifferent(_AspfNeq0) :- item(_AspfNeq0), balance(account1) #!= 500.\n"
+    )
+
+    assert "__aspf_value(balance(account1),_AspfNeq1)" in result
+    assert "_AspfNeq1 != 500" in result
+
+
+def test_lowers_multiple_not_equal_comparisons_with_distinct_variables() -> None:
+    result = lowered(
+        "#nherb left/1.\n#nherb right/1.\ndifferent :- left(a) #!= 1, right(b) #!= 2.\n"
+    )
+
+    assert "__aspf_value(left(a),_AspfNeq0), _AspfNeq0 != 1" in result
+    assert "__aspf_value(right(b),_AspfNeq1), _AspfNeq1 != 2" in result
+
+
+def test_equality_and_not_equal_share_the_value_relation() -> None:
+    result = lowered(
+        "#nherb balance/1.\nbalance(account1) #= 500.\n"
+        "same :- balance(account1) #= 500.\n"
+        "different :- balance(account1) #!= 600.\n"
+    )
+
+    assert "same :- __aspf_value(balance(account1),500)." in result
+    assert "__aspf_value(balance(account1),_AspfNeq0), _AspfNeq0 != 600" in result
+
+
 def test_lowers_conditional_assignment_in_rule_head() -> None:
     result = lowered(
         """#nherb status/1.
