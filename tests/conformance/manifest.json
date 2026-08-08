@@ -346,24 +346,19 @@
       }
     },
     {
-      "id": "rejected-default-negated-equality",
-      "category": "rejected-syntax",
-      "sources": ["fixtures/rejected-syntax/default-negated.aspf"],
+      "id": "default-negated-equality-undefined",
+      "category": "partiality",
+      "sources": ["fixtures/partiality/default-negated-equality-undefined.aspf"],
       "expect": {
-        "parse": "rejected",
-        "solve_status": "NOT_RUN",
-        "model_count": null,
-        "diagnostic": {
-          "contains": "default-negated n-atoms",
-          "source": "fixtures/rejected-syntax/default-negated.aspf",
-          "line": 2,
-          "column": 7
-        }
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [{"ordinary_atoms": ["ok"], "assignments": []}]
       },
       "source_basis": {
-        "kind": "aspf-next-boundary",
+        "kind": "historical-behavior",
         "references": ["B12 §2 p. 27", "B13 §2 p. 549"],
-        "notes": "Historical rule syntax permits default-negated literals; milestone 0.1 avoids choosing undefinedness behavior for negated n-atoms."
+        "notes": "Undefinedness makes positive equality unsatisfied, so default-negated equality is true."
       }
     },
     {
@@ -568,24 +563,19 @@
       }
     },
     {
-      "id": "rejected-not-equal-default-negated",
-      "category": "rejected-syntax",
-      "sources": ["fixtures/rejected-syntax/not-equal-default-negated.aspf"],
+      "id": "default-negated-inequality-undefined",
+      "category": "partiality",
+      "sources": ["fixtures/partiality/default-negated-inequality-undefined.aspf"],
       "expect": {
-        "parse": "rejected",
-        "solve_status": "NOT_RUN",
-        "model_count": null,
-        "diagnostic": {
-          "contains": "default-negated n-atoms",
-          "source": "fixtures/rejected-syntax/not-equal-default-negated.aspf",
-          "line": 2,
-          "column": 14
-        }
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [{"ordinary_atoms": ["different"], "assignments": []}]
       },
       "source_basis": {
-        "kind": "aspf-next-boundary",
+        "kind": "historical-behavior",
         "references": ["B12 §3 pp. 29–30"],
-        "notes": "Default-negated inequality has broader historical semantics and remains deferred."
+        "notes": "Undefinedness makes positive inequality unsatisfied too; this is not positive equality."
       }
     },
     {
@@ -848,24 +838,19 @@
       }
     },
     {
-      "id": "rejected-ordered-default-negated",
-      "category": "rejected-syntax",
-      "sources": ["fixtures/rejected-syntax/ordered-default-negated.aspf"],
+      "id": "default-negated-ordered-undefined",
+      "category": "partiality",
+      "sources": ["fixtures/partiality/default-negated-ordered-undefined.aspf"],
       "expect": {
-        "parse": "rejected",
-        "solve_status": "NOT_RUN",
-        "model_count": null,
-        "diagnostic": {
-          "contains": "default-negated n-atoms",
-          "source": "fixtures/rejected-syntax/ordered-default-negated.aspf",
-          "line": 2,
-          "column": 9
-        }
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [{"ordinary_atoms": ["okay"], "assignments": []}]
       },
       "source_basis": {
-        "kind": "aspf-next-boundary",
+        "kind": "historical-behavior",
         "references": ["BG12 §2 PDF pp. 3–4"],
-        "notes": "Default-negated ordered comparisons remain outside the positive-body Task 4 boundary."
+        "notes": "Undefinedness makes the positive integer order unsatisfied and its default negation true."
       }
     },
     {
@@ -1356,6 +1341,214 @@
         "kind": "aspf-next-boundary",
         "references": ["Cross-file declaration pass", "Application operand design"],
         "notes": "Declarations, domains, assignments, and comparison rules share one intentional frontend namespace across ordered input files."
+      }
+    },
+    {
+      "id": "default-negated-defined-relations",
+      "category": "satisfiable",
+      "sources": ["fixtures/satisfiable/default-negated-defined.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [{"ordinary_atoms": ["equality_mismatch", "inequality_equal"], "assignments": ["f(different)#=2", "f(equal)#=1"]}]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B12 section 3, pp. 28-30", "B13 section 2, pp. 550-551"],
+        "notes": "Default negation succeeds exactly for the defined relation states where positive satisfaction fails."
+      }
+    },
+    {
+      "id": "default-negated-application-definedness",
+      "category": "partiality",
+      "sources": ["fixtures/partiality/default-negated-application.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [{"ordinary_atoms": ["item(both_undefined)", "item(different)", "item(equal)", "item(left_undefined)", "item(right_undefined)", "not_equal(both_undefined)", "not_equal(different)", "not_equal(left_undefined)", "not_equal(right_undefined)"], "assignments": ["actual(different)#=1", "actual(equal)#=1", "actual(right_undefined)#=1", "expected(different)#=2", "expected(equal)#=1", "expected(left_undefined)#=1"]}]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B12 section 3, pp. 28-30", "B13 section 2, pp. 550-551"],
+        "notes": "Default-negated application equality is true for different, left-undefined, right-undefined, and both-undefined states."
+      }
+    },
+    {
+      "id": "default-negated-variable-groundings",
+      "category": "satisfiable",
+      "sources": ["fixtures/satisfiable/default-negated-variable.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [{"ordinary_atoms": ["account(a)", "account(b)", "account(c)", "not_high(a)", "not_high(c)"], "assignments": ["balance(a)#=500", "balance(b)#=1500"]}]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B13 section 2, pp. 550-551", "CF Syntax restrictions P3"],
+        "notes": "Every helper grounding is keyed by the independently domain-safe source variable; undefined c remains distinct."
+      }
+    },
+    {
+      "id": "default-negated-multiple-models",
+      "category": "multiple-models",
+      "sources": ["fixtures/multiple-models/default-negated.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 2,
+        "models": [{"ordinary_atoms": ["missing"], "assignments": []}, {"ordinary_atoms": ["define"], "assignments": ["f#=1"]}]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B12 section 3, pp. 29-30", "B13 section 2, pp. 550-551"],
+        "notes": "Positive satisfaction and default negation are evaluated per stable model."
+      }
+    },
+    {
+      "id": "default-negated-comments-and-strings",
+      "category": "comments-layout",
+      "sources": ["fixtures/comments-layout/default-negated.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [{"ordinary_atoms": ["label(\"not value #= 1\")", "missing"], "assignments": []}]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["Scanner contract", "Default-negated n-atom design"],
+        "notes": "Markers in comments and strings remain inert while a multiline executable literal is parsed."
+      }
+    },
+    {
+      "id": "rejected-default-negated-double",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/default-negated-double.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {"contains": "double default negation", "source": "fixtures/rejected-syntax/default-negated-double.aspf", "line": 2, "column": 6}
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["Default-negated n-atom design"],
+        "notes": "The supported grammar permits exactly one default-negation prefix."
+      }
+    },
+    {
+      "id": "rejected-default-negated-head",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/default-negated-head.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {"contains": "assignments and rule heads cannot be negated", "source": "fixtures/rejected-syntax/default-negated-head.aspf", "line": 2, "column": 1}
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B12 section 2, p. 27", "B13 section 2, p. 549"],
+        "notes": "Default negation is a rule-body form; assignment heads remain seed n-atoms."
+      }
+    },
+    {
+      "id": "rejected-default-negated-aggregate",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/default-negated-aggregate.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {"contains": "aggregates or choice constructs", "source": "fixtures/rejected-syntax/default-negated-aggregate.aspf", "line": 2, "column": 38}
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["Default-negated n-atom design"],
+        "notes": "This milestone does not add structured aggregate lowering."
+      }
+    },
+    {
+      "id": "rejected-default-negated-choice",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/default-negated-choice.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {"contains": "aggregates or choice constructs", "source": "fixtures/rejected-syntax/default-negated-choice.aspf", "line": 2, "column": 17}
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["Default-negated n-atom design"],
+        "notes": "This milestone does not add n-atoms in choices."
+      }
+    },
+    {
+      "id": "rejected-default-negated-conditional",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/default-negated-conditional.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {"contains": "conditional literals", "source": "fixtures/rejected-syntax/default-negated-conditional.aspf", "line": 2, "column": 16}
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["Default-negated n-atom design"],
+        "notes": "Conditional n-literal structure remains outside the IR."
+      }
+    },
+    {
+      "id": "rejected-default-negated-arithmetic",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/default-negated-arithmetic.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {"contains": "arithmetic or unsupported term syntax", "source": "fixtures/rejected-syntax/default-negated-arithmetic.aspf", "line": 2, "column": 19}
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["Default-negated n-atom design"],
+        "notes": "Default negation does not broaden the scalar operand grammar."
+      }
+    },
+    {
+      "id": "rejected-default-negated-nvariable",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/default-negated-nvariable.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {"contains": "non-Herbrand variables", "source": "fixtures/rejected-syntax/default-negated-nvariable.aspf", "line": 2, "column": 16}
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B13 section 3, pp. 552-553"],
+        "notes": "Default negation does not add historical grounder-inert n-variables."
+      }
+    },
+    {
+      "id": "rejected-default-negated-unsafe",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/default-negated-unsafe.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {"contains": "ordinary positive body atom", "source": "fixtures/rejected-syntax/default-negated-unsafe.aspf", "line": 2, "column": 19}
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["CF Syntax restrictions P3-P5"],
+        "notes": "Generated helpers cannot make an independently unsafe source variable acceptable."
       }
     }
   ]

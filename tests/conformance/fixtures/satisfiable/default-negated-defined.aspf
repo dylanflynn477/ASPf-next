@@ -1,0 +1,8 @@
+#nherb f/1.
+f(equal) #= 1.
+f(different) #= 2.
+
+equality_match :- not f(equal) #= 1.
+equality_mismatch :- not f(different) #= 1.
+inequality_equal :- not f(equal) #!= 1.
+inequality_different :- not f(different) #!= 1.

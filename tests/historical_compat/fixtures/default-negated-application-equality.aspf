@@ -1,0 +1,12 @@
+#nherb actual/1.
+#nherb expected/1.
+
+item(equal;different;left_undefined;right_undefined;both_undefined).
+actual(equal) #= 1.
+expected(equal) #= 1.
+actual(different) #= 1.
+expected(different) #= 2.
+expected(left_undefined) #= 1.
+actual(right_undefined) #= 1.
+
+not_equal(X) :- item(X), not actual(X) #= expected(X).

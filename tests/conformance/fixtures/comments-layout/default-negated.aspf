@@ -1,0 +1,6 @@
+#nherb value/0.
+
+label("not value #= 1").
+% not value #!= 1.
+missing :-
+    not value #= 1.

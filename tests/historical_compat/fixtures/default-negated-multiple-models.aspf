@@ -1,0 +1,5 @@
+#nherb f/0.
+
+{ define }.
+f #= 1 :- define.
+missing :- not f #= 1.

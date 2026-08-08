@@ -1,0 +1,2 @@
+#nherb f/0.
+p :- not f #< 1.
