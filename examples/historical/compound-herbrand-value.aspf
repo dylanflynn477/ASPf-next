@@ -1,0 +1,4 @@
+% Clingo{f} public Syntax documentation: undeclared k/1 is a Herbrand value.
+#nherb f/1.
+f(a) #= k(1).
+same :- f(a) #= k(1).

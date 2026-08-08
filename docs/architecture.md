@@ -31,7 +31,10 @@ Each boundary has a distinct responsibility:
 2. **Compatibility parsing** (`frontend.py`) collects declarations, recognizes
    supported n-atoms in valid rule positions, validates the restricted term
    grammar and source-variable safety, and rejects ambiguous or deferred syntax.
-   Ordinary statements remain source text.
+   Declaration lookup uses exact `(name, arity)` identity. Under a `#`
+   connective, that lookup distinguishes application operands from undeclared
+   compound Herbrand scalar values. Outside n-atoms, declared symbols keep
+   ordinary Herbrand meaning and statements remain source text.
 3. **ASP{f} IR** (`ir.py`) records declarations, ordinary statements, structured
    applications, distinct ground and variable arguments, typed scalar and
    application operands, separate assignment and body-comparison nodes, typed
@@ -69,6 +72,26 @@ All files are scanned separately so diagnostics retain their true filename,
 line, and column. Declarations are collected across every file before statements
 are validated, allowing a declaration in one file to serve rules in another.
 The combined IR is then lowered into one Clingo base program.
+
+## Historical compatibility layer
+
+The source-backed compatibility target is executable but does not alter the
+pipeline. `tests/historical_compat/manifest.json` records passing, strict-xfail,
+and unresolved historical cases independently of the project-boundary
+conformance corpus. `scripts/compatibility_report.py` renders only that manifest
+data.
+
+Deferred historical constructs keep their architectural boundaries explicit:
+
+- global `#nherb.` needs a program declaration mode and a source-backed rule
+  for bare right operands;
+- legacy `#show/#hide #nherb` needs typed output-policy IR carried into model
+  normalization;
+- equality-provided safety needs a grounding-domain design; and
+- default-negated n-atoms need a structured negation of definedness plus the
+  comparison relation.
+
+None is approximated by text insertion or by weakening an unrelated validator.
 
 ## Reference-backend invariant
 
@@ -130,6 +153,6 @@ That backend would need an explicit semantic design for:
 - performance measurements that separate grounding size from solving cost.
 
 No theory definition, propagator, native arithmetic, or optimization work
-belongs to the current comparison increment. The frontend and IR are separated
+belongs to the current historical compatibility increment. The frontend and IR are separated
 so a native backend can be added without changing the legacy-syntax scanner or
 silently changing the reference semantics.

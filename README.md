@@ -59,7 +59,9 @@ enumeration.
 
 The implemented slice supports:
 
-- `#nherb f/n.` declarations, including zero-arity functions;
+- `#nherb f/n.` declarations, including zero-arity functions, plus historical
+  application-style declarations such as `#nherb f(X).`;
+- the same declared name at multiple arities, identified by exact `name/arity`;
 - function applications and `#=` assignments as facts or complete rule heads;
 - positive `#=` and `#!=` comparisons as complete rule-body literals, with
   defined-value semantics;
@@ -71,7 +73,11 @@ The implemented slice supports:
 - ordinary uppercase variables as direct application arguments when every such
   variable also occurs in an ordinary, unnegated positive body atom in the same
   rule;
-- integer, symbolic constant, and string values;
+- integer, symbolic constant, string, and ground undeclared compound Herbrand
+  values;
+- scope-sensitive functional operands: an exact declared `name/arity` under a
+  `#` connective is an application, while an undeclared ground function term is
+  a Herbrand value;
 - ordinary Clingo statements that do not contain ASP{f} syntax in this slice;
 - `%` and `%* ... *%` comments, quoted strings, multiline statements, and
   context-aware scanning of nested delimiters;
@@ -127,6 +133,11 @@ literals, requires that marker during lookup, and then applies the corresponding
 ordinary Clingo comparison. Symbolic constants and strings are never coerced or
 exposed to Clingo's general term ordering.
 
+A declaration changes functional-term interpretation only within a supported
+n-atom. Outside `#` connectives, the same spelling keeps its ordinary Herbrand
+meaning. Thus `ordinary(k(1))` remains exactly that atom even when `k/1` is
+declared and `k(1) #= 5` also holds.
+
 ```text
 ASP{f} source → scanner → validation → typed IR → reference lowering
                → Clingo 5.8 → normalized ASP{f}-style output
@@ -169,11 +180,8 @@ The current implementation deliberately rejects:
 - arithmetic expressions inside n-atoms;
 - aggregates, choices, disjunctions, or conditional literals containing
   n-atoms;
-- compound assignment values and declared non-Herbrand applications nested as
-  application arguments;
+- declared non-Herbrand applications nested inside another n-atom operand;
 - global `#nherb.` and legacy `#show #nherb` / `#hide #nherb` directives;
-- declared non-Herbrand symbols anywhere except the key of a supported n-atom;
-  and
 - user-written executable identifiers beginning with the reserved `__aspf_`
   prefix.
 
@@ -181,6 +189,33 @@ Unsupported or ambiguous ASP{f}-shaped syntax raises a filename-, line-, and
 column-aware `UnsupportedSyntaxError` instead of receiving invented semantics.
 There is no native theory-atom backend, custom propagator, arithmetic extension,
 optimization layer, or historical conformance claim in this release.
+
+## Historical Clingo{f} compatibility
+
+ASPf-next maintains an executable compatibility suite derived from documented
+historical Clingo{f} behavior. Compatibility is currently provided for the
+subset listed in the
+[historical audit](docs/compatibility/historical-clingof-audit.md), including
+explicit and application-style declarations, exact name/arity identity,
+ordinary declared-symbol use outside n-atoms, and declared versus undeclared
+ground functional operands.
+
+This is a historical compatibility subset, not a blanket backward-compatibility
+claim. Global `#nherb.`, legacy non-Herbrand visibility, historical
+equality-provided safety, default-negated n-atoms, choices, aggregates,
+arithmetic, and non-Herbrand variables remain explicit strict xfails or
+unresolved cases.
+
+Run the corpus and its manifest-derived report with:
+
+```console
+pytest tests/historical_compat
+python scripts/compatibility_report.py
+```
+
+The precise terminology is defined in the
+[compatibility policy](docs/compatibility/policy.md). Runnable historically
+styled programs are under [`examples/historical/`](examples/historical/).
 
 ## ASPf-next is not Flingo
 
@@ -197,6 +232,8 @@ interchangeable. ASPf-next is not affiliated with Potassco.
 - [Guided examples](examples/README.md)
 - [Supported language](docs/supported-language.md)
 - [Compatibility matrix](docs/compatibility-matrix.md)
+- [Historical compatibility audit](docs/compatibility/historical-clingof-audit.md)
+- [Historical compatibility policy](docs/compatibility/policy.md)
 - [Semantics notes](docs/semantics-notes.md)
 - [Specification traceability](docs/specification-traceability.md)
 - [Architecture decision records](docs/decisions/)
@@ -227,6 +264,9 @@ ruff format --check src tests
 ruff check src tests
 mypy src
 pytest
+pytest tests/conformance
+pytest tests/historical_compat
+python scripts/compatibility_report.py
 ```
 
 Contributions must follow the [clean-room contribution guide](CONTRIBUTING.md).

@@ -9,18 +9,33 @@ parsed by Clingo after the compatibility frontend has passed it through.
 ```asp
 #nherb balance/1.
 #nherb mode/0.
+#nherb status(Account).
+#nherb pair(Left,Right).
 ```
 
 Names must be lowercase Clingo identifiers and arities must be non-negative
 integers. Declarations may appear after their uses or in another input file
 because declaration collection is a separate first pass. Repeating the same
-name/arity is accepted. Repeating a name with a different arity is rejected.
+name/arity is accepted and deduplicated. The same name may be declared at
+multiple arities; declaration identity is the exact `(name, arity)` pair.
 
-Global `#nherb.` and every other declaration spelling are unsupported.
+In the historical application-style form, arguments are placeholders used only
+to infer arity. Each placeholder must be an uppercase identifier or `_`; it
+does not introduce a program variable and arbitrary expressions are rejected.
+The audited sources do not establish an alternative zero-arity spelling, so
+zero arity uses `#nherb mode/0.`.
 
-Once declared, a non-Herbrand symbol may occur only as the key of a supported
-n-atom. Using it as an ordinary predicate or Herbrand function term is rejected,
-including `balance(account1).` and `p(balance(account1)).`.
+Global `#nherb.` remains unsupported.
+
+A declaration changes interpretation only under a `#` connective. The same
+symbol outside an n-atom retains ordinary Herbrand meaning, so both of these
+may coexist without substitution:
+
+```asp
+#nherb k/1.
+k(1) #= 5.
+ordinary(k(1)).
+```
 
 ## Reserved internal namespace
 
@@ -79,20 +94,25 @@ independent ordinary domain occurrence.
 
 ## Values
 
-An assignment value or scalar comparison operand is restricted to exactly one:
+An assignment value or scalar comparison operand is restricted to exactly one
+ground term from this list:
 
 - integer: `500` or `-3`;
 - symbolic constant: `employed`;
-- string: `"cold brew"`.
+- string: `"cold brew"`;
+- undeclared ordinary function term: `k(1)` or `wrapper(k(1))`.
 
-Variables of every kind, arithmetic, intervals, tuples, and compound function
-terms are not scalar values in this milestone.
+Variables of every kind, arithmetic, intervals, and tuples are not scalar
+values in this milestone. Compound values must be fully ground.
 
 In a positive body comparison, the right operand may instead be another
 explicitly declared non-Herbrand application. This is an application operand,
-not an assignment value. A scalar right operand of `#<`, `#<=`, `#>`, or `#>=`
-must be an integer literal; a right application is validated at runtime as
-described below.
+not an assignment value. The distinction uses exact name/arity: if `k/1` is
+undeclared, `k(1)` is a Herbrand scalar value; if `k/1` is declared, the same
+text is an application operand whose value must be defined. A declared
+application cannot be hidden inside a compound scalar value. A scalar right
+operand of `#<`, `#<=`, `#>`, or `#>=` must still be an integer literal; a right
+application is validated at runtime as described below.
 
 ## Rule positions
 
@@ -189,3 +209,13 @@ Assignments are reconstructed from all true internal value atoms even if a
 `__aspf_` are private and omitted from normal human output.
 
 Legacy `#show #nherb` and `#hide #nherb` directives are unsupported.
+
+## Historical compatibility corpus
+
+The separately attributed historical target lives in
+[`tests/historical_compat`](../tests/historical_compat/). Passing cases lock the
+supported historical subset; strict xfails expose global declaration mode,
+legacy visibility, equality-provided safety, default negation, choices,
+aggregates, arithmetic, and non-Herbrand variables. See the
+[compatibility policy](compatibility/policy.md) and
+[historical audit](compatibility/historical-clingof-audit.md).

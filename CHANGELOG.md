@@ -43,6 +43,19 @@ releases. Python package metadata uses the equivalent PEP 440 version.
 - A deterministic statement-local temporary allocator, expanded conformance
   coverage, multi-file and multi-model regressions, and an eighth guided
   example for comparing expected and observed values.
+- Historical application-style declarations such as `#nherb f(X).`, with
+  placeholder-only arity inference and harmless equivalent duplicates.
+- Exact `(name, arity)` declaration identity, including same-name declarations
+  at multiple arities and zero-arity coexistence.
+- Historical scope behavior: declared symbols retain ordinary Herbrand meaning
+  outside `#` connectives.
+- Ground compound Herbrand assignment and comparison values, with typed
+  declared-versus-undeclared right operand disambiguation.
+- An attributed 29-case historical compatibility corpus: 18 passing cases, 9
+  expected unsupported cases, and 2 unresolved safety cases, plus a
+  manifest-derived report and independent CI invocation.
+- Primary-source audit, compatibility policy, deferment designs, and runnable
+  historically styled examples.
 
 No release number has been assigned to these development increments.
 

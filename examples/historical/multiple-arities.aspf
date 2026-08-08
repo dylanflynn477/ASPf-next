@@ -1,0 +1,5 @@
+% B13 section 3: one name may be declared at multiple arities.
+#nherb f/1.
+#nherb f/2.
+f(a) #= one.
+f(a,b) #= two.

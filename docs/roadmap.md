@@ -58,10 +58,33 @@ require both runtime values to be integers. Application comparison remains
 body-only and does not provide source-variable safety or assignment/copy
 semantics.
 
+## Historical compatibility 1
+
+Implemented as an unreleased compatibility subset:
+
+- application-style explicit declarations such as `#nherb f(X).`;
+- exact `(name, arity)` identity, including same-name declarations at multiple
+  arities;
+- ordinary Herbrand use of declared symbols outside n-atoms;
+- ground compound Herbrand values under equality and inequality; and
+- typed declared-versus-undeclared functional operands.
+
+The milestone also establishes an attributed 29-case historical corpus and a
+manifest-derived report. Eighteen cases pass, nine are expected unsupported,
+and two equality-safety cases remain unresolved. Global `#nherb.`, legacy
+visibility, equality-provided safety, default-negated n-atoms, choices,
+aggregates, arithmetic, and n-variables remain visible strict xfails. See the
+[audit](compatibility/historical-clingof-audit.md) and
+[policy](compatibility/policy.md). No release number has been assigned.
+
 ## Next compatibility candidates
 
-Arithmetic expressions, broader variable positions and safety rules, and every
-broader n-atom context remain deferred. Each candidate requires its own
+Default-negated n-atoms with exact undefinedness behavior, legacy assignment
+visibility, and a deliberately bounded seed-equality safety subset are the
+recommended compatibility-2 research candidates. Global declaration mode
+remains blocked on bare right-operand classification. Arithmetic expressions,
+broader variable positions, and every broader n-atom context remain deferred.
+Each candidate requires its own
 primary-source review, explicit undefinedness rule, typed IR, conservative
 diagnostics, and focused conformance cases.
 
