@@ -70,10 +70,10 @@ Implemented as an unreleased compatibility subset:
 - typed declared-versus-undeclared functional operands.
 
 The milestone established the attributed historical corpus and its
-manifest-derived report. After the global-declaration increment, the corpus has
-39 cases: 31 pass, 6 are expected unsupported, and 2 equality-safety cases
-remain unresolved. Legacy visibility, equality-provided safety, choices,
-aggregates, arithmetic, and n-variables remain visible strict xfails. See the
+manifest-derived report. After the visibility increment, the corpus has 39
+cases: 33 pass, 4 are expected unsupported, and 2 equality-safety cases remain
+unresolved. Equality-provided safety, choices, aggregates, arithmetic, and
+n-variables remain visible strict xfails. See the
 [audit](compatibility/historical-clingof-audit.md) and
 [policy](compatibility/policy.md). No release number has been assigned.
 
@@ -96,14 +96,19 @@ applications; an ambiguous bare right token is a zero-arity application only
 when an explicit declaration or key occurrence establishes that signature.
 The historical case now passes with this documented restriction.
 
+## Historical non-Herbrand visibility
+
+Hide-all, exact selective hide, and exact selective show are implemented as
+typed presentation policy applied after solving. Placeholder selector forms,
+multiple arities, files, models, and human/JSON parity are covered. Historical
+ordinary `#hide.` is bridged to modern `#show.` so the documented selective-show
+example passes without changing stable-model semantics.
+
 ## Next compatibility candidates
 
-Legacy assignment visibility and a deliberately bounded seed-equality safety
-subset are the next compatibility research candidates. Legacy visibility is
-the recommended next milestone because its semantics are source-documented and
-orthogonal to grounding, although it requires typed output-policy IR.
-Arithmetic expressions, broader variable positions, and every broader n-atom
-context remain deferred. Each candidate requires its own
+A deliberately bounded seed-equality safety subset is the next compatibility
+research candidate. Arithmetic expressions, broader variable positions, and
+every broader n-atom context remain deferred. Each candidate requires its own
 primary-source review, explicit undefinedness rule, typed IR, conservative
 diagnostics, and focused conformance cases.
 

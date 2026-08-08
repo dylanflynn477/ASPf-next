@@ -90,10 +90,14 @@ as a zero-arity application when its signature is established. Positive-arity
 functional operands under `#` are applications in global mode; ordinary
 occurrences outside n-atoms still pass through unchanged.
 
+Non-Herbrand visibility is typed, ordered program policy. Solving and
+assignment reconstruction happen before exact name/arity filtering is applied
+to human or JSON presentation. Historical ordinary `#hide.` is the narrow
+exception handled in lowering: it becomes modern `#show.` for equivalent
+ordinary hide-all behavior and contributes hide-all to assignment policy.
+
 Deferred historical constructs keep their architectural boundaries explicit:
 
-- legacy `#show/#hide #nherb` needs typed output-policy IR carried into model
-  normalization;
 - equality-provided safety needs a grounding-domain design.
 
 None is approximated by text insertion or by weakening an unrelated validator.

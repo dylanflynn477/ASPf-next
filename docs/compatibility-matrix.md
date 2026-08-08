@@ -56,7 +56,9 @@ ASP{f} compatibility.
 | Choice/disjunctive constructs containing n-atoms | Unsupported | Location-aware error |
 | Declared n-application nested in another | Unsupported | Location-aware error |
 | Declared n-application nested in a scalar value | Unsupported | Location-aware error |
-| `#show #nherb` / `#hide #nherb` | Unsupported | Location-aware error |
+| `#hide #nherb.` and selected forms | Supported | Typed post-solve assignment policy |
+| Selected `#show #nherb` | Supported | Typed post-solve assignment policy |
+| Historical ordinary `#hide.` | Supported | Presentation-only translation to modern `#show.` plus assignment hide-all |
 | Native theory-atom backend | Planned only | Not implemented |
 | Custom propagator | Planned only | Not implemented |
 | Historical grounding-efficiency behavior | Not claimed | Reference backend only |

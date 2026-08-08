@@ -51,7 +51,7 @@ releases. Python package metadata uses the equivalent PEP 440 version.
   outside `#` connectives.
 - Ground compound Herbrand assignment and comparison values, with typed
   declared-versus-undeclared right operand disambiguation.
-- An attributed 39-case historical compatibility corpus: 31 passing cases, 6
+- An attributed 39-case historical compatibility corpus: 33 passing cases, 4
   expected unsupported cases, and 2 unresolved safety cases, plus a
   manifest-derived report and independent CI invocation.
 - Primary-source audit, compatibility policy, deferment designs, and runnable
@@ -68,6 +68,11 @@ releases. Python package metadata uses the equivalent PEP 440 version.
 - Historical global `#nherb.` mode as typed program policy, including
   multi-file signature collection, zero-arity key resolution, ordinary
   Herbrand coexistence, and an explicit bare-right signature restriction.
+- Typed, ordered non-Herbrand visibility policy for historical hide-all,
+  selective hide, selective show, exact arity, placeholder selectors,
+  multi-file programs, and matching human/JSON output.
+- A presentation-only bridge from historical ordinary `#hide.` to modern
+  Clingo `#show.`, preserving the documented selective assignment-show example.
 
 No release number has been assigned to these development increments.
 

@@ -89,7 +89,9 @@ The implemented slice supports:
 - `%` and `%* ... *%` comments, quoted strings, multiline statements, and
   context-aware scanning of nested delimiters;
 - bounded or complete model enumeration; and
-- stable human-readable and JSON output with internal predicates hidden.
+- stable human-readable and JSON output with internal predicates hidden;
+- historical `#hide #nherb` / `#show #nherb` assignment visibility,
+  including exact name/arity and placeholder-style selectors.
 
 The precise, normative boundary is in
 [`docs/supported-language.md`](docs/supported-language.md), with a compact view
@@ -195,7 +197,6 @@ The current implementation deliberately rejects:
 - aggregates, choices, disjunctions, or conditional literals containing
   n-atoms;
 - declared non-Herbrand applications nested inside another n-atom operand;
-- legacy `#show #nherb` / `#hide #nherb` directives;
 - user-written executable identifiers beginning with the reserved `__aspf_`
   prefix.
 
@@ -213,14 +214,14 @@ subset listed in the
 explicit and application-style declarations, exact name/arity identity,
 ordinary declared-symbol use outside n-atoms, and declared versus undeclared
 ground functional operands. It also includes global `#nherb.` with a documented
-zero-arity signature restriction, default-negated equality,
+zero-arity signature restriction, non-Herbrand visibility controls,
+default-negated equality,
 inequality, integer ordering, application operands, and independently
 domain-safe key variables, with historical partiality behavior.
 
 This is a historical compatibility subset, not a blanket backward-compatibility
-claim. Legacy non-Herbrand visibility, historical equality-provided safety,
-choices, aggregates, arithmetic, and non-Herbrand variables remain explicit
-strict xfails or unresolved cases.
+claim. Historical equality-provided safety, choices, aggregates, arithmetic,
+and non-Herbrand variables remain explicit strict xfails or unresolved cases.
 
 Run the corpus and its manifest-derived report with:
 

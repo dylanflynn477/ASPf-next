@@ -232,14 +232,32 @@ Assignments are reconstructed from all true internal value atoms even if a
 `--emit-lowered` intentionally exposes generated satisfaction helpers because
 its purpose is to show the reference translation.
 
-Legacy `#show #nherb` and `#hide #nherb` directives are unsupported.
+Historical assignment visibility is supported in these forms:
+
+```asp
+#hide #nherb.
+#hide #nherb f/1.
+#show #nherb f/1.
+#hide #nherb f(X).
+#show #nherb f(X).
+```
+
+The default is visible. Directives apply in input order; all-assignment and
+exact `(name, arity)` selectors may therefore be combined to hide broadly and
+show selectively. They affect reconstructed human/JSON assignments only and
+never change solving. `--emit-lowered` omits them.
+
+Modern Clingo 5.8 rejects historical ordinary `#hide.`. ASPf-next accepts that
+exact hide-all form, lowers its ordinary-output effect to modern `#show.`, and
+also hides all reconstructed assignments. Ordinary modern `#show` directives
+continue to pass through independently. Selective ordinary `#hide p/n` is not
+translated by this milestone.
 
 ## Historical compatibility corpus
 
 The separately attributed historical target lives in
 [`tests/historical_compat`](../tests/historical_compat/). Passing cases lock the
-supported historical subset; strict xfails expose legacy visibility,
-equality-provided safety, choices, aggregates, arithmetic, and non-Herbrand
-variables. See the
+supported historical subset; strict xfails expose equality-provided safety,
+choices, aggregates, arithmetic, and non-Herbrand variables. See the
 [compatibility policy](compatibility/policy.md) and
 [historical audit](compatibility/historical-clingof-audit.md).
