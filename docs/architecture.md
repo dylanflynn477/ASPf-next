@@ -38,12 +38,14 @@ Each boundary has a distinct responsibility:
 3. **ASP{f} IR** (`ir.py`) records declarations, ordinary statements, structured
    applications, distinct ground and variable arguments, typed scalar and
    application operands, separate assignment and body-comparison nodes, typed
-   operators, and absolute source spans. No Clingo solver object is part of the
-   IR.
+   operators, explicit body-comparison polarity, and absolute source spans. No
+   Clingo solver object is part of the IR.
 4. **Reference lowering** (`lowering.py`) replaces only the validated IR spans
    with private relational atoms and appends the functionality constraint.
    Ordered comparisons also use `__aspf_integer/1` to distinguish integer
-   assignment values from strings and symbols. It never adds totality.
+   assignment values from strings and symbols. Default-negated comparisons
+   define positive satisfaction with fresh parameterized `__aspf_sat_*`
+   predicates and default-negate those predicates. It never adds totality.
 5. **Solving** (`solver.py`) uses the public Clingo 5.8 Python `Control` API to
    add, ground, and solve the lowered program. `--models 0` maps to unbounded
    model enumeration.
@@ -87,9 +89,7 @@ Deferred historical constructs keep their architectural boundaries explicit:
   for bare right operands;
 - legacy `#show/#hide #nherb` needs typed output-policy IR carried into model
   normalization;
-- equality-provided safety needs a grounding-domain design; and
-- default-negated n-atoms need a structured negation of definedness plus the
-  comparison relation.
+- equality-provided safety needs a grounding-domain design.
 
 None is approximated by text insertion or by weakening an unrelated validator.
 
@@ -133,6 +133,27 @@ relation. A small statement-local allocator chooses deterministic generated
 variables while skipping every identifier in that source statement. Because
 all comparison paths require positive lookups, an undefined operand makes every
 positive application comparison false.
+
+For a default-negated comparison, lowering reuses that exact positive body as
+the definition of a fresh helper:
+
+```asp
+__aspf_sat_0(A) :-
+    __aspf_value(balance(A),V),
+    __aspf_integer(V),
+    V >= 1000.
+flag(A) :- account(A), not __aspf_sat_0(A).
+```
+
+Each helper has a deterministic program-local identity. Its arguments are the
+unique source variables from both operands in first-occurrence order, so
+groundings cannot be merged. Source safety is validated before the helper is
+created; generated lookups never legitimize an unsafe input rule. The helper is
+a fresh one-way definition of positive satisfaction, so `not __aspf_sat_0`
+passes the Clingo reduct exactly when the supported historical `not L` passes
+its satisfaction test. Assignment dependencies through ordinary rules retain
+their original default-negation cycles. Private helpers are filtered from
+human and JSON models but intentionally remain visible in `--emit-lowered`.
 
 ## Future native backend (not implemented)
 

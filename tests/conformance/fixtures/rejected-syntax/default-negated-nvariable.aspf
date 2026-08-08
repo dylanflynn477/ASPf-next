@@ -1,0 +1,2 @@
+#nherb value/1.
+p :- not value(_V) #= 1.

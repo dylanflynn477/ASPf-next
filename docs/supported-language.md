@@ -167,11 +167,18 @@ application argument on either comparison side may use the domain-safe subset
 described above. Scalar right operands remain ground. Several positive n-atoms
 may appear as separate comma-delimited body literals.
 
+Exactly one `not` may precede any otherwise supported complete body n-atom.
+`not L` succeeds when positive `L` is not satisfied. Therefore undefined
+equality, inequality, and order all satisfy their default-negated forms. This
+is failure of positive satisfaction, not replacement by a complementary
+operator. Several positive and default-negated comparisons may coexist in one
+rule. Every variable keeps the same independent ordinary positive-domain
+requirement.
+
 The following positions are unsupported:
 
-- `not f(a) #= v`;
-- `not f(a) #!= v`;
-- default-negated ordered comparisons;
+- `not not f(a) #= v` and any other prefix beyond one `not`;
+- a default-negated assignment or rule head;
 - `f(a) op v` in a fact or rule head for every `op` other than `#=`;
 - `f(a) #= g(a)` in a fact or rule head; application equality is a dependent
   body comparison and never a copy assignment;
@@ -182,14 +189,16 @@ The following positions are unsupported:
 
 ## Operators
 
-`#=` is supported in the head and positive-body positions described above.
-`#!=` is supported only as a complete, positive body literal with a declared
+`#=` is supported in the head and body positions described above.
+`#!=` is supported only as a complete body literal with a declared
 application on the left and either a supported ground scalar or declared
 application on the right. `#<`, `#<=`, `#>`, and `#>=` are supported only as
-complete, positive body literals with an integer literal or declared application
+complete body literals with an integer literal or declared application
 on the right. Application operands on both sides may contain direct domain-safe
 ordinary variables. Operator tokens and operand kinds are represented
-explicitly in typed IR; they are not implemented through text-wide replacement.
+explicitly in typed IR. `BodyComparison` also records whether the literal is
+default-negated; neither polarity nor operators are implemented through
+text-wide replacement.
 
 ## Comments, strings, and statements
 
@@ -206,7 +215,9 @@ for example, is ordinary pass-through syntax.
 Ordinary `#show` directives are preserved and control ordinary shown atoms.
 Assignments are reconstructed from all true internal value atoms even if a
 `#show` directive is present. All top-level predicates whose names begin with
-`__aspf_` are private and omitted from normal human output.
+`__aspf_` are private and omitted from normal human and JSON model output.
+`--emit-lowered` intentionally exposes generated satisfaction helpers because
+its purpose is to show the reference translation.
 
 Legacy `#show #nherb` and `#hide #nherb` directives are unsupported.
 
@@ -215,7 +226,7 @@ Legacy `#show #nherb` and `#hide #nherb` directives are unsupported.
 The separately attributed historical target lives in
 [`tests/historical_compat`](../tests/historical_compat/). Passing cases lock the
 supported historical subset; strict xfails expose global declaration mode,
-legacy visibility, equality-provided safety, default negation, choices,
-aggregates, arithmetic, and non-Herbrand variables. See the
+legacy visibility, equality-provided safety, choices, aggregates, arithmetic,
+and non-Herbrand variables. See the
 [compatibility policy](compatibility/policy.md) and
 [historical audit](compatibility/historical-clingof-audit.md).

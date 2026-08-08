@@ -28,8 +28,8 @@ aspf examples/01_basic_assignment.aspf
 
 The single model contains `solvent(account1)` and
 `balance(account1)#=500`. The comparison is positive and ground. Restricted
-domain-safe key variables are demonstrated in example 07; default-negated
-n-atoms are not supported.
+domain-safe key variables are demonstrated in example 07 and historically
+compatible default negation in example 09.
 
 ## 02 — Partiality
 
@@ -178,6 +178,21 @@ They are defined and different for `b`, so `changed(b)` and
 `above_expected(b)` are derived. Neither application is defined for `c`, so
 none of its comparison rules succeeds. Application equality is a positive body
 comparison, not assignment or value-copy syntax.
+
+## 09 - Default negation and undefinedness
+
+[`09_default_negation.aspf`](09_default_negation.aspf) applies default negation
+to the positive satisfaction of an ordered n-atom.
+
+```console
+aspf examples/09_default_negation.aspf
+```
+
+The model includes `needs_review(a)` because `500 >= 1000` is false, excludes
+`needs_review(b)` because `1500 >= 1000` is true, and includes
+`needs_review(c)` because `balance(c)` is undefined. Undefinedness does not
+supply a hidden value: it makes the positive comparison unsatisfied, so its
+default negation succeeds.
 
 ## Historical compatibility examples
 

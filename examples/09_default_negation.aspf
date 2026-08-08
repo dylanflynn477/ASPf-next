@@ -1,0 +1,10 @@
+account(a;b;c).
+
+#nherb balance/1.
+
+balance(a) #= 500.
+balance(b) #= 1500.
+
+needs_review(A) :-
+    account(A),
+    not balance(A) #>= 1000.

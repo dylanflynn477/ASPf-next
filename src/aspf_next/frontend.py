@@ -303,20 +303,33 @@ def _parse_n_atom(
             )
     prefix = context.code[literal_start:application_start]
     prefix_code = prefix.strip()
+    negated = False
     if prefix_code:
         if prefix_code == "not":
+            negation_offset = literal_start + prefix.find("not")
+            if not is_body:
+                _unsupported(
+                    source,
+                    context,
+                    negation_offset,
+                    "default-negated n-atoms are supported only as complete rule-body "
+                    "literals; assignments and rule heads cannot be negated",
+                )
+            negated = True
+        elif prefix_code.startswith("not"):
             _unsupported(
                 source,
                 context,
                 literal_start + prefix.find("not"),
-                "default-negated n-atoms are not supported",
+                "double default negation and prefixes before n-atoms are not supported",
             )
-        _unsupported(
-            source,
-            context,
-            application_start,
-            "an n-atom must be a complete rule-head assignment or positive body literal",
-        )
+        else:
+            _unsupported(
+                source,
+                context,
+                application_start,
+                "an n-atom must be a complete rule-head assignment or body literal",
+            )
 
     value_start = _skip_space(context.code, operator_offset + len(operator.value), literal_end)
     value_end = _trim_code_end(context.code, value_start, literal_end)
@@ -372,11 +385,12 @@ def _parse_n_atom(
                 "multiple assignments in a rule head are unsupported",
             )
 
-    absolute_start = context.statement.span.start + application_start
+    span_start = literal_start + prefix.find("not") if negated else application_start
+    absolute_start = context.statement.span.start + span_start
     absolute_end = context.statement.span.start + value_end
     span = SourceSpan(absolute_start, absolute_end)
     if is_body:
-        return BodyComparison(left, right, operator, span)
+        return BodyComparison(left, right, operator, span, negated=negated)
     assert isinstance(right, ScalarOperand)
     return Assignment(left, right, span)
 

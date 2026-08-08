@@ -15,10 +15,12 @@ from aspf_next.ir import (
     OrdinaryStatement,
     Program,
     ScalarOperand,
+    VariableTerm,
 )
 
 INTERNAL_VALUE_PREDICATE = "__aspf_value"
 INTERNAL_INTEGER_PREDICATE = "__aspf_integer"
+INTERNAL_SATISFACTION_PREFIX = "__aspf_sat_"
 INTERNAL_DEFINITIONS = (
     f"#defined {INTERNAL_VALUE_PREDICATE}/2.\n#defined {INTERNAL_INTEGER_PREDICATE}/1."
 )
@@ -56,20 +58,40 @@ class TemporaryAllocator:
             return candidate
 
 
+@dataclass(slots=True)
+class SatisfactionHelperAllocator:
+    """Allocate deterministic program-local helper predicate identities."""
+
+    next_index: int = 0
+
+    def new(self) -> str:
+        """Return the next private positive-satisfaction predicate name."""
+
+        name = f"{INTERNAL_SATISFACTION_PREFIX}{self.next_index}"
+        self.next_index += 1
+        return name
+
+
 def lower_program(program: Program) -> LoweredProgram:
     """Lower supported n-atoms and append partial-function functionality."""
 
     pieces: list[str] = []
+    helper_rules: list[str] = []
+    helper_names = SatisfactionHelperAllocator()
     for statement in program.statements:
         if isinstance(statement, OrdinaryStatement):
             pieces.append(statement.text)
         else:
-            pieces.append(_lower_statement(statement))
+            lowered_statement, statement_helpers = _lower_statement(statement, helper_names)
+            pieces.append(lowered_statement)
+            helper_rules.extend(statement_helpers)
 
     source = "".join(pieces)
     if program.declarations:
         if source and not source.endswith("\n"):
             source += "\n"
+        if helper_rules:
+            source += "".join(f"{rule}\n" for rule in helper_rules)
         integer_values = sorted(
             {
                 n_atom.value.text
@@ -92,9 +114,13 @@ def render_internal_atom(assignment: Assignment) -> str:
     return _render_value_lookup(assignment.target, assignment.value.text)
 
 
-def _lower_statement(statement: AspfStatement) -> str:
+def _lower_statement(
+    statement: AspfStatement,
+    helper_names: SatisfactionHelperAllocator,
+) -> tuple[str, tuple[str, ...]]:
     text = statement.text
     replacements: list[tuple[int, int, str]] = []
+    helper_rules: list[str] = []
     temps = TemporaryAllocator(set(_IDENTIFIER.findall(text)))
     for n_atom in statement.n_atoms:
         local_start = n_atom.span.start - statement.span.start
@@ -102,12 +128,18 @@ def _lower_statement(statement: AspfStatement) -> str:
         if isinstance(n_atom, Assignment):
             replacement = render_internal_atom(n_atom)
         else:
-            replacement = _lower_comparison(n_atom, temps)
+            positive_body = _lower_comparison(n_atom, temps)
+            if n_atom.negated:
+                helper = _render_helper_atom(helper_names.new(), _comparison_variables(n_atom))
+                helper_rules.append(f"{helper} :- {positive_body}.")
+                replacement = f"not {helper}"
+            else:
+                replacement = positive_body
         replacements.append((local_start, local_end, replacement))
 
     for start, end, replacement in sorted(replacements, reverse=True):
         text = f"{text[:start]}{replacement}{text[end:]}"
-    return text
+    return text, tuple(helper_rules)
 
 
 def _lower_comparison(comparison: BodyComparison, temps: TemporaryAllocator) -> str:
@@ -165,3 +197,34 @@ def _lower_application_comparison(
 
 def _render_value_lookup(application: ApplicationOperand, value: str) -> str:
     return f"{INTERNAL_VALUE_PREDICATE}({application.render()},{value})"
+
+
+def _comparison_variables(comparison: BodyComparison) -> tuple[str, ...]:
+    """Return unique source variables in stable first-occurrence order."""
+
+    operands = [comparison.left]
+    if isinstance(comparison.right, ApplicationOperand):
+        operands.append(comparison.right)
+    variables = sorted(
+        (
+            argument
+            for operand in operands
+            for argument in operand.application.arguments
+            if isinstance(argument, VariableTerm)
+        ),
+        key=lambda argument: argument.span.start,
+    )
+    seen: set[str] = set()
+    result: list[str] = []
+    for variable in variables:
+        if variable.name in seen:
+            continue
+        seen.add(variable.name)
+        result.append(variable.name)
+    return tuple(result)
+
+
+def _render_helper_atom(name: str, variables: tuple[str, ...]) -> str:
+    if not variables:
+        return name
+    return f"{name}({','.join(variables)})"
