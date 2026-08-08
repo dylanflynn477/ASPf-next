@@ -376,3 +376,51 @@ def test_cli_rejects_application_comparison_head_at_right_operand(
     assert captured.out == ""
     assert f"{path}:3:{expected_column}" in captured.err
     assert "rule head remains a scalar assignment" in captured.err
+
+
+def test_default_negation_human_json_and_lowered_output_keep_helper_private(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    path = write_program(
+        tmp_path,
+        "#nherb balance/1.\naccount(a;b).\nbalance(a) #= 500.\n"
+        "needs_review(A) :- account(A), not balance(A) #>= 1000.\n",
+        "default-negation.aspf",
+    )
+
+    assert main([str(path)]) == 0
+    human = capsys.readouterr().out
+    assert "needs_review(a)" in human
+    assert "needs_review(b)" in human
+    assert "__aspf_" not in human
+
+    assert main([str(path), "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert "needs_review(a)" in payload["models"][0]["ordinary_atoms"]
+    assert "needs_review(b)" in payload["models"][0]["ordinary_atoms"]
+    assert all(
+        not atom.startswith("__aspf_") for model in payload["models"] for atom in model["atoms"]
+    )
+
+    assert main([str(path), "--emit-lowered"]) == 0
+    lowered = capsys.readouterr().out
+    assert "not __aspf_sat_0(A)" in lowered
+    assert "__aspf_sat_0(A) :- __aspf_value(balance(A),_AspfCmp0)" in lowered
+
+
+def test_cli_rejects_double_default_negation_with_location(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    path = write_program(
+        tmp_path,
+        "#nherb value/0.\np :- not not value #= 1.\n",
+        "double-not.aspf",
+    )
+
+    assert main([str(path)]) == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert f"{path}:2:6" in captured.err
+    assert "double default negation" in captured.err

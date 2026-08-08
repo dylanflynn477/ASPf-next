@@ -507,3 +507,231 @@ changed :- actual #!= expected.
         ("changed", "choose(different)"),
         ("choose(equal)", "same"),
     }
+
+
+@pytest.mark.parametrize(
+    ("assigned", "expected"),
+    [("5", False), ("6", True), (None, True)],
+)
+def test_default_negated_scalar_equality_is_failure_of_positive_satisfaction(
+    assigned: str | None, expected: bool
+) -> None:
+    assignment = f"f #= {assigned}.\n" if assigned is not None else ""
+    result = solve(f"#nherb f/0.\n{assignment}p :- not f #= 5.\n")
+
+    assert ("p" in result.models[0].ordinary_atoms) is expected
+
+
+@pytest.mark.parametrize(
+    ("assigned", "expected"),
+    [("6", False), ("5", True), (None, True)],
+)
+def test_default_negated_scalar_inequality_is_failure_of_positive_satisfaction(
+    assigned: str | None, expected: bool
+) -> None:
+    assignment = f"f #= {assigned}.\n" if assigned is not None else ""
+    result = solve(f"#nherb f/0.\n{assignment}p :- not f #!= 5.\n")
+
+    assert ("p" in result.models[0].ordinary_atoms) is expected
+
+
+def test_undefined_default_negated_inequality_is_not_positive_equality() -> None:
+    result = solve("#nherb f/0.\nnegated_neq :- not f #!= 5.\npositive_eq :- f #= 5.\n")
+
+    assert result.models[0].ordinary_atoms == ("negated_neq",)
+
+
+@pytest.mark.parametrize(
+    ("operator", "assigned", "right", "expected"),
+    [
+        ("#<", "-1", "0", False),
+        ("#<", "1", "0", True),
+        ("#<", None, "0", True),
+        ("#<", "active", "0", True),
+        ("#<", '"-1"', "0", True),
+        ("#<", "-2", "-1", False),
+        ("#<", "0", "1", False),
+        ("#<", "1", "1", True),
+        ("#<=", "0", "0", False),
+        ("#<=", "1", "0", True),
+        ("#<=", None, "0", True),
+        ("#<=", "active", "0", True),
+        ("#<=", '"0"', "0", True),
+        ("#<=", "-1", "-1", False),
+        ("#<=", "0", "0", False),
+        ("#<=", "1", "0", True),
+        ("#>", "1", "0", False),
+        ("#>", "-1", "0", True),
+        ("#>", None, "0", True),
+        ("#>", "active", "0", True),
+        ("#>", '"1"', "0", True),
+        ("#>", "-1", "-2", False),
+        ("#>", "0", "-1", False),
+        ("#>", "1", "1", True),
+        ("#>=", "0", "0", False),
+        ("#>=", "-1", "0", True),
+        ("#>=", None, "0", True),
+        ("#>=", "active", "0", True),
+        ("#>=", '"0"', "0", True),
+        ("#>=", "-1", "-1", False),
+        ("#>=", "0", "0", False),
+        ("#>=", "-1", "0", True),
+    ],
+)
+def test_default_negated_ordered_scalar_truth_table(
+    operator: str, assigned: str | None, right: str, expected: bool
+) -> None:
+    assignment = f"value #= {assigned}.\n" if assigned is not None else ""
+    result = solve(f"#nherb value/0.\n{assignment}holds :- not value {operator} {right}.\n")
+
+    assert ("holds" in result.models[0].ordinary_atoms) is expected
+
+
+@pytest.mark.parametrize(
+    ("operator", "left", "right", "expected"),
+    [
+        ("#=", "10", "10", False),
+        ("#=", "10", "20", True),
+        ("#=", None, "10", True),
+        ("#=", "10", None, True),
+        ("#=", None, None, True),
+        ("#!=", "10", "20", False),
+        ("#!=", "10", "10", True),
+        ("#!=", None, "10", True),
+        ("#!=", "10", None, True),
+        ("#!=", None, None, True),
+    ],
+)
+def test_default_negated_application_equality_and_inequality_truth_tables(
+    operator: str, left: str | None, right: str | None, expected: bool
+) -> None:
+    assignments = ""
+    if left is not None:
+        assignments += f"actual #= {left}.\n"
+    if right is not None:
+        assignments += f"expected #= {right}.\n"
+    result = solve(
+        f"#nherb actual/0.\n#nherb expected/0.\n{assignments}"
+        f"holds :- not actual {operator} expected.\n"
+    )
+
+    assert ("holds" in result.models[0].ordinary_atoms) is expected
+
+
+@pytest.mark.parametrize(
+    ("operator", "left", "right", "expected"),
+    [
+        ("#<", "1", "2", False),
+        ("#<=", "2", "1", True),
+        ("#>", None, "1", True),
+        ("#>=", "1", None, True),
+        ("#<", None, None, True),
+        ("#<", "active", "1", True),
+        ("#<", "1", "active", True),
+        ("#<", '"1"', '"2"', True),
+    ],
+)
+def test_default_negated_ordered_application_truth_table(
+    operator: str, left: str | None, right: str | None, expected: bool
+) -> None:
+    assignments = ""
+    if left is not None:
+        assignments += f"actual #= {left}.\n"
+    if right is not None:
+        assignments += f"expected #= {right}.\n"
+    result = solve(
+        f"#nherb actual/0.\n#nherb expected/0.\n{assignments}"
+        f"holds :- not actual {operator} expected.\n"
+    )
+
+    assert ("holds" in result.models[0].ordinary_atoms) is expected
+
+
+def test_default_negated_variable_comparison_keeps_undefined_ground_instance() -> None:
+    result = solve(
+        """#nherb balance/1.
+account(a;b;c).
+balance(a) #= 500.
+balance(b) #= 1500.
+not_high(A) :- account(A), not balance(A) #>= 1000.
+"""
+    )
+
+    assert result.models[0].ordinary_atoms == (
+        "account(a)",
+        "account(b)",
+        "account(c)",
+        "not_high(a)",
+        "not_high(c)",
+    )
+
+
+def test_default_negated_helper_identity_keeps_multi_variable_groundings_distinct() -> None:
+    result = solve(
+        """#nherb actual/1.
+#nherb expected/1.
+account(a;b).
+actual(a) #= same.
+expected(a) #= same.
+expected(b) #= other.
+pair(A,B) :- account(A), account(B), not actual(A) #= expected(B).
+"""
+    )
+
+    assert {atom for atom in result.models[0].ordinary_atoms if atom.startswith("pair(")} == {
+        "pair(a,b)",
+        "pair(b,a)",
+        "pair(b,b)",
+    }
+
+
+def test_multiple_default_negated_comparisons_are_independent_per_grounding() -> None:
+    result = solve(
+        """#nherb balance/1.
+#nherb score/1.
+account(a;b;c).
+balance(a) #= 500.
+score(a) #= 75.
+balance(b) #= 1500.
+score(b) #= 75.
+review(A) :- account(A), not balance(A) #>= 1000, not score(A) #< 50.
+"""
+    )
+
+    assert "review(a)" in result.models[0].ordinary_atoms
+    assert "review(b)" not in result.models[0].ordinary_atoms
+    assert "review(c)" in result.models[0].ordinary_atoms
+
+
+def test_historical_default_assignment_idiom_preserves_reduct_behavior() -> None:
+    result = solve(
+        "#nherb value/0.\nchoose_default :- not value #!= 1.\nvalue #= 1 :- choose_default.\n"
+    )
+
+    assert result.status is SolveStatus.SATISFIABLE
+    assert result.models[0].ordinary_atoms == ("choose_default",)
+    assert result.models[0].assignments == ("value#=1",)
+
+
+def test_recursive_default_negated_equality_odd_loop_has_no_stable_model() -> None:
+    result = solve("#nherb value/0.\ntrigger :- not value #= 1.\nvalue #= 1 :- trigger.\n")
+
+    assert result.status is SolveStatus.UNSATISFIABLE
+    assert result.models == ()
+
+
+def test_default_negated_n_atom_follows_each_ordinary_choice_model() -> None:
+    result = solve(
+        """#nherb value/0.
+{ choose }.
+value #= 1 :- choose.
+missing :- not value #= 1.
+""",
+        models=0,
+    )
+
+    assert {model.atoms for model in result.models} == {
+        ("missing",),
+        ("choose", "value#=1"),
+    }
+    assert all(not atom.startswith("__aspf_") for model in result.models for atom in model.atoms)

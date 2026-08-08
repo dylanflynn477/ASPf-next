@@ -279,3 +279,65 @@ def test_application_comparison_temporaries_avoid_multiple_source_collisions() -
     assert "__aspf_value(actual(A),_AspfCmp2)" in result
     assert "__aspf_value(expected(A),_AspfCmp3)" in result
     assert "_AspfCmp2 != _AspfCmp3" in result
+
+
+@pytest.mark.parametrize(
+    ("operator", "positive_body"),
+    [
+        ("#=", "__aspf_value(balance(A),1000)"),
+        ("#!=", "__aspf_value(balance(A),_AspfNeq0), _AspfNeq0 != 1000"),
+        (
+            "#>=",
+            "__aspf_value(balance(A),_AspfCmp0), __aspf_integer(_AspfCmp0), _AspfCmp0 >= 1000",
+        ),
+    ],
+)
+def test_default_negation_names_positive_satisfaction_before_negating_it(
+    operator: str, positive_body: str
+) -> None:
+    result = lowered(f"#nherb balance/1.\nflag(A) :- account(A), not balance(A) {operator} 1000.\n")
+
+    assert "flag(A) :- account(A), not __aspf_sat_0(A)." in result
+    assert f"__aspf_sat_0(A) :- {positive_body}." in result
+
+
+def test_default_negated_application_comparison_helper_has_stable_variable_identity() -> None:
+    result = lowered(
+        "#nherb actual/1.\n#nherb expected/1.\n"
+        "pair(A,B) :- account(A), account(B), not actual(A) #= expected(B).\n"
+    )
+
+    assert "pair(A,B) :- account(A), account(B), not __aspf_sat_0(A,B)." in result
+    assert (
+        "__aspf_sat_0(A,B) :- __aspf_value(actual(A),_AspfCmp0), "
+        "__aspf_value(expected(B),_AspfCmp0)."
+    ) in result
+
+
+def test_multiple_default_negated_comparisons_get_independent_helpers() -> None:
+    result = lowered(
+        "#nherb balance/1.\n#nherb score/1.\n"
+        "review(A) :- account(A), not balance(A) #>= 1000, not score(A) #< 50.\n"
+    )
+
+    assert "not __aspf_sat_0(A), not __aspf_sat_1(A)" in result
+    assert result.count("__aspf_sat_0(A) :-") == 1
+    assert result.count("__aspf_sat_1(A) :-") == 1
+
+
+def test_helper_allocation_is_program_local_and_deterministic() -> None:
+    source = "#nherb value/0.\nflag :- not value #= 1.\n"
+
+    first = lowered(source)
+    second = lowered(source)
+
+    assert first == second
+    assert "flag :- not __aspf_sat_0." in first
+    assert "__aspf_sat_1" not in first
+
+
+def test_positive_comparison_lowering_does_not_gain_satisfaction_helpers() -> None:
+    result = lowered("#nherb value/0.\nflag :- value #!= 1.\n")
+
+    assert "flag :- __aspf_value(value,_AspfNeq0), _AspfNeq0 != 1." in result
+    assert "__aspf_sat_" not in result

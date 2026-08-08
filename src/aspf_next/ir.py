@@ -132,12 +132,13 @@ class Assignment:
 
 @dataclass(frozen=True, slots=True)
 class BodyComparison:
-    """A positive dependent comparison in a rule body."""
+    """A dependent comparison in a rule body, with explicit polarity."""
 
     left: ApplicationOperand
     right: ComparisonOperand
     operator: NAtomOperator
     span: SourceSpan
+    negated: bool = False
 
 
 NAtom: TypeAlias = Assignment | BodyComparison

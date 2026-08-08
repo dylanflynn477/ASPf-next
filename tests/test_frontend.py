@@ -285,15 +285,19 @@ def test_rejects_each_ordered_operator_in_rule_head_with_location(operator: str)
     assert caught.value.location.column == 19
 
 
-@pytest.mark.parametrize("operator", ["#<", "#<=", "#>", "#>="])
-def test_rejects_default_negated_ordered_operator(operator: str) -> None:
+@pytest.mark.parametrize("operator", ["#=", "#!=", "#<", "#<=", "#>", "#>="])
+def test_parses_default_negated_body_operator_with_explicit_polarity(operator: str) -> None:
     text = f"#nherb balance/1.\nokay :- not balance(account1) {operator} 500.\n"
 
-    with pytest.raises(UnsupportedSyntaxError, match="default-negated n-atoms") as caught:
-        parse_program(text, filename="negated.aspf")
+    program = parse_program(text, filename="negated.aspf")
+    statement = program.statements[0]
 
-    assert caught.value.location.line == 2
-    assert caught.value.location.column == 9
+    assert isinstance(statement, AspfStatement)
+    comparison = statement.n_atoms[0]
+    assert isinstance(comparison, BodyComparison)
+    assert comparison.negated is True
+    assert comparison.span.start == text.index("not")
+    assert comparison.span.end == text.index(".", comparison.span.start)
 
 
 @pytest.mark.parametrize(
@@ -371,12 +375,6 @@ def test_rejects_unsafe_variables_inside_ordered_n_atoms(operator: str) -> None:
             19,
         ),
         (
-            "#nherb balance/1.\np :- not balance(account1) #!= 500.\n",
-            "default-negated n-atoms",
-            2,
-            6,
-        ),
-        (
             "#nherb balance/1.\np :- #count { X : balance(account1) #!= 500 } > 0.\n",
             "aggregates or choice",
             2,
@@ -435,10 +433,6 @@ label("balance(account1) #!= 500").
         ("#nherb.\n", "global '#nherb.'"),
         ("#show #nherb.\n", "legacy '#show #nherb'"),
         (
-            "#nherb balance/1.\np :- not balance(account1) #= 500.\n",
-            "default-negated n-atoms",
-        ),
-        (
             "#nherb balance/1.\np :- #count { X : balance(account1) #= 500 } > 0.\n",
             "aggregates or choice",
         ),
@@ -467,6 +461,61 @@ def test_explicitly_unsupported_constructs_are_diagnostic(source: str, message: 
     assert caught.value.location.filename == "unsupported.aspf"
     assert caught.value.location.line >= 1
     assert caught.value.location.column >= 1
+
+
+@pytest.mark.parametrize(
+    ("source_tail", "message", "token"),
+    [
+        ("not balance(a) #= 1.", "assignments and rule heads cannot be negated", "not"),
+        ("p :- not not balance(a) #= 1.", "double default negation", "not"),
+        ("p(A) :- not balance(A) #>= 1.", "ordinary positive body atom", "A"),
+    ],
+)
+def test_rejects_invalid_default_negation_with_location(
+    source_tail: str, message: str, token: str
+) -> None:
+    source = f"#nherb balance/1.\n{source_tail}\n"
+
+    with pytest.raises(UnsupportedSyntaxError, match=message) as caught:
+        parse_program(source, filename="negation-boundary.aspf")
+
+    assert caught.value.location.filename == "negation-boundary.aspf"
+    assert caught.value.location.line == 2
+    line = source.splitlines()[1]
+    token_offset = (
+        line.rindex(token) if message == "ordinary positive body atom" else line.index(token)
+    )
+    assert caught.value.location.column == token_offset + 1
+
+
+def test_accepts_multiple_default_negated_comparisons_with_safe_variables() -> None:
+    program = parse_program(
+        "#nherb balance/1.\n#nherb score/1.\n"
+        "review(A) :- account(A), not balance(A) #>= 1000, not score(A) #< 50.\n"
+    )
+
+    statement = program.statements[0]
+    assert isinstance(statement, AspfStatement)
+    assert len(statement.n_atoms) == 2
+    assert all(isinstance(atom, BodyComparison) and atom.negated for atom in statement.n_atoms)
+
+
+def test_default_negation_markers_in_comments_and_strings_are_inert() -> None:
+    program = parse_program(
+        """#nherb balance/1.
+label("not balance(a) #= 1").
+% not balance(a) #!= 1.
+okay :- not balance(a) #= "not balance(a) #= 1".
+"""
+    )
+
+    statement = program.statements[1]
+    assert isinstance(statement, AspfStatement)
+    comparison = statement.n_atoms[0]
+    assert isinstance(comparison, BodyComparison)
+    assert comparison.negated
+    assert isinstance(comparison.right, ScalarOperand)
+    assert comparison.right.kind is GroundTermKind.STRING
 
 
 def test_rejects_undeclared_and_wrong_arity_applications() -> None:
@@ -788,7 +837,6 @@ def test_rejects_invalid_right_application_at_offending_token(
     ("source_tail", "message"),
     [
         ("actual(a) #= expected(a).", "only as a complete positive rule-body literal"),
-        ("same :- not actual(a) #= expected(a).", "default-negated n-atoms"),
         (
             "same :- #count { X : actual(a) #= expected(a) } > 0.",
             "aggregates or choice",
@@ -809,6 +857,21 @@ def test_rejects_unsupported_application_comparison_placements_and_arithmetic(
     assert caught.value.location.filename == "placement.aspf"
     assert caught.value.location.line == 3
     assert caught.value.location.column >= 1
+
+
+@pytest.mark.parametrize("operator", ["#=", "#!=", "#<", "#<=", "#>", "#>="])
+def test_accepts_default_negated_application_operands(operator: str) -> None:
+    program = parse_program(
+        "#nherb actual/1.\n#nherb expected/1.\naccount(a).\n"
+        f"okay(A) :- account(A), not actual(A) {operator} expected(A).\n"
+    )
+
+    statement = program.statements[1]
+    assert isinstance(statement, AspfStatement)
+    comparison = statement.n_atoms[0]
+    assert isinstance(comparison, BodyComparison)
+    assert comparison.negated
+    assert isinstance(comparison.right, ApplicationOperand)
 
 
 def test_multiple_application_comparisons_can_share_safe_source_variables() -> None:
