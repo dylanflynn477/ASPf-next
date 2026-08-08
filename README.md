@@ -221,7 +221,7 @@ affiliated with Potassco.
 - [Architecture decisions](docs/decisions/)
 - [Provenance and clean-room policy](docs/provenance.md)
 - [Roadmap](docs/roadmap.md)
-- [0.1.0-alpha release notes](docs/releases/0.1.0-alpha.md)
+- [0.2.0a1 release notes](docs/releases/0.2.0a1.md)
 - [`#!=` development notes](docs/releases/not-equal-development.md)
 - [ordered-comparison development notes](docs/releases/ordered-comparisons-development.md)
 - [domain-safe variable development notes](docs/releases/domain-safe-variables-development.md)
@@ -229,11 +229,12 @@ affiliated with Potassco.
 
 ## Status and development
 
-The package metadata remains `0.1.0a1`, and that release has not been
-published. Current work is unreleased, experimental development. The roadmap
-separates implemented reference-frontend behavior from compatibility
-candidates and longer-term native-backend research; those directions are
-proposals, not promises.
+The current version is `0.2.0a1`. This first release line reflects the global
+declaration, historical visibility, and seed-equality safety milestones now in
+the tested compatibility subset. It remains experimental alpha research
+software. The roadmap separates implemented reference-frontend behavior from
+compatibility candidates and longer-term native-backend research; those
+directions are proposals, not promises.
 
 ```console
 ruff format --check src tests

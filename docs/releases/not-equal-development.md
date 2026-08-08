@@ -1,9 +1,9 @@
-# Positive ground `#!=` development notes
+# Positive ground `#!=` implementation history
 
 ## Status
 
-This is an unreleased development increment. It has not been assigned a release
-number and does not change the `0.1.0a1` package metadata.
+Included in `0.2.0a1`. This document preserves the boundary at the time the
+increment was implemented; the supported-language document is normative.
 
 ## Added surface
 

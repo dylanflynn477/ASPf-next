@@ -5,4 +5,4 @@ from aspf_next.frontend import parse_program, parse_sources
 from aspf_next.ir import Program
 
 __all__ = ["Program", "UnsupportedSyntaxError", "parse_program", "parse_sources"]
-__version__ = "0.1.0a1"
+__version__ = "0.2.0a1"
