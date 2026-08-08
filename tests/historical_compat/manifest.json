@@ -220,7 +220,11 @@
       "expected_aspf_next_status": "rejected",
       "disposition": "passing",
       "expected_models": [],
-      "expected_diagnostic": "ordinary positive body atom",
+      "expected_diagnostic": {
+        "contains": "ordinary positive body atom",
+        "line": 3,
+        "column": 11
+      },
       "semantic_notes": "Inequality does not make its application variable safe.",
       "compatibility_tier": "safety"
     },
@@ -234,7 +238,11 @@
       "expected_aspf_next_status": "rejected",
       "disposition": "passing",
       "expected_models": [],
-      "expected_diagnostic": "do not provide source safety",
+      "expected_diagnostic": {
+        "contains": "do not provide source safety",
+        "line": 3,
+        "column": 13
+      },
       "semantic_notes": "Dependent inequality does not establish a domain for its value variable.",
       "compatibility_tier": "safety"
     },
@@ -468,6 +476,11 @@
       "baseline_aspf_next_status": "unsupported",
       "expected_aspf_next_status": "unsupported",
       "disposition": "intentionally-deferred",
+      "expected_diagnostic": {
+        "contains": "n-atoms inside aggregates or choice constructs are not supported",
+        "line": 2,
+        "column": 10
+      },
       "expected_models": [
         {"ordinary_atoms": [], "assignments": ["f(a)#=1"]},
         {"ordinary_atoms": [], "assignments": ["f(a)#=2"]}
@@ -484,6 +497,11 @@
       "baseline_aspf_next_status": "unsupported",
       "expected_aspf_next_status": "unsupported",
       "disposition": "intentionally-deferred",
+      "expected_diagnostic": {
+        "contains": "n-atoms inside aggregates or choice constructs are not supported",
+        "line": 3,
+        "column": 33
+      },
       "expected_models": [{"ordinary_atoms": ["num(1)"], "assignments": ["f(a)#=1"]}],
       "semantic_notes": "N-atoms in aggregate elements require a structured aggregate IR.",
       "compatibility_tier": "deferred"
@@ -497,6 +515,11 @@
       "baseline_aspf_next_status": "unsupported",
       "expected_aspf_next_status": "unsupported",
       "disposition": "intentionally-deferred",
+      "expected_diagnostic": {
+        "contains": "variables as n-atom values are not supported",
+        "line": 4,
+        "column": 9
+      },
       "expected_models": [{"ordinary_atoms": ["d(1)"], "assignments": ["f(x)#=1", "f(y)#=2"]}],
       "semantic_notes": "Arithmetic over non-Herbrand values is outside the reference scalar-term slice.",
       "compatibility_tier": "deferred"
@@ -510,6 +533,11 @@
       "baseline_aspf_next_status": "unsupported",
       "expected_aspf_next_status": "unsupported",
       "disposition": "intentionally-deferred",
+      "expected_diagnostic": {
+        "contains": "non-Herbrand variables such as '_v' are not supported",
+        "line": 3,
+        "column": 9
+      },
       "expected_models": [{"ordinary_atoms": [], "assignments": ["f(x)#=1", "f(y)#=1"]}],
       "semantic_notes": "N-variables are grounder-inert and n-stratified; parsing them as ordinary variables would be wrong.",
       "compatibility_tier": "backend-dependent"

@@ -34,16 +34,21 @@ drop-in replacement for the historical `clingof` command line.
 
 ## Status vocabulary
 
-- **Compatible**: source and relevant semantics are both covered by passing
-  attributed tests.
-- **Compatible with restriction**: the tested overlap is semantically
-  compatible, but ASPf-next accepts fewer source forms or contexts.
-- **Incompatible**: ASPf-next accepts or interprets the construct differently
-  in a relevant observable way.
-- **Unsupported**: ASPf-next rejects the construct with a location-aware
-  diagnostic.
-- **Unresolved**: primary-source interpretation or a faithful reference
-  lowering has not yet been established.
+- **Historically compatible**: source and relevant semantics for the named,
+  attributed cases are covered by passing tests.
+- **Historically compatible with restriction**: the tested overlap is
+  semantically compatible, but ASPf-next accepts fewer source forms, value
+  classes, or contexts.
+- **ASPf-next extension/design choice**: behavior belongs to this clean-room
+  frontend or backend and is not attributed to historical ASP{f}/Clingo{f}.
+- **Not yet compatible**: the historical construct is valid but ASPf-next
+  rejects it with a location-aware diagnostic or cannot yet establish faithful
+  semantics.
+- **Invalid historical program**: the cited historical source rejects the
+  program too; a matching ASPf-next rejection is a passing compatibility case.
+- **Unresolved**: primary-source interpretation or a faithful implementation
+  decision has not yet been established. There are no unresolved cases in the
+  current 39-case target.
 
 Documentation should prefer precise phrases such as:
 
@@ -66,25 +71,31 @@ Every compatibility case records:
 6. expected models when the result is reproducible; and
 7. a passing, strict-xfail, or intentionally deferred disposition.
 
-Strict xfails represent known work, not ignored failures. An XPASS fails the
-historical suite so the manifest and documentation must be reviewed before the
-new behavior is counted as compatible.
+Strict unresolved xfails represent known work, not ignored failures. Deferred
+unsupported cases assert an exact diagnostic before calling `pytest.xfail`, so
+an unrelated exception cannot masquerade as expected incompatibility. If a
+deferred feature begins parsing, the suite fails until its models, manifest,
+and documentation are reviewed.
 
 ## Current compatibility target
 
-The implemented compatibility increments target documented explicit declarations,
-positive ground seed assignments, positive dependent comparisons in supported
-body positions, scope-sensitive declared/undeclared functional operands, and
-ordinary use of declared symbols outside n-atoms. It retains ASPf-next's
-integer-only ordering and conservative ordinary-variable safety restrictions.
-One `not` before an otherwise supported body comparison follows historical
-failure-of-positive-satisfaction semantics. Global declaration mode is included
-with the documented zero-arity key-signature restriction. Historical
-non-Herbrand visibility is included as presentation policy.
+The current executable target has 39 attributed cases: 35 matching cases,
+including 7 restricted overlaps and 2 invalid historical programs that are
+correctly rejected; 4 intentionally deferred unsupported cases; and no
+unresolved cases.
 
-Historical equality-provided safety, non-Herbrand variables, arithmetic,
-choices, and aggregates are visible deferred cases rather than part of this
-target.
+The implemented target covers explicit, application-style, and global
+declarations; partial functional assignments; scalar and application body
+comparisons; definedness-aware default negation; ordinary declared-symbol
+scope; visibility controls; and P1-P3 ordinary-variable safety including
+positive seed-equality safety. Integer-only order, direct key variables,
+complete value variables, body placement, and global zero-arity resolution are
+documented restrictions.
+
+Non-Herbrand variables, arithmetic, choices, and aggregates are intentionally
+deferred. The n-variable case is a researched backend NO-GO, not unresolved.
+Private predicates, namespace reservation, reference lowering, and normalized
+output ordering are ASPf-next design choices.
 
 ## Clean-room rule
 

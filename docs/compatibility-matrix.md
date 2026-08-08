@@ -5,6 +5,18 @@ translation. “Pass-through” means the frontend preserves the construct and
 Clingo supplies its ordinary ASP semantics. No row implies full historical
 ASP{f} compatibility.
 
+## Compatibility classification
+
+| Classification | Constructs in the current target |
+| --- | --- |
+| Historically compatible | Explicit/application declarations, tested partial assignments, functionality, ordinary declared-symbol scope, visibility, and the cited invalid P4/P5 rejections |
+| Historically compatible with restriction | Global declaration zero-arity resolution; complete body comparisons; integer-only order; direct ordinary variables; seed-equality safety; one-level default negation |
+| ASPf-next extension/design choice | Reserved `__aspf_` namespace, relational lowering, integer tags, satisfaction helpers, normalized output ordering, and multi-file forward collection |
+| Not yet compatible | Non-Herbrand variables, arithmetic in n-atoms, and n-atoms in choices or aggregates |
+
+The [historical audit](compatibility/historical-clingof-audit.md) ties each
+classification to primary sources and executable cases.
+
 | Construct | Current status | Backend or diagnostic |
 | --- | --- | --- |
 | `#nherb f/n.` | Supported | Frontend declaration IR |
@@ -55,7 +67,7 @@ ASP{f} compatibility.
 | Variable without an ordinary positive body domain or positive scalar seed equality | Unsupported | Location-aware error |
 | Dependent/default-negated n-atom used as the only safety source | Unsupported | Location-aware error |
 | Anonymous `_` in an n-atom | Unsupported | Location-aware error |
-| `_v` non-Herbrand variables | Unsupported | Location-aware error |
+| `_v` non-Herbrand variables | Unsupported | Location-aware error; [reference-backend NO-GO](design/non-herbrand-variables.md) |
 | Arithmetic in n-atoms | Unsupported | Location-aware error |
 | Aggregates containing n-atoms | Unsupported | Location-aware error |
 | Choice/disjunctive constructs containing n-atoms | Unsupported | Location-aware error |

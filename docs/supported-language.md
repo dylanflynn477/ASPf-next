@@ -222,8 +222,9 @@ The following positions are unsupported:
 
 `#=` is supported in the head and body positions described above.
 `#!=` is supported only as a complete body literal with a declared
-application on the left and either a supported ground scalar or declared
-application on the right. `#<`, `#<=`, `#>`, and `#>=` are supported only as
+application on the left and a supported ground scalar, independently safe
+complete value variable, or declared application on the right. `#<`, `#<=`,
+`#>`, and `#>=` are supported only as
 complete body literals with an integer literal or declared application
 on the right. Application operands on both sides may contain direct domain-safe
 ordinary variables. Operator tokens and operand kinds are represented
@@ -274,8 +275,19 @@ translated by this milestone.
 ## Historical compatibility corpus
 
 The separately attributed historical target lives in
-[`tests/historical_compat`](../tests/historical_compat/). Passing cases lock the
-supported historical subset; strict xfails expose choices, aggregates,
-arithmetic, and non-Herbrand variables. See the
+[`tests/historical_compat`](../tests/historical_compat/). It contains 35
+matching cases—7 with restrictions and 2 matching rejections of invalid
+historical P4/P5 programs—plus 4 intentionally deferred cases and no unresolved
+cases.
+
+Explicit declarations, tested partial assignments, scope, and visibility are
+historically compatible. Global declarations, the comparison subset,
+integer-only order, direct variables, seed safety, and default negation are
+historically compatible with restriction. Private predicates and normalized
+output are ASPf-next design choices. Choices, aggregates, arithmetic, and
+grounder-inert n-variables are not yet compatible; every deferred fixture locks
+its expected diagnostic before xfail. See the
 [compatibility policy](compatibility/policy.md) and
-[historical audit](compatibility/historical-clingof-audit.md).
+[historical audit](compatibility/historical-clingof-audit.md). The
+[n-variable design](design/non-herbrand-variables.md) records the reference
+backend NO-GO.

@@ -119,12 +119,23 @@ context remain deferred. Each candidate requires its own primary-source review,
 explicit undefinedness rule, typed IR, conservative diagnostics, and focused
 conformance cases.
 
+## Non-Herbrand variable decision
+
+Historical `_v` n-variables are a reference-backend NO-GO. They are
+grounder-inert, equality-defined, n-stratified solver values; replacing them by
+ordinary Clingo variables reproduces simple copy models but adds one grounded
+rule per candidate value. Replacing them by constants is semantically wrong.
+The strict deferred case therefore remains, backed by the
+[design analysis](design/non-herbrand-variables.md) and a reproducible probe
+under `research/`. A future theory-atom/custom-propagator backend is the next
+credible implementation route, not part of this release.
+
 ## Later research
 
 Longer-term topics may include:
 
 - additional comparisons and arithmetic;
-- non-Herbrand variables and broader ordinary-variable semantics;
+- a theory/propagator backend for non-Herbrand variables and broader semantics;
 - aggregates containing n-atoms;
 - an alternative backend using Clingo theory atoms or a custom propagator;
 - equivalence and grounding-size studies comparing backends; and

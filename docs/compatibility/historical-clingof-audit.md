@@ -1,7 +1,7 @@
 # Historical Clingo{f} compatibility audit
 
-Status: living primary-source audit, extended for
-`historical-default-negation`.
+Status: release-candidate audit through global declarations, visibility,
+seed-equality safety, and the n-variable NO-GO decision.
 
 This is a clean-room language and semantics audit. No historical Clingo{f}
 implementation source was consulted. A similar-looking parse is not counted as
@@ -36,29 +36,31 @@ occurrence outside an n-atom retains ordinary Herbrand meaning.
 
 ## Construct audit
 
-| Construct | Historical syntax | Historical semantics | Primary source | Baseline ASPf-next status | Difficulty | Recommendation |
-| --- | --- | --- | --- | --- | --- | --- |
-| Explicit declaration | `#nherb f/n.` | Declares the exact non-Herbrand function symbol and arity; arity may be zero. | B13 sec. 3, pp. 551-552; CF Syntax | Compatible | Low | Retain in compatibility-1. |
-| Alternative declaration | `#nherb f(X).`, `#nherb pair(X,Y).` | Equivalent explicit declaration; arguments determine arity and do not add rule variables. | CF Syntax | Unsupported | Low | Implement placeholder-only forms in compatibility-1. The sources inspected do not establish an alternative zero-arity spelling. |
-| Same name at multiple arities | Separate declarations such as `#nherb f/1.` and `#nherb f/2.` | Declaration identity is `name/arity`; B13 explicitly requires multiple declarations when a name is used at different arities. | B13 sec. 3, p. 552 | Incompatible | Low | Implement `(name, arity)` identity in compatibility-1. |
-| Global declaration | `#nherb.` | Function symbols interpreted under `#` connectives are non-Herbrand without individual declarations; ordinary occurrences remain Herbrand. | CF Syntax; B13 sec. 3 | Compatible with restriction | Medium | Implemented as typed program policy. A bare right-side zero-arity application must have an explicit or key-established signature. |
-| Equality | `f(a) #= 2`, `f(a) #= g(b)` | Seed equality assigns a constant; dependent equality requires both values defined and equal. | B12 secs. 2-3; B13 secs. 2-3; CF Syntax | Compatible with restriction | Implemented | Retain positive supported positions. Broader values and contexts are separate rows. |
-| Inequality | `f(a) #!= 2`, `f(a) #!= g(b)` | Dependent; true only when both values are defined and different. Undefined is not unequal. | B12 secs. 2-3; B13 sec. 2; CF Syntax | Compatible with restriction | Implemented | Retain positive body subset. |
-| Ordered relations | `#<`, `#<=`, `#>`, `#>=` | Dependent comparisons under the usual arithmetic interpretation; operands must have defined numerical values. | B13 sec. 2; BG12 sec. 2 | Compatible with restriction | Implemented/high for full language | Retain ASPf-next's documented integer-only subset. Defer arithmetic. |
-| Application/application comparison | `f(a) #= k(1)` and analogous dependent operators | If both exact symbols are declared, compare their values; both must be defined. | CF Syntax; B12 secs. 2-3; B13 secs. 2-3 | Compatible with restriction | Implemented | Retain positive body subset. |
-| Undeclared functional term under `#` | With only `f/1` declared: `f(a) #= k(1).` | `k(1)` is a Herbrand value identical to itself, not a non-Herbrand invocation. | CF Syntax; B13 sec. 3, p. 552 | Unsupported | Medium | Implement ground compound values, including safe nesting, in compatibility-1. |
-| Declared symbol outside n-atoms | `#nherb k/1. ordinary(k(1)).` | The occurrence outside the `#` connective is an ordinary Herbrand term and is not replaced by the value of `k(1)`. | CF Syntax; B13 sec. 3, p. 552 | Incompatible | Low | Remove the global outside-use rejection in compatibility-1; retain private namespace checks. |
-| Positive seed equality | `f(a) #= 2.` or as a rule head | A seed literal supports a value assignment; two distinct values are inconsistent; absence remains undefined. | B12 secs. 2-3; B13 sec. 2 | Compatible with restriction | Implemented | Retain reference relation and functionality constraint. |
-| Dependent equality | `p :- f(a) #= g(b).` | True only when both defined values are equal; it is not a copy assignment. | B12 secs. 2-3; B13 sec. 2 | Compatible with restriction | Implemented | Retain typed application operands and body-only restriction. |
-| Default-negated n-atoms | `not f(a) #= 1`, `not f(a) #!= 1`, `not f(a) #< 1` | `not l` is true exactly when positive `l` is not satisfied. Undefinedness therefore matters and blocks complement rewrites. | B12 sec. 3, pp. 28-30; B13 sec. 2, pp. 550-551; CF examples | Compatible with restriction | Implemented | Retain one complete body `not` over the existing operand/operator/safety subset; never complement the operator. |
-| Ordinary-variable safety | CF P1-P3 accepted; P4-P5 rejected | Variables in dependent n-literals follow safety conditions like variables under default negation; positive seed equality can provide safety for key and value variables. | CF Syntax restrictions; B13 sec. 3 | Compatible with restriction | Implemented | Positive scalar seed equality supplies rule-local safety through the value relation; dependent and default-negated n-atoms remain non-binding. |
-| Non-Herbrand variables | Historical n-variable spelling uses a special prefixed identifier (rendered as `_v` by Clingo{f} documentation/examples). | Treated as grounder-inert value variables; defining n-atoms and n-stratification govern their use and reduce grounding. | B13 sec. 3, pp. 552-553; CF examples | Unsupported | Backend-dependent | Defer. A relational parse alone cannot reproduce grounding behavior. |
-| `#hide #nherb` | `#hide #nherb.`, optionally `f/n` or `f(X)` | Hides all or selected seed assignments from displayed models without changing solving. | CF Syntax | Compatible | Medium | Implemented as ordered typed output policy after solving and reconstruction. |
-| `#show #nherb` | `#show #nherb f/1.` or `f(X)` | Selectively shows seed assignments, including in combination with ordinary `#hide.`. | CF Syntax | Compatible | Medium | Implemented as typed output policy; the exact historical ordinary hide-all form is bridged to modern `#show.`. |
-| N-atoms in choices | `1 { f(X) #= V : d(V) } 1` | Seed n-atoms may occur in choice rules under historical Clingo restrictions. | B13 sec. 3, p. 552; CF ex2 | Unsupported | High | Defer; requires structured choice lowering. |
-| N-atoms in aggregates | `count { f(X) #= V : ... }` and n-atoms in aggregate elements | N-atoms participate in aggregate elements; aggregate values include only satisfied elements with defined weights. | B13 sec. 2, pp. 548-550; CF ex2 | Unsupported | High/backend-dependent | Defer. |
-| Aggregate terms involving n-atoms | `sum[condition = f(X)]` and related forms | Aggregate terms can be n-atom operands; undefined values are omitted as specified and empty min/max may be undefined. | B13 sec. 2, pp. 548-550 | Unsupported | Backend-dependent | Defer separately from ordinary Clingo aggregates. |
-| Arithmetic expressions | `f(y) #= X + 1`, comparisons over arithmetic terms | Arithmetic terms combine numerical constants and non-Herbrand values; undefinedness propagates according to the defined arithmetic rules. | B13 sec. 2; BG12 sec. 2 | Unsupported | High/backend-dependent | Defer; never substitute Clingo term ordering or ordinary syntax accidentally. |
+The category column uses the project policy literally. “Historically
+compatible” always means the attributed executable cases, never the whole
+historical language.
+
+| Construct | Audit category | Current tested boundary | Primary basis and remaining restriction |
+| --- | --- | --- | --- |
+| `#nherb f/n.` | Historically compatible | Exact name/arity declarations, including zero arity and multiple arities | B13 sec. 3; CF Syntax |
+| `#nherb f(X).` | Historically compatible | Placeholder-only arguments infer arity | CF Syntax; no alternative zero-arity spelling is claimed |
+| Global `#nherb.` | Historically compatible with restriction | Whole-program policy; ordinary occurrences remain Herbrand | CF Syntax; bare right zero-arity applications need an explicit or key-established signature |
+| Ground seed assignment and functionality | Historically compatible | Facts and single assignment heads; partiality and conflicting values | B12 secs. 2-3; B13 sec. 2 |
+| Scalar equality and inequality | Historically compatible with restriction | Complete body literals over supported scalars; undefined positive comparisons are false | B12 secs. 2-3; broader contexts remain deferred |
+| Ordered relations | Historically compatible with restriction | Complete body literals over defined integer values only | B13 sec. 2; BG12 sec. 2; arithmetic terms and ordered value variables are deferred |
+| Declared application operands | Historically compatible with restriction | All six body operators compare two defined application values | CF Syntax; body-only and integer-only order restrictions remain |
+| Undeclared compound Herbrand value | Historically compatible with restriction | Ground, recursively nested, wholly undeclared function terms | CF Syntax; variables/arithmetic inside values remain unsupported |
+| Declared symbol outside an n-atom | Historically compatible | Preserved as an ordinary Herbrand predicate/function occurrence | CF Syntax; B13 sec. 3 |
+| Default-negated n-atoms | Historically compatible with restriction | One `not` before a complete supported scalar/application body comparison | B12 sec. 3; B13 sec. 2; no double negation or broader contexts |
+| P1/P2 seed-equality safety | Historically compatible with restriction | Positive scalar `#=` supplies rule-local key/value safety through the value relation | CF P1-P2; direct key/complete value variables only |
+| P3 dependent safety | Historically compatible with restriction | Ordinary positive atoms or a separate seed equality must supply safety | CF P3; dependent literals remain non-binding |
+| P4/P5 unsafe programs | Invalid historical program | Rejected with exact source diagnostics | CF P4-P5; these are passing rejection cases, not unsupported valid features |
+| `#hide/#show #nherb` | Historically compatible | Ordered all/exact-name/arity output policy plus historical ordinary hide-all bridge | CF Syntax; selective ordinary legacy hide is not translated |
+| Non-Herbrand `_v` variables | Not yet compatible | Location-aware rejection and strict deferred case | B13 sec. 3; reference relational lowering fails grounder-inert behavior; see the [NO-GO design](../design/non-herbrand-variables.md) |
+| N-atoms in choices | Not yet compatible | Location-aware rejection and diagnostic-locked deferred case | B13 sec. 3; CF ex2; needs structured choice lowering |
+| N-atoms in aggregates | Not yet compatible | Location-aware rejection and diagnostic-locked deferred case | B13 sec. 2; CF ex2; needs structured aggregate IR |
+| Arithmetic expressions in n-atoms | Not yet compatible | Location-aware rejection and diagnostic-locked deferred case | B13 sec. 2; BG12 sec. 2; needs separately specified arithmetic/undefinedness |
+| `__aspf_` namespace and reference relation | ASPf-next extension/design choice | Reserved executable prefix, `__aspf_value/2`, integer tags, helpers, and stable normalized output | Clean-room backend policy; no historical source claim |
 
 ## Findings that control the implemented compatibility subset
 
@@ -75,18 +77,24 @@ occurrence outside an n-atom retains ordinary Herbrand meaning.
    application from masquerading as data.
 5. The inspected source documents `#nherb f(X).` but not a zero-arity
    application-style declaration. ASPf-next therefore keeps `#nherb f/0.` and
-   records the alternative spelling as unresolved rather than inventing one.
+   makes no claim for an alternative zero-arity spelling.
 6. B12 and B13 define `not l` by failure of positive satisfaction and use that
    same test in the reduct. A fresh, parameterized predicate defining positive
    satisfaction reproduces the supported ground instances without treating
    undefinedness as equality or an operator complement.
+7. CF P1-P5 separates positive scalar seed equality from dependent safety. The
+   value relation reproduces the supported finite join without an inferred
+   global value universe.
+8. B13's n-variables are grounder-inert and n-stratified. The measured relation
+   rewrite grows by one grounded rule per candidate value, so production
+   support is a documented NO-GO for the reference backend.
 
 ## Intentionally stricter behavior after this branch
 
 ASPf-next accepts only direct key variables and complete right value variables;
 ordered value variables remain unsupported because ordinary domains do not
-establish an integer sort. It accepts only one `not` before a complete supported body n-atom; and
-rejects n-atoms in choices, aggregates, conditional literals, and arithmetic.
-It also reserves executable
-identifiers beginning with `__aspf_`. These restrictions are explicit and
-tested; none is presented as historical behavior.
+establish an integer sort. It accepts only one `not` before a complete supported
+body n-atom and rejects n-atoms in choices, aggregates, conditional literals,
+and arithmetic. It also reserves executable identifiers beginning with
+`__aspf_`. These restrictions are explicit and tested; none is presented as
+historical behavior.
