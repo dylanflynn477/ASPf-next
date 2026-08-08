@@ -45,7 +45,7 @@ def solve_program(program: Program, *, models: int = 1) -> SolveResult:
         normalized: list[NormalizedModel] = []
         with control.solve(yield_=True) as handle:
             for model in handle:
-                normalized.append(normalize_model(model))
+                normalized.append(normalize_model(model, program.nherb_visibility))
             result = handle.get()
     except RuntimeError as error:
         raise SolverError(f"Clingo rejected the lowered program: {error}") from error

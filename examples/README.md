@@ -69,8 +69,9 @@ aspf examples/03_conditional_assignment.aspf
 ```
 
 Because `active(alice)` is true, the model contains
-`status(alice)#=employed`. Milestone 0.1 supports only a complete assignment as
-the rule head, not disjunctive or choice heads containing n-atoms.
+`status(alice)#=employed`. The current language supports only a complete
+assignment as the rule head, not disjunctive or choice heads containing
+n-atoms.
 
 ## 04 — Conflicting values
 
@@ -201,3 +202,19 @@ attributed programs using historical declaration, scope, arity, and compound
 Herbrand-value syntax that now runs unchanged. Deferred historical constructs
 remain in the strict compatibility xfail corpus rather than appearing as
 runnable examples.
+
+## Portfolio demo
+
+[`portfolio/technical_indicators.aspf`](portfolio/technical_indicators.aspf)
+uses a synthetic 14-observation moving average of signed close changes to show
+that a defined zero is not missing data. It also uses default negation to request
+review when a confidence threshold cannot be established, without calling
+default negation an undefinedness test.
+
+```console
+aspf examples/portfolio/technical_indicators.aspf --models 0
+```
+
+The walkthrough in [`docs/portfolio-demo.md`](../docs/portfolio-demo.md) is
+written for readers who know Python but are new to ASP. The example is about
+knowledge representation only; it is not a trading system.

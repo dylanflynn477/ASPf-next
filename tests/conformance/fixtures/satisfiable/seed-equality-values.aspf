@@ -1,0 +1,5 @@
+#nherb l/1.
+l(a) #= 1.
+l(b) #= two.
+l(c) #= wrapper(k(3)).
+p(X,Y) :- l(X) #= Y.

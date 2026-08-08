@@ -16,7 +16,7 @@ CASES: list[dict[str, Any]] = MANIFEST["cases"]
 
 
 def _parameter(case: dict[str, Any]) -> pytest.ParameterSet:
-    if case["disposition"] == "passing":
+    if case["disposition"] != "xfail":
         return pytest.param(case, id=case["id"])
     reason = f"{case['expected_aspf_next_status']}: {case['semantic_notes']}"
     return pytest.param(case, id=case["id"], marks=pytest.mark.xfail(reason=reason, strict=True))
@@ -30,7 +30,14 @@ def test_historical_case(case: dict[str, Any]) -> None:
     if case["expected_historical_status"] == "invalid":
         with pytest.raises(UnsupportedSyntaxError) as caught:
             parse_program(source, filename=str(source_path))
-        assert case["expected_diagnostic"] in str(caught.value)
+        _assert_expected_diagnostic(caught.value, case["expected_diagnostic"])
+        return
+
+    if case["disposition"] == "intentionally-deferred":
+        with pytest.raises(UnsupportedSyntaxError) as caught:
+            parse_program(source, filename=str(source_path))
+        _assert_expected_diagnostic(caught.value, case["expected_diagnostic"])
+        pytest.xfail(f"intentionally deferred: {case['semantic_notes']}")
         return
 
     result = solve_program(parse_program(source, filename=str(source_path)), models=0)
@@ -41,6 +48,12 @@ def test_historical_case(case: dict[str, Any]) -> None:
         for model in case["expected_models"]
     }
     assert actual_models == expected_models
+
+
+def _assert_expected_diagnostic(error: UnsupportedSyntaxError, diagnostic: dict[str, Any]) -> None:
+    assert diagnostic["contains"] in error.message
+    assert error.location.line == diagnostic["line"]
+    assert error.location.column == diagnostic["column"]
 
 
 def test_manifest_metadata_is_complete_and_unique() -> None:
@@ -64,4 +77,24 @@ def test_manifest_metadata_is_complete_and_unique() -> None:
     assert all((ROOT / case["source"]).is_file() for case in CASES)
     assert all(
         case["disposition"] in {"passing", "xfail", "intentionally-deferred"} for case in CASES
+    )
+    for case in CASES:
+        if case["expected_historical_status"] == "invalid":
+            assert case["disposition"] == "passing"
+            assert case["expected_aspf_next_status"] == "rejected"
+            assert _valid_diagnostic(case.get("expected_diagnostic"))
+        if case["disposition"] == "intentionally-deferred":
+            assert case["expected_historical_status"] == "valid"
+            assert case["expected_aspf_next_status"] == "unsupported"
+            assert _valid_diagnostic(case.get("expected_diagnostic"))
+        if case["disposition"] == "xfail":
+            assert case["expected_aspf_next_status"] == "unresolved"
+
+
+def _valid_diagnostic(value: object) -> bool:
+    return (
+        isinstance(value, dict)
+        and isinstance(value.get("contains"), str)
+        and isinstance(value.get("line"), int)
+        and isinstance(value.get("column"), int)
     )

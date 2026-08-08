@@ -1,14 +1,14 @@
-# Domain-safe ordinary-variable development notes
+# Domain-safe ordinary-variable implementation history
 
-Status: unreleased development increment. This work has not been assigned a
-release number.
+Status: Included in `0.2.0a1`. This document records the initial independent
+domain increment and its later seed-equality expansion.
 
 ## Implemented boundary
 
-ASPf-next accepts an ordinary uppercase variable only when it is one complete,
-direct argument of a declared non-Herbrand application. Every such variable
-must also occur in an ordinary, unnegated positive symbolic body atom in the
-same rule:
+ASPf-next accepts an ordinary uppercase variable when it is one complete,
+direct argument of a declared non-Herbrand application. The initial increment
+required every such variable to occur in an ordinary, unnegated positive
+symbolic body atom in the same rule:
 
 ```asp
 #nherb balance/1.
@@ -23,21 +23,24 @@ balance(A) #= 0 :-
     empty(A).
 ```
 
-The domain atom may occur before or after the n-atom. The rule applies to `#=`
-assignment heads and to all six supported positive body operators. Right
-operands remain ground.
+The domain atom may occur before or after the n-atom. The later historical
+seed-safety increment also accepts a positive scalar seed equality such as
+`balance(A) #= V` as a domain for its direct key variables and optional complete
+value variable. Dependent comparisons and default negation do not supply
+safety.
 
 ## Source-safety rule
 
 Safety is checked on the source rule before reference lowering. A generated
 `__aspf_value/2` lookup or helper variable cannot make a source variable safe.
-Neither can another n-atom, ordinary equality or comparison, a default-negated
-atom, or a classically negated atom.
+Only an accepted ordinary positive symbolic atom or positive scalar seed
+equality can supply this source safety; dependent n-atoms, default-negated
+atoms, and classically negated atoms cannot.
 
-This is intentionally narrower than historical Clingo{f}'s equality-provided
-safety. The restriction gives the modern Clingo grounder an independent finite
-domain for every variable used to construct a non-Herbrand key without silently
-inventing historical behavior.
+The original independent-domain rule was intentionally narrower than
+historical Clingo{f}. The later seed-equality implementation reproduces the
+documented P1 safety case through the finite positive value relation, without
+adding a global value universe or allowing dependent comparisons to bind.
 
 ## Reference lowering
 
@@ -62,18 +65,17 @@ key but does not define it: missing `__aspf_value/2` still means undefined.
 Functionality continues to prohibit two distinct values for the same grounded
 key.
 
-## Still unsupported
+## Current unsupported boundary
 
-- ordinary variables as assignment values or comparison right operands;
+- ordinary variables as assignment-head values or ordered-comparison operands;
 - ordinary variables nested in compound key arguments;
-- variables whose only apparent domain comes from another n-atom, equality,
-  comparison, negation, a head, an aggregate, a choice, a conditional literal,
-  or a disjunction;
+- variables whose only apparent domain comes from a dependent n-atom,
+  default negation, a head, an aggregate, a choice, a conditional literal, or
+  a disjunction;
 - anonymous `_` inside n-atoms;
 - `_V`-style non-Herbrand variables;
 - arithmetic, intervals, pools, or tuples inside n-atoms;
-- application-to-application comparisons;
-- default-negated n-atoms and broader n-atom contexts; and
+- broader n-atom contexts; and
 - a native theory-atom or propagator backend.
 
 Each rejected form receives a filename-, line-, and column-aware diagnostic.

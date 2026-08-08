@@ -46,14 +46,14 @@ retains `A` in the key, so Clingo produces ground lookups such as
 `__aspf_value(balance(checking),V)` only for the ordinary rule instances.
 Grounding a variable key does not define it and does not add a totality rule.
 
-Source safety is deliberately checked before lowering. A generated private
-lookup or comparison variable cannot make a source variable safe, nor can
-another n-atom, ordinary equality, negation, or a classically negated atom. A
-scalar right operand remains ground. A declared right application may use the
-same direct argument subset, but every variable there also needs an independent
-ordinary domain occurrence. This is a conservative compatibility subset, not a
-claim that historical equality-provided safety or non-Herbrand variables have
-been implemented.
+Source safety is deliberately checked before lowering. An ordinary positive
+symbolic atom can provide safety. A positive, non-default-negated scalar seed
+equality can also provide safety for its key variables and optional complete
+right value variable; its direct `__aspf_value/2` join ranges only over
+potentially supported tuples. Application equality, inequality, ordering, and
+default negation do not provide safety. This preserves the historical P1-P5
+distinction instead of allowing generated private lookups to legalize dependent
+source literals. Non-Herbrand variables remain unimplemented.
 
 ## Head assignments
 
@@ -88,9 +88,10 @@ Ordered application comparison retrieves both values and requires an integer
 marker for each before applying the arithmetic relation. This preserves the
 same integer-only boundary and prevents Clingo term ordering on either side.
 
-Default-negated comparisons are deferred because simply negating the internal
-atom would conflate “undefined” and “defined with a different value” without an
-explicit compatibility decision.
+Default-negated comparisons use a private positive-satisfaction helper and then
+negate that helper. A value variable is included in the helper key when it is
+made safe elsewhere. This preserves the difference between positive
+satisfaction failure and an operator complement.
 
 ## Values and equality
 
@@ -117,8 +118,8 @@ about every historical ASP{f} version:
 - zero-arity functions normalize to a bare key such as `mode`;
 - ordinary recursively ground compound terms are accepted as application
   arguments, but not as values;
-- ordinary variables are accepted only as direct key arguments with an
-  independent positive symbolic body domain;
+- ordinary variables are accepted only as direct key arguments or complete
+  body value operands; positive scalar seed equality may provide safety;
 - ordinary atoms are sorted first and reconstructed assignments second for
   stable human output;
 - unsupported ASP{f}-shaped syntax is rejected before Clingo receives it.

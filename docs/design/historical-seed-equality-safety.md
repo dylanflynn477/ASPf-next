@@ -1,7 +1,6 @@
 # Historical seed-equality safety
 
-Status: researched and intentionally deferred from
-`historical-compatibility-1`.
+Status: reference-backend design approved with the restrictions below.
 
 ## Historical evidence
 
@@ -29,49 +28,141 @@ l(a) #= 3.
 p(X,Y) :- l(X) #!= Y.
 ```
 
-The distinction is that positive seed equality can provide safety, while a
-dependent literal follows safety restrictions analogous to default-negated
-literals. B13 also explains that ordinary grounding and specialized
-non-Herbrand variables are separate mechanisms.
+The distinction is source-level safety, not procedural unification. A positive
+seed equality can provide safe occurrences for ordinary variables. A dependent
+n-atom follows the same safety restriction as a default-negated literal. B13
+also makes ordinary grounder variables and grounder-inert non-Herbrand
+variables separate mechanisms.
 
-## Reference-lowering analysis
+## Typed distinction
 
-A tempting P2 lowering is:
+The compatibility frontend must keep four categories distinct:
+
+1. `VariableTerm` is an ordinary source variable used directly as an
+   application argument.
+2. `ValueVariableOperand` is an ordinary source variable occupying the entire
+   right operand of a body n-atom.
+3. `ApplicationOperand` is a declared non-Herbrand application whose value is
+   read by a dependent comparison.
+4. A future non-Herbrand variable such as `_v` is neither of the ordinary
+   variable nodes above. It remains unsupported and must never reach Clingo as
+   an ordinary variable.
+
+A ground scalar, compound Herbrand scalar, application operand, and ordinary
+value variable therefore remain explicit alternatives in the IR.
+
+## Exact source-safety rule
+
+The following body literal is a **seed-equality safety provider**:
+
+```text
+positive, non-default-negated application #= scalar
+```
+
+The scalar may be ground or an ordinary value variable. Such a literal provides
+safe occurrences for its direct application-argument variables and, when
+present, its right value variable. The safety information is rule-local and may
+be shared with other literals in the same rule. A ground form such as
+`p(X) :- l(X) #= 3.` therefore supplies safety for `X`.
+
+These forms do not provide safety:
+
+- application-to-application `#=`;
+- `#!=`;
+- `#<`, `#<=`, `#>`, or `#>=`;
+- any default-negated n-atom;
+- any assignment in a rule head.
+
+Variables in those forms must occur in an ordinary positive symbolic body atom
+or in a positive seed-equality provider in the same rule. This preserves the
+historical rejection of P4 and P5 instead of allowing generated backend
+lookups to legalize them accidentally.
+
+Value variables in equality and inequality are supported when this rule makes
+them safe. Ordered comparisons with a value-variable operand remain rejected:
+an ordinary symbolic domain does not prove that all of its values are integers,
+and raw Clingo term order is not ASP{f} numeric order. Value variables in rule
+heads remain outside this increment.
+
+## Reference lowering
+
+A supported positive seed equality lowers directly through the value relation:
 
 ```asp
-__aspf_value(l(a),3).
+p(X,Y) :- l(X) #= Y.
+```
+
+```asp
 p(X,Y) :- __aspf_value(l(X),Y).
 ```
 
-This is syntactically safe for modern Clingo because the positive private
-relation binds both variables. It produces `p(a,3)` for this finite fact. That
-observation is necessary but not sufficient for a general compatibility
-claim.
+No separate inferred value domain is generated.
 
-Questions that must be resolved for the supported source grammar include:
+This translation has the required semantic properties for the restricted
+grammar:
 
-1. Which finite key and value domains are available when assignments are
-   conditional, recursive, or distributed across files?
-2. Does allowing a private intensional predicate to establish safety generate
-   exactly the historical ground instances, or merely the same model in simple
-   examples?
-3. How should application/application equality bind variables on each side?
-4. Can a value variable range over compound Herbrand values without an explicit
-   source value-domain construction?
-5. Does positive recursion through `__aspf_value/2` alter grounding size or
-   eliminate ground instances that historical Clingo{f} generated?
+- **Grounding domain.** `Y` ranges over the second components of potentially
+  supported `__aspf_value/2` tuples for matching keys, and `X` ranges over their
+  key arguments. Unrelated constants do not enter either position merely
+  because they occur elsewhere.
+- **Partiality.** With no matching value tuple, the positive lookup fails. No
+  rule invents a value and no totality rule is added.
+- **Functionality.** The existing global constraint still excludes two
+  different values for one key.
+- **Conditional and multiple-model assignments.** The grounder sees the
+  potential relation tuples produced by assignment heads. Solving then derives
+  `p(X,Y)` only for tuples present in each model.
+- **Positive recursion.** A value tuple obtained through a supported recursive
+  assignment can feed the same positive join. A positive cycle with no base
+  assignment produces no tuple, matching partiality rather than creating a
+  synthetic domain.
+- **Multiple files.** Parsing already builds one whole-program declaration and
+  signature policy, while lowering concatenates statements into one program.
+  The join does not depend on file order.
+- **Value kinds.** Because the lookup binds an ordinary Clingo term, it carries
+  the already-supported integer, symbolic, string, and compound Herbrand values
+  without enumerating a global universe.
 
-Partiality itself is represented correctly by relation absence, but it does not
-answer these grounding questions.
+The analysis was checked with empty P1, fact-backed P2, unrelated constants,
+conditional assignments across two models, recursive assignments with a base,
+and a positive recursive cycle without a base. The production conformance
+corpus records these obligations.
+
+This is a correctness-oriented reference translation. It does not reproduce or
+claim the grounding-efficiency advantages of historical Clingo{f}.
+
+## Lowering other value-variable comparisons
+
+An independently safe inequality such as:
+
+```asp
+value(Y).
+different :- value(Y), l(a) #!= Y.
+```
+
+uses a fresh backend value lookup followed by ordinary Herbrand inequality:
+
+```asp
+different :-
+    value(Y),
+    __aspf_value(l(a),_AspfNeq0),
+    _AspfNeq0 != Y.
+```
+
+The private lookup preserves definedness. The source `#!=` literal supplies no
+safety itself. A default-negated equality with independently safe variables can
+reuse the existing positive-satisfaction helper, including the value variable
+in the helper key.
+
+Ordered value-variable comparisons are not lowered because the current private
+integer predicate describes known assignment values, not arbitrary values from
+ordinary user predicates. Accepting such a comparison would risk delegating
+numeric order to Clingo's generic term order.
 
 ## Decision
 
-ASPf-next keeps its stricter rule: every ordinary variable inside an
-application key needs an independent ordinary, unnegated positive symbolic body
-atom, and scalar right operands remain ground. P1/P2 are strict unresolved
-xfails; P4/P5 remain passing rejection tests.
-
-A future compatibility slice should first define a restricted equality-safety
-grammar, compare grounded reference programs for conditional and recursive
-cases, and decide whether an explicit value-domain IR is required. Merely
-removing the source-safety validator is not acceptable.
+**GO with a narrow grammar.** Add a typed ordinary value-variable operand and
+allow positive scalar seed equality to establish rule-local safety exactly as above.
+Keep dependent comparisons and default negation non-binding, keep `_v`
+non-Herbrand variables distinct and unsupported, and do not add an inferred
+value domain.

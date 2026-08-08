@@ -164,6 +164,44 @@ def test_historical_examples_guide_covers_every_program() -> None:
         assert program.name in guide
 
 
+def test_portfolio_demo_distinguishes_defined_zero_missing_data_and_threshold_failure() -> None:
+    path = EXAMPLES / "portfolio" / "technical_indicators.aspf"
+    program = parse_program(path.read_text(encoding="utf-8"), filename=str(path))
+    result = solve_program(program, models=0)
+
+    assert result.status is SolveStatus.SATISFIABLE
+    assert len(result.models) == 1
+    assert result.models[0].ordinary_atoms == (
+        "above_average(15)",
+        "needs_review(15)",
+        "needs_review(16)",
+        "zero_average(14)",
+        "zero_average(16)",
+    )
+    assert result.models[0].assignments == (
+        "confidence(14)#=80",
+        "confidence(15)#=45",
+        "sma14_delta(14)#=0",
+        "sma14_delta(15)#=1",
+        "sma14_delta(16)#=0",
+    )
+    assert all(
+        not atom.startswith(("above_average(", "zero_average("))
+        for day in range(1, 14)
+        for atom in result.models[0].ordinary_atoms
+        if atom.endswith(f"({day})")
+    )
+
+
+def test_portfolio_demo_documentation_is_reproducible_and_non_predictive() -> None:
+    document = (PROJECT_ROOT / "docs" / "portfolio-demo.md").read_text(encoding="utf-8")
+
+    assert "aspf examples/portfolio/technical_indicators.aspf --models 0" in document
+    assert "undefined ≠ 0" in document
+    assert "not an “is undefined” operator" in document
+    assert "no buy/sell recommendation" in document
+
+
 def test_readme_basic_command_output(capsys: pytest.CaptureFixture[str]) -> None:
     path = EXAMPLES / "01_basic_assignment.aspf"
 

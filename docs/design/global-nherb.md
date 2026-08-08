@@ -1,50 +1,97 @@
-# Global `#nherb.` design
+# Global `#nherb.` implementation contract
 
-Status: researched and intentionally deferred from
-`historical-compatibility-1`.
+Status: approved for `release/0.2-portfolio-ready`.
 
-## Historical contract
+## Primary-source contract
 
-The public Clingo{f} documentation states that `#nherb.` makes function
-symbols interpreted by `#` connectives non-Herbrand without individual
-declarations. It also states that occurrences outside n-atoms remain ordinary
-Herbrand syntax. Its examples use both positive-arity applications and
-zero-arity applications such as `p #= 1`.
+The public Clingo{f} documentation states that `#nherb.` makes all function
+symbols under `#` connectives non-Herbrand without individual declarations.
+It separately states that occurrences outside n-atoms retain their ordinary
+Herbrand interpretation. Balduccini 2013 describes the same scope boundary:
+terms outside an n-atom remain Herbrand, which preserves reification.
 
-## Required representation
+The implementation therefore treats global mode as an operand-interpretation
+policy, not as a source rewrite and not as a declaration guessed for every
+identifier in the program.
 
-Global mode must be a program-level declaration policy in the IR, not guessed
-`#nherb f/n.` text inserted after scanning. Operand classification would then
-be:
+## Typed representation
 
-- left-side functional syntax under `#`: non-Herbrand application;
-- positive-arity functional syntax on either side under `#`: non-Herbrand
-  application in global mode;
-- occurrences outside an n-atom: ordinary Clingo syntax;
-- constants used as seed values: Herbrand constants.
+`Program.global_nherb` records whether any input source contains a valid
+top-level `#nherb.` declaration. Explicit declarations remain represented by
+`NHerbDeclaration` and may coexist with global mode. Declaration collection is
+performed across all input sources before any executable statement is parsed,
+so file order does not change operand classification.
 
-Explicit declaration mode and global mode should be mutually clear in the IR,
-including across multiple input files.
+The frontend also builds a whole-program set of application keys established
+by the left side of n-atoms. This set is parser metadata, not synthesized
+declaration text. It is needed only to distinguish zero-arity applications from
+symbolic constants on the right.
 
-## Blocker
+## Operand classification
 
-The historical surface uses the same lowercase token class for symbolic
-constants and zero-arity function symbols. In explicit mode, `#nherb f/0.`
-resolves this. In global mode, the frontend needs a source-backed rule for
-classifying a bare right operand: for example, distinguishing a constant value
-in `f(a) #= active` from a zero-arity application in a dependent comparison.
-The public examples establish zero-arity left applications but do not fully
-specify this right-operand ambiguity.
+With global mode active:
 
-Treating every bare right symbol as an application would make ordinary symbolic
-seed values impossible. Treating every bare right symbol as a constant would
-make dependent comparisons to zero-arity applications impossible. Inferring a
-global signature from use sites would add a whole-program semantic pass and
-requires a documented conflict rule.
+- every syntactically valid left application under a supported `#` connective
+  is a non-Herbrand application;
+- every positive-arity functional expression used as a complete right operand
+  under `#` is a non-Herbrand application;
+- a bare right symbol is a zero-arity application only if `(name, 0)` is
+  established by an explicit declaration or by use as an n-atom key somewhere
+  in the combined program;
+- every other bare right symbol is a scalar Herbrand constant;
+- integer and string right operands remain scalar values;
+- nested applications, arithmetic, variables in values, aggregates, choices,
+  and other currently unsupported forms remain rejected;
+- every occurrence outside an n-atom is passed through unchanged, including
+  ordinary atoms and function terms with the same spelling and arity.
 
-## Decision
+This classification is independent of source-file order. For example, a
+right-side `mode` may be recognized as the zero-arity application `mode` even
+when `mode #= active.` occurs in a later file.
 
-Keep `#nherb.` as a strict historical xfail. A future milestone may implement
-it after the right-operand signature rule is established from primary evidence
-and represented explicitly. The implementation must preserve ordinary syntax
-outside n-atoms and must not weaken the `__aspf_` namespace reservation.
+## Zero-arity restriction
+
+Clingo surface syntax does not lexically distinguish a symbolic constant from
+a zero-arity function. The public documentation establishes both symbolic seed
+values and zero-arity applications, but does not specify a separate spelling
+for a bare right-side zero-arity application under global mode.
+
+ASPf-next therefore requires a zero-arity function signature to be established
+by an explicit declaration or by a left/key occurrence. A bare symbol that
+appears only on the right remains a scalar constant. This is a documented
+compatibility restriction; the frontend does not infer an otherwise invisible
+zero-arity function from intent.
+
+## Multi-file and mixed declarations
+
+A valid global declaration in any input file activates global mode for the
+combined program. Explicit declarations from any file continue to contribute
+exact `(name, arity)` identities, including zero arity. Repeated global or
+explicit declarations are idempotent. Comments and strings containing
+`#nherb.` are inert.
+
+## Semantic invariants
+
+- Global mode introduces no totality rule. An application without a value
+  lookup remains undefined.
+- Functionality remains enforced by the existing private value relation.
+- Global mode does not change ordinary Clingo predicates, terms, `#show`
+  behavior, or model solving outside n-atoms.
+- It does not weaken source-variable safety.
+- It does not permit private `__aspf_` identifiers.
+- It does not change the integer-only restriction of the reference ordered
+  comparison backend.
+
+## Diagnostics
+
+Only a complete top-level `#nherb.` statement activates global mode. Arguments,
+suffixes, rule placement, or malformed spellings receive a location-aware
+`UnsupportedSyntaxError`. Legacy `#show/#hide #nherb` directives remain a
+separate milestone and are not parsed as global declarations.
+
+## Evidence boundary
+
+This milestone demonstrates the documented global declaration behavior for the
+currently supported ASPf-next n-atom fragment. It does not claim support for
+historical arithmetic, aggregates, choices, non-Herbrand variables, or native
+Clingo{f} grounding behavior.

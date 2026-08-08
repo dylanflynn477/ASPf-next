@@ -34,6 +34,12 @@ def main() -> int:
         print(f"  {feature:<48} {_feature_status(features[feature])}")
 
     passing = sum(case["disposition"] == "passing" for case in cases)
+    restricted = sum(
+        case["disposition"] == "passing" and "restriction" in case["expected_aspf_next_status"]
+        for case in cases
+    )
+    invalid = sum(case["expected_historical_status"] == "invalid" for case in cases)
+    deferred = sum(case["disposition"] == "intentionally-deferred" for case in cases)
     unsupported = sum(case["expected_aspf_next_status"] == "unsupported" for case in cases)
     unresolved = sum(case["expected_aspf_next_status"] == "unresolved" for case in cases)
     baseline = sum(case["baseline_aspf_next_status"] in {"passing", "rejected"} for case in cases)
@@ -42,7 +48,10 @@ def main() -> int:
     print("Historical compatibility cases")
     print(f"  baseline matching cases: {baseline}")
     print(f"  passing:                {passing}")
+    print(f"    with restriction:     {restricted}")
+    print(f"    invalid-and-rejected: {invalid}")
     print(f"  expected unsupported:   {unsupported}")
+    print(f"    intentionally deferred: {deferred}")
     print(f"  unresolved:             {unresolved}")
     print(f"  total target cases:     {len(cases)}")
     return 0

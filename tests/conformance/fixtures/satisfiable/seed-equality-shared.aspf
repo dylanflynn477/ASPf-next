@@ -1,0 +1,6 @@
+#nherb left/1.
+#nherb right/1.
+left(a) #= shared.
+right(b) #= shared.
+right(c) #= other.
+pair(X,Z,Y) :- left(X) #= Y, right(Z) #= Y.

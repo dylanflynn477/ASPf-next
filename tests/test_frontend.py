@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from aspf_next.errors import UnsupportedSyntaxError
-from aspf_next.frontend import parse_program
+from aspf_next.frontend import parse_program, parse_sources
 from aspf_next.ir import (
     ApplicationOperand,
     AspfStatement,
@@ -13,15 +13,18 @@ from aspf_next.ir import (
     NAtomOperator,
     OrdinaryStatement,
     ScalarOperand,
+    ValueVariableOperand,
     VariableTerm,
+    VisibilityAction,
 )
+from aspf_next.source import SourceText
 
 
 def test_parses_declaration_and_basic_assignment() -> None:
     program = parse_program("#nherb balance/1.\nbalance(account1) #= 500.\n", filename="basic.aspf")
 
     assert [(item.name, item.arity) for item in program.declarations] == [("balance", 1)]
-    statement = program.statements[0]
+    statement = next(item for item in program.statements if isinstance(item, AspfStatement))
     assert isinstance(statement, AspfStatement)
     assignment = statement.n_atoms[0]
     assert isinstance(assignment, Assignment)
@@ -44,6 +47,180 @@ def test_equivalent_declarations_are_harmless_and_deduplicated() -> None:
     program = parse_program("#nherb f/1.\n#nherb f(X).\n#nherb f/1.\nf(a) #= value.\n")
 
     assert [(item.name, item.arity) for item in program.declarations] == [("f", 1)]
+
+
+def test_global_declaration_is_explicit_program_policy() -> None:
+    program = parse_program("#nherb.\nbalance(account1) #= 500.\n")
+
+    assert program.global_nherb is True
+    assert program.declarations == ()
+    statement = program.statements[0]
+    assert isinstance(statement, AspfStatement)
+    assignment = statement.n_atoms[0]
+    assert isinstance(assignment, Assignment)
+    assert assignment.target.render() == "balance(account1)"
+    assert assignment.value.text == "500"
+
+
+def test_global_mode_recognizes_multiple_application_symbols() -> None:
+    program = parse_program("#nherb.\nf(a) #= 2.\nk(1) #= 2.\nsame :- f(a) #= k(1).\n")
+
+    statements = [item for item in program.statements if isinstance(item, AspfStatement)]
+    comparison = statements[-1].n_atoms[0]
+    assert isinstance(comparison, BodyComparison)
+    assert comparison.left.render() == "f(a)"
+    assert isinstance(comparison.right, ApplicationOperand)
+    assert comparison.right.render() == "k(1)"
+
+
+def test_global_zero_arity_right_application_uses_whole_program_key_signature() -> None:
+    program = parse_program(
+        "#nherb.\nsame :- current #= mode.\ncurrent #= active.\nmode #= active.\n"
+    )
+
+    comparison_statement = program.statements[0]
+    assert isinstance(comparison_statement, AspfStatement)
+    comparison = comparison_statement.n_atoms[0]
+    assert isinstance(comparison, BodyComparison)
+    assert isinstance(comparison.right, ApplicationOperand)
+    assert comparison.right.render() == "mode"
+
+
+def test_global_bare_right_symbol_without_key_signature_remains_scalar() -> None:
+    program = parse_program("#nherb.\nmode #= active.\nactive_mode :- mode #= active.\n")
+
+    comparison_statement = program.statements[1]
+    assert isinstance(comparison_statement, AspfStatement)
+    comparison = comparison_statement.n_atoms[0]
+    assert isinstance(comparison, BodyComparison)
+    assert isinstance(comparison.right, ScalarOperand)
+    assert comparison.right.text == "active"
+
+
+def test_global_mode_preserves_same_spelling_outside_n_atoms() -> None:
+    source = "#nherb.\nf(a) #= 2.\nordinary(f(a)).\n"
+    program = parse_program(source)
+
+    assert isinstance(program.statements[1], OrdinaryStatement)
+    assert program.statements[1].text == "\nordinary(f(a))."
+
+
+def test_global_and_explicit_declarations_coexist_across_sources() -> None:
+    program = parse_sources(
+        (
+            SourceText("#nherb.\n", "global.aspf"),
+            SourceText("#nherb mode/0.\n", "explicit.aspf"),
+            SourceText("same :- current #= mode.\n", "comparison.aspf"),
+            SourceText("current #= active.\nmode #= active.\n", "assignments.aspf"),
+        )
+    )
+
+    assert program.global_nherb is True
+    assert [(item.name, item.arity) for item in program.declarations] == [("mode", 0)]
+    statement = next(item for item in program.statements if isinstance(item, AspfStatement))
+    assert isinstance(statement, AspfStatement)
+    comparison = statement.n_atoms[0]
+    assert isinstance(comparison, BodyComparison)
+    assert isinstance(comparison.right, ApplicationOperand)
+
+
+def test_global_declaration_text_in_comments_and_strings_is_inert() -> None:
+    program = parse_program('% #nherb.\nmessage("#nherb.").\n')
+
+    assert program.global_nherb is False
+    assert all(isinstance(statement, OrdinaryStatement) for statement in program.statements)
+
+
+@pytest.mark.parametrize(
+    ("source", "line", "column"),
+    [
+        ("p :- #nherb.\n", 1, 6),
+        ("#nherb extra.\n", 1, 1),
+        ("#nherb f/1, g/1.\n", 1, 1),
+    ],
+)
+def test_rejects_invalid_global_declaration_placements_with_location(
+    source: str, line: int, column: int
+) -> None:
+    with pytest.raises(UnsupportedSyntaxError, match="unsupported #nherb declaration") as caught:
+        parse_program(source, filename="invalid-global.aspf")
+
+    assert caught.value.location.filename == "invalid-global.aspf"
+    assert caught.value.location.line == line
+    assert caught.value.location.column == column
+
+
+def test_parses_ordered_non_herbrand_visibility_policy() -> None:
+    program = parse_program("#nherb f/1.\n#hide #nherb.\n#show #nherb f/1.\n#hide #nherb f(X).\n")
+
+    assert [
+        (directive.action, directive.name, directive.arity)
+        for directive in program.nherb_visibility
+    ] == [
+        (VisibilityAction.HIDE, None, None),
+        (VisibilityAction.SHOW, "f", 1),
+        (VisibilityAction.HIDE, "f", 1),
+    ]
+    assert all("#nherb" not in statement.text for statement in program.statements)
+
+
+def test_application_style_visibility_selector_infers_arity() -> None:
+    program = parse_program("#nherb pair/2.\n#hide #nherb pair(Left,Right).\n")
+
+    directive = program.nherb_visibility[0]
+    assert directive.action is VisibilityAction.HIDE
+    assert (directive.name, directive.arity) == ("pair", 2)
+
+
+def test_visibility_policy_retains_source_order_across_files() -> None:
+    program = parse_sources(
+        (
+            SourceText("#hide #nherb.\n", "hide.aspf"),
+            SourceText("#show #nherb f/1.\n", "show.aspf"),
+            SourceText("#hide #nherb f/1.\n", "hide-again.aspf"),
+        )
+    )
+
+    assert [directive.action for directive in program.nherb_visibility] == [
+        VisibilityAction.HIDE,
+        VisibilityAction.SHOW,
+        VisibilityAction.HIDE,
+    ]
+
+
+def test_historical_ordinary_hide_all_becomes_modern_show_empty_policy() -> None:
+    program = parse_program("p.\n#hide.\n#show p/0.\n")
+
+    assert len(program.nherb_visibility) == 1
+    assert program.nherb_visibility[0].action is VisibilityAction.HIDE
+    lowered_statements = "".join(statement.text for statement in program.statements)
+    assert "#hide." not in lowered_statements
+    assert "#show." in lowered_statements
+    assert "#show p/0." in lowered_statements
+
+
+def test_visibility_markers_in_comments_and_strings_are_inert() -> None:
+    program = parse_program('% #hide #nherb.\nmessage("#show #nherb f/1.").\n')
+
+    assert program.nherb_visibility == ()
+
+
+@pytest.mark.parametrize(
+    ("source", "column"),
+    [
+        ("#hide #nherb f.\n", 1),
+        ("p :- #show #nherb f/1.\n", 6),
+        ("#show #nherb f/-1.\n", 1),
+        ("#hide #nherb f(1).\n", 1),
+    ],
+)
+def test_rejects_invalid_visibility_syntax_with_location(source: str, column: int) -> None:
+    with pytest.raises(UnsupportedSyntaxError, match="unsupported legacy non-Herbrand") as caught:
+        parse_program(source, filename="visibility.aspf")
+
+    assert caught.value.location.filename == "visibility.aspf"
+    assert caught.value.location.line == 1
+    assert caught.value.location.column == column
 
 
 @pytest.mark.parametrize(
@@ -430,8 +607,6 @@ label("balance(account1) #!= 500").
 @pytest.mark.parametrize(
     ("source", "message"),
     [
-        ("#nherb.\n", "global '#nherb.'"),
-        ("#show #nherb.\n", "legacy '#show #nherb'"),
         (
             "#nherb balance/1.\np :- #count { X : balance(account1) #= 500 } > 0.\n",
             "aggregates or choice",
@@ -644,7 +819,7 @@ def test_accepts_domain_safe_variable_in_assignment_head() -> None:
     assert assignment.target.render() == "status(P)"
 
 
-@pytest.mark.parametrize("operator", ["#=", "#!=", "#<", "#<=", "#>", "#>="])
+@pytest.mark.parametrize("operator", ["#!=", "#<", "#<=", "#>", "#>="])
 def test_rejects_variable_bound_only_by_n_atom_for_every_operator(operator: str) -> None:
     source = f"#nherb balance/1.\nok(A) :- balance(A) {operator} 0.\n"
 
@@ -655,12 +830,21 @@ def test_rejects_variable_bound_only_by_n_atom_for_every_operator(operator: str)
     assert caught.value.location.column == source.splitlines()[1].index("balance(A)") + 9
 
 
+def test_positive_ground_seed_equality_provides_key_variable_safety() -> None:
+    program = parse_program("#nherb balance/1.\nzero(A) :- balance(A) #= 0.\n")
+
+    statement = program.statements[0]
+    assert isinstance(statement, AspfStatement)
+    comparison = statement.n_atoms[0]
+    assert isinstance(comparison, BodyComparison)
+    assert comparison.left.render() == "balance(A)"
+
+
 @pytest.mark.parametrize(
     "body",
     [
         "not account(A), balance(A) #< 1000",
         "A = account1, balance(A) #< 1000",
-        "status(A) #= active, balance(A) #< 1000",
         "-account(A), balance(A) #< 1000",
     ],
 )
@@ -673,14 +857,97 @@ def test_rejects_unapproved_variable_domain_sources(body: str) -> None:
     assert caught.value.location.line == 3
 
 
-def test_rejects_ordinary_variable_as_n_atom_value() -> None:
+def test_ground_seed_equality_can_supply_safety_to_a_dependent_comparison() -> None:
+    program = parse_program(
+        "#nherb balance/1.\n#nherb status/1.\nlow(A) :- status(A) #= active, balance(A) #< 1000.\n"
+    )
+
+    statement = program.statements[0]
+    assert isinstance(statement, AspfStatement)
+    assert len(statement.n_atoms) == 2
+
+
+def test_rejects_ordinary_value_variable_in_assignment_head() -> None:
     source = "#nherb balance/1.\nvalue(V).\nbalance(account1) #= V :- value(V).\n"
 
-    with pytest.raises(UnsupportedSyntaxError, match="variables as n-atom values") as caught:
+    with pytest.raises(
+        UnsupportedSyntaxError, match="assignment values must remain ground"
+    ) as caught:
         parse_program(source, filename="value.aspf")
 
     assert caught.value.location.line == 3
     assert caught.value.location.column == source.splitlines()[2].index("V") + 1
+
+
+def test_parses_seed_equality_value_variable_as_a_distinct_ir_operand() -> None:
+    source = "#nherb l/1.\np(X,Y) :- l(X) #= Y.\n"
+
+    program = parse_program(source, filename="seed.aspf")
+    statement = program.statements[0]
+
+    assert isinstance(statement, AspfStatement)
+    comparison = statement.n_atoms[0]
+    assert isinstance(comparison, BodyComparison)
+    assert isinstance(comparison.left.application.arguments[0], VariableTerm)
+    assert isinstance(comparison.right, ValueVariableOperand)
+    assert comparison.right.name == comparison.right.text == "Y"
+    assert comparison.right.span.start == source.index("Y", source.index("#="))
+
+
+def test_positive_seed_equality_provides_key_and_value_variable_safety() -> None:
+    program = parse_program(
+        "#nherb left/1.\n#nherb right/1.\npair(X,Y) :- left(X) #= Y, right(Y) #= X.\n"
+    )
+
+    statement = program.statements[0]
+    assert isinstance(statement, AspfStatement)
+    assert len(statement.n_atoms) == 2
+    assert all(isinstance(atom.right, ValueVariableOperand) for atom in statement.n_atoms)
+
+
+def test_independently_safe_value_variable_is_accepted_for_inequality() -> None:
+    program = parse_program(
+        "#nherb l/1.\nkey(a).\nvalue(1;2).\ndifferent(X,Y) :- key(X), value(Y), l(X) #!= Y.\n"
+    )
+
+    statement = program.statements[2]
+    assert isinstance(statement, AspfStatement)
+    comparison = statement.n_atoms[0]
+    assert isinstance(comparison, BodyComparison)
+    assert isinstance(comparison.right, ValueVariableOperand)
+
+
+@pytest.mark.parametrize(
+    ("body", "token"),
+    [
+        ("l(X) #!= 2", "X"),
+        ("l(X) #!= Y", "X"),
+        ("not l(X) #= Y", "X"),
+    ],
+)
+def test_dependent_and_default_negated_value_forms_do_not_provide_safety(
+    body: str, token: str
+) -> None:
+    source = f"#nherb l/1.\np(X,Y) :- {body}.\n"
+
+    with pytest.raises(UnsupportedSyntaxError, match="do not provide source safety") as caught:
+        parse_program(source, filename="dependent.aspf")
+
+    assert caught.value.location.line == 2
+    assert caught.value.location.column == source.splitlines()[1].rindex(token) + 1
+
+
+@pytest.mark.parametrize("operator", ["#<", "#<=", "#>", "#>="])
+def test_ordered_value_variable_has_a_precise_integer_sort_diagnostic(operator: str) -> None:
+    source = f"#nherb l/1.\nkey(a).\nnumber(1).\np(X,Y) :- key(X), number(Y), l(X) {operator} Y.\n"
+
+    with pytest.raises(
+        UnsupportedSyntaxError, match="does not establish an integer sort"
+    ) as caught:
+        parse_program(source, filename="ordered-value.aspf")
+
+    assert caught.value.location.line == 4
+    assert caught.value.location.column == source.splitlines()[3].rindex("Y") + 1
 
 
 @pytest.mark.parametrize(

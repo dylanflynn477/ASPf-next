@@ -1,0 +1,2 @@
+same :- current #= mode.
+ordinary(f(a)).

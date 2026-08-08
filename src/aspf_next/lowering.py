@@ -15,6 +15,7 @@ from aspf_next.ir import (
     OrdinaryStatement,
     Program,
     ScalarOperand,
+    ValueVariableOperand,
     VariableTerm,
 )
 
@@ -87,7 +88,7 @@ def lower_program(program: Program) -> LoweredProgram:
             helper_rules.extend(statement_helpers)
 
     source = "".join(pieces)
-    if program.declarations:
+    if program.declarations or program.global_nherb:
         if source and not source.endswith("\n"):
             source += "\n"
         if helper_rules:
@@ -145,6 +146,8 @@ def _lower_statement(
 def _lower_comparison(comparison: BodyComparison, temps: TemporaryAllocator) -> str:
     if isinstance(comparison.right, ScalarOperand):
         return _lower_scalar_comparison(comparison, comparison.right, temps)
+    if isinstance(comparison.right, ValueVariableOperand):
+        return _lower_value_variable_comparison(comparison, comparison.right, temps)
     return _lower_application_comparison(comparison, comparison.right, temps)
 
 
@@ -195,6 +198,24 @@ def _lower_application_comparison(
     return ", ".join(literals)
 
 
+def _lower_value_variable_comparison(
+    comparison: BodyComparison,
+    right: ValueVariableOperand,
+    temps: TemporaryAllocator,
+) -> str:
+    if comparison.operator is NAtomOperator.EQUAL:
+        return _render_value_lookup(comparison.left, right.name)
+    if comparison.operator is NAtomOperator.NOT_EQUAL:
+        left_value = temps.new("_AspfNeq")
+        return ", ".join(
+            (
+                _render_value_lookup(comparison.left, left_value),
+                f"{left_value} != {right.name}",
+            )
+        )
+    raise ValueError("ordered value-variable comparisons must be rejected by the frontend")
+
+
 def _render_value_lookup(application: ApplicationOperand, value: str) -> str:
     return f"{INTERNAL_VALUE_PREDICATE}({application.render()},{value})"
 
@@ -205,7 +226,7 @@ def _comparison_variables(comparison: BodyComparison) -> tuple[str, ...]:
     operands = [comparison.left]
     if isinstance(comparison.right, ApplicationOperand):
         operands.append(comparison.right)
-    variables = sorted(
+    variables: list[VariableTerm | ValueVariableOperand] = sorted(
         (
             argument
             for operand in operands
@@ -214,6 +235,9 @@ def _comparison_variables(comparison: BodyComparison) -> tuple[str, ...]:
         ),
         key=lambda argument: argument.span.start,
     )
+    if isinstance(comparison.right, ValueVariableOperand):
+        variables.append(comparison.right)
+        variables.sort(key=lambda variable: variable.span.start)
     seen: set[str] = set()
     result: list[str] = []
     for variable in variables:

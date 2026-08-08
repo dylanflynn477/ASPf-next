@@ -24,6 +24,41 @@ def test_lowers_basic_assignment_and_functionality() -> None:
     assert result.count(FUNCTIONALITY_CONSTRAINT) == 1
 
 
+def test_lowers_global_assignment_and_functionality_without_explicit_declarations() -> None:
+    result = lowered("#nherb.\nbalance(account1) #= 500.\n")
+
+    assert "__aspf_value(balance(account1),500)." in result
+    assert result.count(FUNCTIONALITY_CONSTRAINT) == 1
+
+
+def test_lowers_global_application_comparison_as_two_defined_lookups() -> None:
+    result = lowered("#nherb.\nf(a) #= 2.\nk(1) #= 2.\nsame :- f(a) #= k(1).\n")
+
+    assert "same :- __aspf_value(f(a),_AspfCmp0), __aspf_value(k(1),_AspfCmp0)." in result
+
+
+def test_lowers_global_zero_arity_application_comparison() -> None:
+    result = lowered("#nherb.\nsame :- current #= mode.\ncurrent #= active.\nmode #= active.\n")
+
+    assert "same :- __aspf_value(current,_AspfCmp0), __aspf_value(mode,_AspfCmp0)." in result
+
+
+def test_non_herbrand_visibility_directives_do_not_enter_solver_program() -> None:
+    result = lowered("#nherb f/1.\nf(a) #= 2.\n#hide #nherb.\n#show #nherb f/1.\n")
+
+    assert "__aspf_value(f(a),2)." in result
+    assert "#hide #nherb" not in result
+    assert "#show #nherb" not in result
+
+
+def test_historical_ordinary_hide_all_lowers_to_modern_show_empty() -> None:
+    result = lowered("p.\n#hide.\n#show p/0.\n")
+
+    assert "#hide." not in result
+    assert "#show." in result
+    assert "#show p/0." in result
+
+
 def test_lowers_positive_body_comparison() -> None:
     result = lowered(
         """#nherb balance/1.
@@ -186,6 +221,32 @@ def test_lowers_domain_safe_variable_positive_equality() -> None:
     result = lowered("#nherb balance/1.\nzero(A) :- account(A), balance(A) #= 0.\n")
 
     assert "zero(A) :- account(A), __aspf_value(balance(A),0)." in result
+
+
+def test_lowers_seed_equality_value_variable_as_a_direct_relation_join() -> None:
+    result = lowered("#nherb l/1.\np(X,Y) :- l(X) #= Y.\n")
+
+    assert "p(X,Y) :- __aspf_value(l(X),Y)." in result
+    assert "value(Y)" not in result
+
+
+def test_lowers_independently_safe_value_variable_inequality_with_definedness() -> None:
+    result = lowered(
+        "#nherb l/1.\nkey(a).\nvalue(1;2).\ndifferent(X,Y) :- key(X), value(Y), l(X) #!= Y.\n"
+    )
+
+    assert (
+        "different(X,Y) :- key(X), value(Y), __aspf_value(l(X),_AspfNeq0), _AspfNeq0 != Y."
+    ) in result
+
+
+def test_default_negated_value_equality_keys_helper_by_value_variable() -> None:
+    result = lowered(
+        "#nherb l/1.\nkey(a).\nvalue(1;2).\nmissing(X,Y) :- key(X), value(Y), not l(X) #= Y.\n"
+    )
+
+    assert "missing(X,Y) :- key(X), value(Y), not __aspf_sat_0(X,Y)." in result
+    assert "__aspf_sat_0(X,Y) :- __aspf_value(l(X),Y)." in result
 
 
 def test_lowers_domain_safe_variable_not_equal_with_definedness_lookup() -> None:

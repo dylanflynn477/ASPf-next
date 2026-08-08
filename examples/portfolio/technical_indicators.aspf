@@ -1,0 +1,53 @@
+% Synthetic daily close changes, in integer basis points from a reference.
+% The values are illustrative data, not market forecasts or recommendations.
+#nherb price_delta/1.
+#nherb sma14_delta/1.
+#nherb confidence/1.
+
+day(1..16).
+evaluated(14..16).
+
+price_delta(1) #= 5.
+price_delta(2) #= -5.
+price_delta(3) #= 4.
+price_delta(4) #= -4.
+price_delta(5) #= 3.
+price_delta(6) #= -3.
+price_delta(7) #= 2.
+price_delta(8) #= -2.
+price_delta(9) #= 1.
+price_delta(10) #= -1.
+price_delta(11) #= 6.
+price_delta(12) #= -6.
+price_delta(13) #= 7.
+price_delta(14) #= -7.
+price_delta(15) #= 19.
+price_delta(16) #= -19.
+
+% These externally calculated 14-observation values are defined only when a
+% complete window exists. Days 1..13 deliberately have no sma14_delta value.
+sma14_delta(14) #= 0.
+sma14_delta(15) #= 1.
+sma14_delta(16) #= 0.
+
+above_average(D) :-
+    day(D),
+    price_delta(D) #> sma14_delta(D).
+
+zero_average(D) :-
+    day(D),
+    sma14_delta(D) #= 0.
+
+% A review is requested when confidence >= 70 cannot be established. That
+% includes a defined low value and an undefined value for different reasons.
+confidence(14) #= 80.
+confidence(15) #= 45.
+
+needs_review(D) :-
+    evaluated(D),
+    not confidence(D) #>= 70.
+
+#show above_average/1.
+#show zero_average/1.
+#show needs_review/1.
+#hide #nherb price_delta/1.

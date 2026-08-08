@@ -3,10 +3,11 @@
 ## Short card version
 
 ASPf-next is Dylan Flynn's independent clean-room modernization of Marcello
-Balduccini's ASP{f} language. The pre-alpha Python CLI translates a deliberately
-restricted set of partial non-Herbrand function declarations, assignments, and
-positive comparisons into ordinary Clingo 5.8 programs, then reconstructs
-readable ASP{f}-style models with explicit diagnostics for unsupported syntax.
+Balduccini's ASP{f} language. The experimental alpha Python CLI translates a
+deliberately restricted set of partial non-Herbrand function declarations,
+assignments, and comparisons into ordinary Clingo 5.8 programs, then
+reconstructs readable ASP{f}-style models with explicit diagnostics for
+unsupported syntax.
 
 ## Full project version
 
@@ -21,10 +22,10 @@ enumerates models, exposes the translation for inspection, and reconstructs
 stable ASP{f}-style human and JSON output. The repository includes focused
 semantic-boundary tests, Python 3.11/3.12 CI, guided examples, and explicit
 provenance documentation. The current implementation includes definedness-aware
-inequality, integer ordering, application-to-application comparison, and
-ordinary variables in direct application arguments under a conservative
-positive-domain rule. Version 0.1.0-alpha is intentionally experimental.
-Arithmetic, broader variables, aggregates
+inequality, integer ordering, application-to-application comparison, default
+negation, global declaration mode, historical visibility controls, and
+domain-safe ordinary variables with seed-equality safety. Version `0.2.0a1` is
+intentionally experimental. Arithmetic, broader variables, aggregates
 containing n-atoms, and a native propagator remain unimplemented, and the
 project does not claim full historical compatibility or historical grounding
 efficiency. The result is a tested research baseline for evaluating future
@@ -39,7 +40,7 @@ compatibility work without silently inventing language behavior.
 - Explicit functionality and partiality through an inspectable
   `__aspf_value/2` translation.
 - Source-level safety validation for ordinary variables in direct
-  non-Herbrand application arguments.
+  non-Herbrand application arguments and positive scalar seed equality.
 - Location-aware rejection for unsupported or ambiguous ASP{f}-shaped syntax.
 - Automated examples and quality gates across Python 3.11 and 3.12.
 
@@ -62,15 +63,15 @@ future work.
 | Project status | Experimental pre-alpha research software |
 | Primary language | Python |
 | Key technologies | Clingo 5.8, typed IR, pytest, Ruff, mypy, GitHub Actions |
-| Current release | Not yet published; `0.1.0-alpha` is prepared (`0.1.0a1` Python package version) |
+| Current release | `0.2.0a1` experimental alpha |
 | License | MIT |
 | Suggested website tags | Answer Set Programming, logic programming, Python, research software |
 | Suggested call to action | View the source and try the guided examples |
 
-**Suggested repository description:** Experimental clean-room ASP{f}
-compatibility frontend for Clingo 5.8, with a typed Python pipeline and
-inspectable reference lowering.
+**Suggested repository description:** Clean-room modernization of ASP{f} for
+modern Clingo, with partial non-Herbrand functions and executable historical
+compatibility tests.
 
-**Suggested GitHub topics:** `answer-set-programming`, `asp`, `clingo`,
-`logic-programming`, `non-herbrand-functions`, `programming-languages`, `python`,
-`research-software`
+**Suggested GitHub topics:** `answer-set-programming`, `clingo`,
+`logic-programming`, `declarative-programming`, `non-herbrand-functions`,
+`research-software`, `python`

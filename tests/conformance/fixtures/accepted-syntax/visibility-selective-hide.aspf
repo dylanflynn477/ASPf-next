@@ -1,0 +1,7 @@
+#nherb f/0.
+#nherb f/1.
+#nherb k/1.
+f #= zero.
+f(a) #= one.
+k(a) #= other.
+#hide #nherb f/1.

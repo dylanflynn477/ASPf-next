@@ -2,11 +2,11 @@
 
 Status: primary-source design basis for the implemented restricted subset.
 
-This document records the primary-source basis for ASPf-next's first restricted
-variable milestone. The recommended direct-key, independently domain-safe
-subset is now implemented as an unreleased development increment. The document
-separates historical ASP{f}, historical Clingo{f}, current Clingo behavior, and
-ASPf-next restrictions. No historical implementation source code was consulted.
+This document records the primary-source basis for ASPf-next's restricted
+ordinary-variable support. The direct-key, domain-safe subset and the later
+seed-equality safety increment are implemented. The document separates
+historical ASP{f}, historical Clingo{f}, current Clingo behavior, and ASPf-next
+restrictions. No historical implementation source code was consulted.
 
 ## Executive conclusion
 
@@ -27,10 +27,12 @@ Clingo{f}. Application-to-application equality, `#!=`, `#<`, `#<=`, `#>`, and `#
 dependent n-atoms: variables occurring only there are unsafe. Every positive dependent
 comparison is false if either operand is undefined.
 
-The current reference backend can correctly support a narrower subset: ordinary variables
-used directly as arguments of declared applications, provided every such variable is
-independently domain-safe in an ordinary positive body atom. It cannot faithfully implement
-n-variables without new value-binding machinery.
+The current reference backend can correctly support ordinary variables used directly as
+arguments of declared applications and ordinary variables used as complete right operands.
+A positive, non-default-negated scalar seed equality can supply safety for its key variables
+and an optional right value variable; dependent comparisons and default-negated n-atoms
+cannot. The backend still cannot faithfully implement n-variables without separate
+value-binding machinery.
 
 ## Source key and evidence policy
 
@@ -216,9 +218,9 @@ It does not establish:
 - permission for ASPf-next to let a generated private predicate silently define the source
   language’s safety relation.
 
-The deliberately restricted milestone proposed separately does not initially reproduce this
-equality-provided safety. It requires an ordinary positive domain atom for every variable used
-inside an n-atom. This is a documented compatibility restriction.
+The seed-equality increment reproduces this rule for a typed ordinary value-variable operand.
+It does not extend that permission to dependent application equality, inequality, ordering,
+default negation, or rule heads.
 
 ## How function arguments are grounded
 
@@ -408,11 +410,14 @@ ASPf-next language rule.
 The relational backend is sufficient for the following restricted behaviors:
 
 - ordinary variables in direct application-argument positions;
-- those variables independently bounded by ordinary positive body atoms;
+- those variables bounded by ordinary positive body atoms or by a positive seed equality;
+- ordinary value variables occupying an entire body right operand;
+- equality-provided safety for the key and value variables of a positive seed equality;
 - ground scalar right operands from the already supported value classes;
 - declared application right operands whose direct variables are independently domain-safe;
 - head assignments whose argument variables are independently body-safe;
-- positive body `#=`, `#!=`, and numeric order comparisons with that key shape;
+- positive body `#=` and `#!=` with safely bounded value variables;
+- numeric order comparisons only with ground integer or application operands;
 - partiality through absent `__aspf_value/2` atoms;
 - functionality through the existing global integrity constraint;
 - stable model reconstruction after grounding.
@@ -431,10 +436,11 @@ domain atoms from n-atoms.
 
 ### Explicit finite value domains
 
-Ordinary variables in value positions could be compiled to relational lookups or explicit
-finite domains. Doing so can reproduce some ground semantics but can also change which
-constants are considered and create large groundings. Equality-provided safety should be a
-separate milestone with an explicit domain model and conformance evidence.
+Ordinary variables in value positions are compiled through the existing positive value
+relation. The relation supplies only potentially supported key/value tuples, so the frontend
+does not infer a global finite value domain from unrelated constants. Ordered value-variable
+comparisons remain outside the slice because an ordinary symbolic domain does not establish an
+integer sort.
 
 ### Theory atoms or a native propagator
 
@@ -519,8 +525,8 @@ purpose. It also ignores defining equalities and n-stratification.
 
 | Area | Historical language/system | Current ASPf-next architecture |
 | --- | --- | --- |
-| ordinary variables | supported broadly through grounding | direct key arguments only, with an independent positive body domain |
-| seed equality safety | may provide safe variable occurrences | equality does not supply safety; an ordinary positive body atom is required |
+| ordinary variables | supported broadly through grounding | direct key arguments and complete body value operands |
+| seed equality safety | may provide safe variable occurrences | positive scalar `#=` supplies rule-local safety |
 | dependent comparison safety | variables must be safe elsewhere | enforced before lowering through the narrower ordinary-domain rule |
 | n-variables | grounder-inert, equality-defined, n-stratified | no representation or backend mechanism |
 | declared names outside n-atoms | treated as ordinary Herbrand terms in Clingo{f} | rejected to prevent semantic leakage |
@@ -538,10 +544,10 @@ These questions should remain explicit rather than being answered by implementat
    should govern equality-provided safety in ASPf-next?
 2. What exact lexical forms should count as historical n-variables, especially `_`, `_X`, and
    case variants, without conflicting with modern Clingo variable syntax?
-3. Should a future equality milestone reproduce CF P1 by deriving a finite domain from private
-   assignment heads, require an explicit user domain, or defer to a native backend?
-4. Can multiple positive seed equalities safely provide mutually dependent ordinary-variable
-   domains, and what cycle rule should the frontend enforce?
+3. How far beyond the implemented direct relational join should equality-provided safety
+   extend once arithmetic or aggregate values are considered?
+4. Should mutually recursive seed equalities receive an additional source restriction if
+   future head value variables make value production more general?
 5. Should classically negated ordinary atoms count as domain providers in the first milestone?
    Modern Clingo can make variables safe there, but a narrower unnegated-only rule is easier to
    diagnose and specify.
@@ -559,12 +565,13 @@ These questions should remain explicit rather than being answered by implementat
 
 ## Recommendation
 
-**GO WITH CONDITIONS** — implement only ordinary, explicitly domain-safe variables in direct
-non-Herbrand application arguments. Require each such variable to occur directly in an
-ordinary, unnegated, positive symbolic body atom in the same rule. Keep every scalar right
-operand ground, keep n-variables rejected, and do not allow a generated private lookup or
-another n-atom to establish source safety.
+**GO WITH CONDITIONS** — represent an ordinary right-side value variable explicitly and let
+only a positive, non-default-negated scalar seed equality establish safety for its key and
+optional value variables. Continue to require independent safety for dependent and
+default-negated n-atoms.
+Keep ordered value variables, head value variables, and n-variables rejected.
 
-Under those conditions, the current reference backend is sufficient. The exact proposed
-language and implementation work are specified in
-[`variable-milestone-plan.md`](variable-milestone-plan.md).
+Under those conditions, the positive `__aspf_value/2` relation is both the semantic lookup and
+the finite grounding domain; no inferred universe is needed. The exact proof obligations and
+boundary are recorded in
+[`historical-seed-equality-safety.md`](historical-seed-equality-safety.md).

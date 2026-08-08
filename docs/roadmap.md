@@ -1,117 +1,61 @@
 # Roadmap
 
-This roadmap distinguishes shipped behavior from possible research directions.
-Items beyond the implemented surface are proposals, not commitments or
-compatibility claims.
+This roadmap separates implemented behavior from research candidates. Nothing
+in the candidate sections is a compatibility promise.
 
-## Milestone 0.1 — restricted reference frontend
+## 0.2.0a1 release baseline
 
-Implemented:
+Implemented and tested:
 
-- location-aware compatibility scanning and validation;
-- `#nherb f/n.` declarations;
-- ground `#=` assignments in facts and complete rule heads;
-- positive ground `#=` comparisons in rule bodies;
-- integer, symbolic constant, and string values;
-- inspectable reference lowering to ordinary Clingo 5.8;
-- partiality and functionality without a totality rule;
-- model enumeration, normalized human output, and JSON output; and
-- explicit diagnostics for unsupported ASP{f}-shaped syntax.
+- context-aware scanning, typed IR, reference lowering to Clingo 5.8, solving,
+  model enumeration, and normalized human/JSON output;
+- partial non-Herbrand assignments with functionality and no totality rule;
+- explicit/application declarations, exact name/arity identity, and global
+  `#nherb.` with a zero-arity signature restriction;
+- `#=`, `#!=`, and integer-only `#<`, `#<=`, `#>`, `#>=` body comparisons;
+- application operands and one-level default negation with definedness-aware
+  semantics;
+- ordinary direct-key variables with domain-safe ordinary atoms or positive
+  scalar seed equality, plus restricted body value variables;
+- historical non-Herbrand visibility controls as presentation policy; and
+- executable conformance and historical compatibility manifests.
 
-See the [supported-language document](supported-language.md) for the normative
-boundary.
+The exact current contract is the [supported-language specification](supported-language.md).
+The manifest-derived historical report records 35 compatible cases, 7
+compatible-with-restriction cases, 2 matching rejections of historically
+invalid inputs, 4 unsupported cases, 4 intentionally deferred cases, and no
+unresolved cases.
 
-## Milestone 0.2 conformance foundation
+## Next technical milestone: native-backend feasibility
 
-Implemented without changing the milestone 0.1 accepted language:
+The recommended next milestone is a bounded prototype using Clingo theory atoms
+and a custom Python propagator to test whether historical grounder-inert
+non-Herbrand variables can be represented faithfully. Its GO criteria must
+include semantic equivalence, no ordinary value-domain grounding, stable
+undefinedness, and reasonable grounding growth. The existing
+[n-variable analysis](design/non-herbrand-variables.md) explains why the
+relational reference backend is a NO-GO for this feature.
 
-- map every milestone 0.1 construct to primary sources, implementation, tests,
-  and known deviations;
-- execute a machine-readable conformance corpus across source layout and
-  multi-file programs; and
-- record the architectural decisions that protect the semantic boundary.
+This prototype must remain separate from the reference backend and cannot alter
+the released syntax unless its semantics and operational behavior pass review.
 
-## Implemented compatibility increments
+## Deferred compatibility candidates
 
-Positive ground `#!=` is implemented as a complete positive body literal. Both
-operands must be defined, so an undefined left application makes the comparison
-false. The reference backend performs an explicit value lookup followed by
-ordinary inequality; it does not treat inequality as the absence of equality.
-No release number has been assigned to this increment.
+Each candidate requires primary-source research, a typed design, explicit
+undefinedness rules, conservative diagnostics, and focused conformance tests:
 
-Positive `#<`, `#<=`, `#>`, and `#>=` body literals are also implemented for
-integer values and integer scalar right operands.
-Undefined and non-integer application values make the comparison false. No
-coercion or arithmetic is included, and no release number has been assigned.
+- arithmetic expressions inside n-atoms;
+- broader ordinary-variable positions and numeric-domain evidence;
+- n-atoms inside aggregates;
+- n-atoms inside choice, disjunctive, or conditional constructs; and
+- additional historical visibility or grounding behavior not represented by
+  the current corpus.
 
-Domain-safe ordinary uppercase variables are implemented only as complete,
-direct application arguments. Every such variable must have an independent occurrence
-in an ordinary, unnegated positive symbolic body atom in the same rule. Right
-operands remain ground; nested argument variables, equality-provided safety,
-anonymous variables, and `_v` non-Herbrand variables remain unsupported. This
-increment also has no release number.
+## Permanent project guardrails
 
-Typed scalar and application operands are implemented in distinct assignment
-and body-comparison IR nodes. Positive application-to-application equality and
-inequality require both values to be defined; all four ordered operators also
-require both runtime values to be integers. Application comparison remains
-body-only and does not provide source-variable safety or assignment/copy
-semantics.
-
-## Historical compatibility 1
-
-Implemented as an unreleased compatibility subset:
-
-- application-style explicit declarations such as `#nherb f(X).`;
-- exact `(name, arity)` identity, including same-name declarations at multiple
-  arities;
-- ordinary Herbrand use of declared symbols outside n-atoms;
-- ground compound Herbrand values under equality and inequality; and
-- typed declared-versus-undeclared functional operands.
-
-The milestone established the attributed historical corpus and its
-manifest-derived report. After the default-negation increment, the corpus has
-39 cases: 30 pass, 7 are expected unsupported, and 2 equality-safety cases
-remain unresolved. Global `#nherb.`, legacy visibility, equality-provided
-safety, choices, aggregates, arithmetic, and n-variables remain visible strict
-xfails. See the
-[audit](compatibility/historical-clingof-audit.md) and
-[policy](compatibility/policy.md). No release number has been assigned.
-
-## Historical default negation
-
-One `not` before an otherwise supported complete body n-atom is implemented
-for scalar and application operands, all six operators, and the existing
-independently domain-safe key variables. It means failure of positive
-satisfaction: an undefined operand makes default-negated equality, inequality,
-and ordering true. The reference backend defines positive satisfaction with a
-fresh parameterized helper and negates that helper, preserving the supported
-reduct behavior without complementing operators.
-
-## Next compatibility candidates
-
-Legacy assignment visibility and a deliberately bounded seed-equality safety
-subset are the next compatibility research candidates. Legacy visibility is
-the recommended next milestone because its semantics are source-documented and
-orthogonal to grounding, although it requires typed output-policy IR. Global declaration mode
-remains blocked on bare right-operand classification. Arithmetic expressions,
-broader variable positions, and every broader n-atom context remain deferred.
-Each candidate requires its own
-primary-source review, explicit undefinedness rule, typed IR, conservative
-diagnostics, and focused conformance cases.
-
-## Later research
-
-Longer-term topics may include:
-
-- additional comparisons and arithmetic;
-- non-Herbrand variables and broader ordinary-variable semantics;
-- aggregates containing n-atoms;
-- an alternative backend using Clingo theory atoms or a custom propagator;
-- equivalence and grounding-size studies comparing backends; and
-- an explainable portfolio-risk demonstration built only after the language
-  semantics it needs are specified and tested.
-
-None of these later language capabilities is implemented by the current
-increments. A native backend would be a separate research
-milestone, not a silent replacement for the reference translation.
+- No copied historical implementation code and no Clingo C/C++ fork.
+- No silent totality, coercion, invented values, or operator-complement rewrite.
+- No claim of full historical compatibility or historical grounding
+  efficiency from the reference translation.
+- Unsupported and ambiguous ASP{f}-shaped syntax remains location-aware and
+  explicit.

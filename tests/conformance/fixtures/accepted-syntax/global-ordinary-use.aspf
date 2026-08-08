@@ -1,0 +1,3 @@
+#nherb.
+f(a) #= 2.
+ordinary(f(a)).

@@ -81,8 +81,9 @@ solvent(account1) :- balance(account1) #= 500.
 ```
 
 The rule derives `solvent(account1)` because the application has the tested
-value. Scalar n-atom right operands must be ground. A later section shows the
-distinct declared-application operand and its default-negated form.
+value. Body equality also supports a complete ordinary value variable; a later
+section shows that seed-equality form and the distinct declared-application
+operand.
 
 ## 6. Compare with a different defined value
 
@@ -122,7 +123,7 @@ when the application has a defined integer value satisfying the usual
 arithmetic relation. Undefined, symbolic, and string values make it false; no
 coercion is performed.
 
-## 8. Use a domain-safe variable
+## 8. Use domain-safe ordinary variables
 
 Run the restricted variable example:
 
@@ -137,11 +138,22 @@ low(A) :- account(A), balance(A) #< 1000.
 nonzero(A) :- account(A), balance(A) #!= 0.
 ```
 
-The ordinary positive atom `account(A)` supplies `A`'s grounding domain. Every
-variable in an n-atom key needs such an independent domain occurrence in the
-same rule. Another n-atom, ordinary equality, negation, or a generated private
-lookup cannot supply it. Scalar values and right operands remain ground, and
-nested or non-Herbrand variables remain unsupported.
+The ordinary positive atom `account(A)` supplies `A`'s grounding domain.
+Dependent inequality and order cannot supply safety themselves.
+
+A positive scalar seed equality can instead provide safety for its key and
+optional right value variable:
+
+```asp
+p(X) :- balance(X) #= 500.
+value_at(X,Y) :- balance(X) #= Y.
+```
+
+The second rule ranges only over supported `balance` key/value tuples. An
+undefined key contributes no tuple, and unrelated constants are not added as a
+value domain. Application equality, inequality, ordering, and default negation
+remain non-binding. Ordered value variables, nested variables, assignment-head
+value variables, and non-Herbrand `_V` variables remain unsupported.
 
 ## 9. Compare two partial applications
 

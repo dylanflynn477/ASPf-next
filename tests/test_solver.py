@@ -18,6 +18,36 @@ def test_basic_assignment_is_reconstructed() -> None:
     assert result.models[0].atoms == ("balance(account1)#=500",)
 
 
+def test_global_mode_reconstructs_multiple_automatic_function_symbols() -> None:
+    result = solve("#nherb.\nf(a) #= 2.\nk(1) #= 2.\nsame :- f(a) #= k(1).\n")
+
+    assert result.models[0].ordinary_atoms == ("same",)
+    assert result.models[0].assignments == ("f(a)#=2", "k(1)#=2")
+
+
+def test_global_mode_keeps_undefined_applications_partial() -> None:
+    result = solve(
+        "#nherb.\naccount(a).\nequal :- missing(a) #= 1.\ndifferent :- missing(a) #!= 1.\n"
+    )
+
+    assert result.models[0].ordinary_atoms == ("account(a)",)
+    assert result.models[0].assignments == ()
+
+
+def test_global_mode_supports_zero_arity_assignments_and_comparisons() -> None:
+    result = solve("#nherb.\nsame :- current #= mode.\ncurrent #= active.\nmode #= active.\n")
+
+    assert result.models[0].ordinary_atoms == ("same",)
+    assert result.models[0].assignments == ("current#=active", "mode#=active")
+
+
+def test_global_mode_does_not_evaluate_ordinary_herbrand_occurrences() -> None:
+    result = solve("#nherb.\nf(a) #= 2.\nordinary(f(a)).\n")
+
+    assert result.models[0].ordinary_atoms == ("ordinary(f(a))",)
+    assert result.models[0].assignments == ("f(a)#=2",)
+
+
 def test_positive_body_comparison_derives_ordinary_atom() -> None:
     result = solve(
         """#nherb balance/1.
@@ -237,6 +267,63 @@ hidden.
     assert "__aspf_" not in result.models[0].render()
 
 
+def test_hide_all_non_herbrand_assignments_changes_only_presentation() -> None:
+    result = solve("#nherb f/1.\nf(a) #= 2.\nderived :- f(a) #= 2.\n#hide #nherb.\n")
+
+    assert result.models[0].ordinary_atoms == ("derived",)
+    assert result.models[0].assignments == ()
+    assert "__aspf_value(f(a),2)." in result.lowered.source
+
+
+def test_selective_hide_uses_exact_name_and_arity() -> None:
+    result = solve(
+        "#nherb f/0.\n#nherb f/1.\n#nherb k/1.\n"
+        "f #= zero.\nf(a) #= one.\nk(a) #= other.\n"
+        "#hide #nherb f/1.\n"
+    )
+
+    assert result.models[0].assignments == ("f#=zero", "k(a)#=other")
+
+
+def test_selective_show_after_hide_all_exposes_only_selected_assignment() -> None:
+    result = solve(
+        "#nherb f/1.\n#nherb k/1.\nf(a) #= 2.\nk(a) #= 3.\n#hide #nherb.\n#show #nherb f(X).\n"
+    )
+
+    assert result.models[0].assignments == ("f(a)#=2",)
+
+
+def test_visibility_directive_order_is_deterministic() -> None:
+    result = solve("#nherb f/1.\nf(a) #= 2.\n#hide #nherb.\n#show #nherb f/1.\n#hide #nherb f/1.\n")
+
+    assert result.models[0].assignments == ()
+
+
+def test_ordinary_show_and_non_herbrand_visibility_are_independent() -> None:
+    result = solve("#nherb f/1.\nf(a) #= 2.\nvisible.\nhidden.\n#show visible/0.\n#hide #nherb.\n")
+
+    assert result.models[0].ordinary_atoms == ("visible",)
+    assert result.models[0].assignments == ()
+
+
+def test_historical_ordinary_hide_all_supports_selective_non_herbrand_show() -> None:
+    result = solve(
+        "#nherb f/1.\n#nherb k/1.\nf(a) #= 2.\nk(a) #= 3.\np.\n#hide.\n#show #nherb f/1.\n"
+    )
+
+    assert result.models[0].ordinary_atoms == ()
+    assert result.models[0].assignments == ("f(a)#=2",)
+
+
+def test_hidden_assignment_policy_is_stable_across_multiple_models() -> None:
+    result = solve(
+        "#nherb f/0.\n{ choose }.\nf #= 1 :- choose.\n#hide #nherb.\n",
+        models=0,
+    )
+
+    assert {model.atoms for model in result.models} == {(), ("choose",)}
+
+
 def test_string_value_is_rendered_as_aspf_assignment() -> None:
     result = solve('#nherb label/1.\nlabel(item1) #= "cold brew".\n')
 
@@ -352,6 +439,108 @@ def test_domain_safe_variable_head_assignments_retain_functionality() -> None:
 
     assert result.status is SolveStatus.UNSATISFIABLE
     assert result.models == ()
+
+
+def test_historical_p1_seed_equality_is_safe_but_has_no_invented_values() -> None:
+    result = solve("#nherb l/1.\np(X,Y) :- l(X) #= Y.\n")
+
+    assert result.status is SolveStatus.SATISFIABLE
+    assert result.models[0].ordinary_atoms == ()
+    assert result.models[0].assignments == ()
+
+
+def test_historical_p2_seed_equality_binds_key_and_value_variables() -> None:
+    result = solve("#nherb l/1.\nl(a) #= 3.\np(X,Y) :- l(X) #= Y.\n")
+
+    assert result.models[0].ordinary_atoms == ("p(a,3)",)
+    assert result.models[0].assignments == ("l(a)#=3",)
+
+
+def test_ground_seed_equality_binds_its_key_variable() -> None:
+    result = solve("#nherb l/1.\nl(a) #= 3.\nl(b) #= 4.\np(X) :- l(X) #= 3.\n")
+
+    assert result.models[0].ordinary_atoms == ("p(a)",)
+
+
+def test_seed_equality_covers_multiple_keys_values_and_compound_values() -> None:
+    result = solve(
+        "#nherb l/1.\nl(a) #= 1.\nl(b) #= two.\nl(c) #= wrapper(k(3)).\np(X,Y) :- l(X) #= Y.\n"
+    )
+
+    assert result.models[0].ordinary_atoms == (
+        "p(a,1)",
+        "p(b,two)",
+        "p(c,wrapper(k(3)))",
+    )
+
+
+def test_seed_equality_does_not_range_over_unrelated_constants_or_undefined_keys() -> None:
+    result = solve("#nherb l/1.\nkey(a;b).\nunrelated(999).\nl(a) #= 3.\np(X,Y) :- l(X) #= Y.\n")
+
+    assert result.models[0].ordinary_atoms == (
+        "key(a)",
+        "key(b)",
+        "p(a,3)",
+        "unrelated(999)",
+    )
+
+
+def test_seed_equality_follows_conditional_assignments_across_models() -> None:
+    result = solve(
+        "#nherb l/1.\n1 { choose(1); choose(2) } 1.\n"
+        "l(a) #= 1 :- choose(1).\nl(a) #= 2 :- choose(2).\n"
+        "p(X,Y) :- l(X) #= Y.\n",
+        models=0,
+    )
+
+    assert {(model.ordinary_atoms, model.assignments) for model in result.models} == {
+        (("choose(1)", "p(a,1)"), ("l(a)#=1",)),
+        (("choose(2)", "p(a,2)"), ("l(a)#=2",)),
+    }
+
+
+def test_same_variable_can_join_two_seed_equalities() -> None:
+    result = solve(
+        "#nherb left/1.\n#nherb right/1.\n"
+        "left(a) #= shared.\nright(b) #= shared.\nright(c) #= other.\n"
+        "pair(X,Z,Y) :- left(X) #= Y, right(Z) #= Y.\n"
+    )
+
+    assert "pair(a,b,shared)" in result.models[0].ordinary_atoms
+    assert "pair(a,c,shared)" not in result.models[0].ordinary_atoms
+
+
+def test_seed_equality_can_supply_safety_to_a_dependent_literal() -> None:
+    result = solve(
+        "#nherb actual/1.\n#nherb expected/1.\n"
+        "actual(a) #= 4.\nexpected(a) #= 4.\n"
+        "same(X,Y) :- actual(X) #= Y, actual(X) #= expected(X).\n"
+    )
+
+    assert "same(a,4)" in result.models[0].ordinary_atoms
+
+
+def test_independently_safe_value_variable_inequality_preserves_definedness() -> None:
+    result = solve(
+        "#nherb l/1.\nkey(a;b).\nvalue(1;2).\nl(a) #= 1.\n"
+        "different(X,Y) :- key(X), value(Y), l(X) #!= Y.\n"
+    )
+
+    assert "different(a,2)" in result.models[0].ordinary_atoms
+    assert "different(a,1)" not in result.models[0].ordinary_atoms
+    assert all(not atom.startswith("different(b,") for atom in result.models[0].ordinary_atoms)
+
+
+def test_default_negated_value_equality_is_nonbinding_but_works_when_independently_safe() -> None:
+    result = solve(
+        "#nherb l/1.\nkey(a;b).\nvalue(1;2).\nl(a) #= 1.\n"
+        "missing(X,Y) :- key(X), value(Y), not l(X) #= Y.\n"
+    )
+
+    assert "missing(a,1)" not in result.models[0].ordinary_atoms
+    assert "missing(a,2)" in result.models[0].ordinary_atoms
+    assert "missing(b,1)" in result.models[0].ordinary_atoms
+    assert "missing(b,2)" in result.models[0].ordinary_atoms
 
 
 def application_comparison_program(

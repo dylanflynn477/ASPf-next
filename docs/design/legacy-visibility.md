@@ -1,9 +1,8 @@
-# Legacy non-Herbrand visibility design
+# Legacy non-Herbrand visibility implementation contract
 
-Status: researched and intentionally deferred from
-`historical-compatibility-1`.
+Status: approved for `release/0.2-portfolio-ready`.
 
-## Historical contract
+## Primary-source contract
 
 The public Clingo{f} documentation defines:
 
@@ -13,42 +12,75 @@ The public Clingo{f} documentation defines:
 #show #nherb f/1.
 ```
 
-The selected forms also have application-style spellings such as
-`#show #nherb f(X).`. These directives change displayed seed assignments, not
-the truth of rules or the answer sets. Historical ordinary `#hide.` also hides
-seed assignments.
+Selected forms also have placeholder-style spellings such as
+`#show #nherb f(X).`. These directives affect displayed seed assignments, not
+their truth or any rule's satisfaction. Historical ordinary `#hide.` hides all
+ordinary atoms and seed assignments; the documented selective-show example
+uses it before `#show #nherb f/1.`.
 
-## ASPf-next design
+## Typed representation
 
-Visibility belongs in a typed output policy carried by `Program` into model
-normalization:
+Each accepted non-Herbrand visibility directive becomes an
+`NHerbVisibilityDirective` in `Program.nherb_visibility`. A directive contains:
+
+- an explicit `show` or `hide` action;
+- either the all-assignments selector or one exact `(name, arity)` selector;
+- its source span.
+
+Directives from all input files retain command-line source order. Signature
+forms use a non-negative integer arity. Application-style forms accept only
+the same uppercase/anonymous placeholders used by historical declarations.
+Selectors do not declare functions and do not affect operand classification.
+
+## Output pipeline
 
 ```text
-ordinary Clingo #show policy -> ordinary shown atoms
-ASPf assignment policy       -> reconstructed assignments
-private __aspf_ atoms         -> always hidden
+solve every assignment normally
+        -> reconstruct private value atoms
+        -> apply ordered non-Herbrand visibility policy
+        -> render human or JSON output
 ```
 
-The assignment policy needs ordered handling of:
+The default is visible. Each matching directive updates that assignment's
+visibility in source order. Therefore a hide-all followed by show `f/1` exposes
+only `f/1`, while a later hide can override an earlier show. Selectors use the
+key symbol's exact name and arity, so `f/0`, `f/1`, and `f/2` are independent.
 
-- default visibility;
-- hide all assignments;
-- hide a selected `(name, arity)`;
-- show a selected `(name, arity)` after a broader hide;
-- application-style arity inference; and
-- multiple input files.
+Private predicates beginning with `__aspf_` are always hidden regardless of
+the policy. `--emit-lowered` omits legacy non-Herbrand visibility directives
+because they have no solver meaning.
 
-Lowering must remove legacy directives before modern Clingo parses them, but it
-must not add rules or constraints for visibility.
+## Ordinary Clingo visibility
 
-## Why this branch defers it
+Modern Clingo 5.8 accepts ordinary `#show` and ASPf-next continues to pass it
+through unchanged. It rejects historical `#hide.`. For the exact all-hidden
+form only, the compatibility frontend emits modern `#show.`, which establishes
+the same empty ordinary shown set and composes with ordinary `#show` selectors.
+The same historical directive also adds hide-all to the n-herb policy.
 
-The current `Program` contains declarations and statements but no output-policy
-IR, and `normalize_model` receives only a Clingo model. Adding syntax acceptance
-without carrying the policy through solving would be source-compatible but
-output-incompatible. Passing directives through to modern Clingo would be both
-version-dependent and semantically wrong.
+ASPf-next does not introduce a general translation for selective ordinary
+`#hide p/n` syntax. Unsupported ordinary syntax remains Clingo's responsibility.
 
-Strict historical xfails cover hide-all and selective-show cases. A future
-implementation should add dedicated frontend, IR, solver, model, human CLI, and
-JSON tests before those cases become passing.
+## Semantic invariants
+
+- Visibility never changes lowering rules, functionality, partiality,
+  grounding, model count, or stable-model semantics.
+- A hidden assignment still satisfies positive and default-negated rules in
+  the usual way.
+- Human and JSON output apply the same policy and stable ordering.
+- Multiple models and multiple files use one deterministic policy.
+- Ordinary `#show` and non-Herbrand visibility are independent layers.
+
+## Diagnostics
+
+Only documented all/signature/placeholder forms are accepted. Malformed
+selectors, negative arities, extra tokens, invalid placements, or unsupported
+application expressions raise a filename-, line-, and column-aware
+`UnsupportedSyntaxError`. Directive text in comments and strings is inert.
+
+## Evidence boundary
+
+This milestone implements presentation behavior for reconstructed assignments
+and the exact historical ordinary hide-all bridge needed by the documented
+selective-show example. It does not add arithmetic, aggregates, choices,
+non-Herbrand variables, or new solving semantics.

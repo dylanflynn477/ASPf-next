@@ -1,0 +1,4 @@
+#nherb f/0.
+{ choose }.
+f #= 1 :- choose.
+#hide #nherb.

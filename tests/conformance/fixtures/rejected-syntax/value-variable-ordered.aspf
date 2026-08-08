@@ -1,0 +1,4 @@
+#nherb l/1.
+key(a).
+number(1).
+p(X,Y) :- key(X), number(Y), l(X) #< Y.

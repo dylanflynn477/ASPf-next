@@ -1,0 +1,5 @@
+#nherb l/1.
+1 { choose(1); choose(2) } 1.
+l(a) #= 1 :- choose(1).
+l(a) #= 2 :- choose(2).
+p(X,Y) :- l(X) #= Y.

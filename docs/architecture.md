@@ -83,14 +83,20 @@ and unresolved historical cases independently of the project-boundary
 conformance corpus. `scripts/compatibility_report.py` renders only that manifest
 data.
 
-Deferred historical constructs keep their architectural boundaries explicit:
+Global `#nherb.` is represented by `Program.global_nherb`, not synthesized
+declaration text. Before statement parsing, the frontend collects left/key
+application signatures across all files so a bare right token can be resolved
+as a zero-arity application when its signature is established. Positive-arity
+functional operands under `#` are applications in global mode; ordinary
+occurrences outside n-atoms still pass through unchanged.
 
-- global `#nherb.` needs a program declaration mode and a source-backed rule
-  for bare right operands;
-- legacy `#show/#hide #nherb` needs typed output-policy IR carried into model
-  normalization;
-- equality-provided safety needs a grounding-domain design.
+Non-Herbrand visibility is typed, ordered program policy. Solving and
+assignment reconstruction happen before exact name/arity filtering is applied
+to human or JSON presentation. Historical ordinary `#hide.` is the narrow
+exception handled in lowering: it becomes modern `#show.` for equivalent
+ordinary hide-all behavior and contributes hide-all to assignment policy.
 
+Broader historical constructs keep their architectural boundaries explicit.
 None is approximated by text insertion or by weakening an unrelated validator.
 
 ## Reference-backend invariant
@@ -119,12 +125,13 @@ from becoming accidental numeric coercion. Private `#defined` directives keep
 Clingo from reporting intentionally absent private atoms as undefined ordinary
 predicates; they derive no atoms and do not make functions total.
 
-When a direct key argument is a source variable, the frontend first requires an
-independent occurrence in an ordinary, unnegated positive symbolic body atom.
-Lowering then preserves the variable in the relational key. Clingo grounds the
-ordinary domain atom and private lookup together. Generated `__aspf_` atoms and
-helper variables are intentionally excluded from source safety analysis, so the
-backend cannot manufacture a grounding domain that the input program lacked.
+When a direct key argument is a source variable, the frontend requires safety
+from an ordinary, unnegated positive symbolic body atom or a positive scalar
+seed equality. A seed equality such as `l(X) #= Y` lowers directly to
+`__aspf_value(l(X),Y)`, whose potential tuples form the finite key/value join
+domain. No unrelated constants or totality tuples are generated. Dependent and
+default-negated n-atoms are explicitly excluded from source safety analysis,
+so a generated backend lookup cannot legalize historical P4/P5-style input.
 
 Application equality uses two positive value lookups with one shared generated
 value variable. Inequality uses two lookups and an explicit `!=` relation.

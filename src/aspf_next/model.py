@@ -7,6 +7,7 @@ from typing import Any
 
 import clingo
 
+from aspf_next.ir import NHerbVisibilityDirective, VisibilityAction
 from aspf_next.lowering import INTERNAL_VALUE_PREDICATE
 
 _INTERNAL_PREFIX = "__aspf_"
@@ -40,14 +41,19 @@ class NormalizedModel:
         }
 
 
-def normalize_model(model: clingo.Model) -> NormalizedModel:
-    """Extract shown ordinary atoms and all true reference-backend values."""
+def normalize_model(
+    model: clingo.Model,
+    visibility: tuple[NHerbVisibilityDirective, ...] = (),
+) -> NormalizedModel:
+    """Extract shown ordinary atoms and policy-visible backend values."""
 
     ordinary = sorted(
         str(symbol) for symbol in model.symbols(shown=True) if not _is_internal(symbol)
     )
     assignments = sorted(
-        _render_assignment(symbol) for symbol in model.symbols(atoms=True) if _is_value_atom(symbol)
+        _render_assignment(symbol)
+        for symbol in model.symbols(atoms=True)
+        if _is_value_atom(symbol) and _is_assignment_visible(symbol, visibility)
     )
     return NormalizedModel(tuple(ordinary), tuple(assignments))
 
@@ -62,6 +68,21 @@ def _is_value_atom(symbol: clingo.Symbol) -> bool:
         and symbol.name == INTERNAL_VALUE_PREDICATE
         and len(symbol.arguments) == 2
     )
+
+
+def _is_assignment_visible(
+    symbol: clingo.Symbol,
+    directives: tuple[NHerbVisibilityDirective, ...],
+) -> bool:
+    key = symbol.arguments[0]
+    if key.type is not clingo.SymbolType.Function:
+        return True
+
+    visible = True
+    for directive in directives:
+        if directive.selects(key.name, len(key.arguments)):
+            visible = directive.action is VisibilityAction.SHOW
+    return visible
 
 
 def _render_assignment(symbol: clingo.Symbol) -> str:

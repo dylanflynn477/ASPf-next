@@ -106,8 +106,22 @@ class ScalarOperand:
 
 
 @dataclass(frozen=True, slots=True)
+class ValueVariableOperand:
+    """An ordinary source variable occupying a body n-atom value position."""
+
+    name: str
+    span: SourceSpan
+
+    @property
+    def text(self) -> str:
+        """Return the source spelling used by the reference lowering."""
+
+        return self.name
+
+
+@dataclass(frozen=True, slots=True)
 class ApplicationOperand:
-    """A declared non-Herbrand application operand and its source span."""
+    """A non-Herbrand application operand and its source span."""
 
     application: FunctionApplication
     span: SourceSpan
@@ -118,7 +132,7 @@ class ApplicationOperand:
         return self.application.render()
 
 
-ComparisonOperand: TypeAlias = ScalarOperand | ApplicationOperand
+ComparisonOperand: TypeAlias = ScalarOperand | ValueVariableOperand | ApplicationOperand
 
 
 @dataclass(frozen=True, slots=True)
@@ -153,6 +167,28 @@ class NHerbDeclaration:
     span: SourceSpan
 
 
+class VisibilityAction(Enum):
+    """Presentation action for reconstructed non-Herbrand assignments."""
+
+    SHOW = "show"
+    HIDE = "hide"
+
+
+@dataclass(frozen=True, slots=True)
+class NHerbVisibilityDirective:
+    """An ordered all-assignments or exact name/arity visibility directive."""
+
+    action: VisibilityAction
+    name: str | None
+    arity: int | None
+    span: SourceSpan
+
+    def selects(self, name: str, arity: int) -> bool:
+        """Return whether this directive applies to the given application key."""
+
+        return self.name is None or (self.name == name and self.arity == arity)
+
+
 @dataclass(frozen=True, slots=True)
 class OrdinaryStatement:
     """A source statement requiring no compatibility lowering."""
@@ -180,3 +216,5 @@ class Program:
     declarations: tuple[NHerbDeclaration, ...]
     statements: tuple[ProgramStatement, ...]
     filename: str
+    global_nherb: bool = False
+    nherb_visibility: tuple[NHerbVisibilityDirective, ...] = ()

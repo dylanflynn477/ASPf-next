@@ -53,7 +53,7 @@ def test_release_metadata_is_consistent() -> None:
         "project"
     ]
 
-    assert metadata["version"] == __version__ == "0.1.0a1"
+    assert metadata["version"] == __version__ == "0.2.0a1"
     assert metadata["authors"] == [{"name": "Dylan Flynn"}]
     assert metadata["urls"]["Repository"] == "https://github.com/dylanflynn477/ASPf-next"
     assert "answer-set-programming" in metadata["keywords"]
@@ -62,21 +62,21 @@ def test_release_metadata_is_consistent() -> None:
     changelog = (PROJECT_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
     portfolio = (PROJECT_ROOT / "docs" / "portfolio-copy.md").read_text(encoding="utf-8")
-    assert "0.1.0-alpha - Unreleased" in changelog
-    assert "release has not been published" in " ".join(readme.split())
-    assert "Current release | Not yet published" in portfolio
+    assert "0.2.0a1 - 2026-08-08" in changelog
+    assert "current version is `0.2.0a1`" in readme.lower()
+    assert "Current release | `0.2.0a1`" in portfolio
 
 
-def test_productization_documents_exist() -> None:
+def test_project_and_release_documents_exist() -> None:
     expected = (
         "CHANGELOG.md",
         "CONTRIBUTING.md",
-        "PRODUCTIZATION_PLAN.md",
+        "PLAN.md",
         "docs/quickstart.md",
         "docs/roadmap.md",
         "docs/demo-recording.md",
         "docs/portfolio-copy.md",
-        "docs/releases/0.1.0-alpha.md",
+        "docs/releases/0.2.0a1.md",
         "docs/releases/not-equal-development.md",
         "docs/releases/ordered-comparisons-development.md",
         "docs/releases/domain-safe-variables-development.md",
@@ -162,7 +162,7 @@ def test_not_equal_documentation_records_the_semantic_boundary() -> None:
     )
     assert "undefined application makes the literal false" in " ".join(supported.split())
     assert "not __aspf_value" in development
-    assert "has not been assigned a release number" in " ".join(development.split())
+    assert "Included in `0.2.0a1`" in development
 
 
 def test_ordered_comparison_documentation_records_numeric_boundary() -> None:
@@ -186,7 +186,7 @@ def test_ordered_comparison_documentation_records_numeric_boundary() -> None:
     normalized = " ".join(development.split())
     assert "defined integer value" in normalized
     assert "No coercion is performed" in normalized
-    assert "has not been assigned a release number" in normalized
+    assert "Included in `0.2.0a1`" in development
 
 
 def test_variable_documentation_records_the_source_safety_boundary() -> None:
@@ -211,8 +211,8 @@ def test_variable_documentation_records_the_source_safety_boundary() -> None:
     ).read_text(encoding="utf-8")
     normalized = " ".join(development.split())
     assert "ordinary, unnegated positive symbolic body atom" in normalized
-    assert "Right operands remain ground" in normalized
-    assert "has not been assigned a release number" in normalized
+    assert "positive scalar seed equality" in normalized
+    assert "Included in `0.2.0a1`" in development
 
 
 def test_relative_markdown_links_resolve() -> None:
