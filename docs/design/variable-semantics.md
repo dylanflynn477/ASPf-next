@@ -29,9 +29,10 @@ comparison is false if either operand is undefined.
 
 The current reference backend can correctly support ordinary variables used directly as
 arguments of declared applications and ordinary variables used as complete right operands.
-A positive, non-default-negated seed equality can supply safety for both positions; dependent
-comparisons and default-negated n-atoms cannot. The backend still cannot faithfully implement
-n-variables without separate value-binding machinery.
+A positive, non-default-negated scalar seed equality can supply safety for its key variables
+and an optional right value variable; dependent comparisons and default-negated n-atoms
+cannot. The backend still cannot faithfully implement n-variables without separate
+value-binding machinery.
 
 ## Source key and evidence policy
 
@@ -525,7 +526,7 @@ purpose. It also ignores defining equalities and n-stratification.
 | Area | Historical language/system | Current ASPf-next architecture |
 | --- | --- | --- |
 | ordinary variables | supported broadly through grounding | direct key arguments and complete body value operands |
-| seed equality safety | may provide safe variable occurrences | positive scalar-variable `#=` supplies rule-local safety |
+| seed equality safety | may provide safe variable occurrences | positive scalar `#=` supplies rule-local safety |
 | dependent comparison safety | variables must be safe elsewhere | enforced before lowering through the narrower ordinary-domain rule |
 | n-variables | grounder-inert, equality-defined, n-stratified | no representation or backend mechanism |
 | declared names outside n-atoms | treated as ordinary Herbrand terms in Clingo{f} | rejected to prevent semantic leakage |
@@ -565,8 +566,9 @@ These questions should remain explicit rather than being answered by implementat
 ## Recommendation
 
 **GO WITH CONDITIONS** — represent an ordinary right-side value variable explicitly and let
-only a positive, non-default-negated seed equality establish safety for its key and value
-variables. Continue to require independent safety for dependent and default-negated n-atoms.
+only a positive, non-default-negated scalar seed equality establish safety for its key and
+optional value variables. Continue to require independent safety for dependent and
+default-negated n-atoms.
 Keep ordered value variables, head value variables, and n-variables rejected.
 
 Under those conditions, the positive `__aspf_value/2` relation is both the semantic lookup and

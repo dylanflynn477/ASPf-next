@@ -51,7 +51,7 @@ occurrence outside an n-atom retains ordinary Herbrand meaning.
 | Positive seed equality | `f(a) #= 2.` or as a rule head | A seed literal supports a value assignment; two distinct values are inconsistent; absence remains undefined. | B12 secs. 2-3; B13 sec. 2 | Compatible with restriction | Implemented | Retain reference relation and functionality constraint. |
 | Dependent equality | `p :- f(a) #= g(b).` | True only when both defined values are equal; it is not a copy assignment. | B12 secs. 2-3; B13 sec. 2 | Compatible with restriction | Implemented | Retain typed application operands and body-only restriction. |
 | Default-negated n-atoms | `not f(a) #= 1`, `not f(a) #!= 1`, `not f(a) #< 1` | `not l` is true exactly when positive `l` is not satisfied. Undefinedness therefore matters and blocks complement rewrites. | B12 sec. 3, pp. 28-30; B13 sec. 2, pp. 550-551; CF examples | Compatible with restriction | Implemented | Retain one complete body `not` over the existing operand/operator/safety subset; never complement the operator. |
-| Ordinary-variable safety | CF P1-P3 accepted; P4-P5 rejected | Variables in dependent n-literals follow safety conditions like variables under default negation; positive seed equality can bind terms/values in cases current ASPf-next rejects. | CF Syntax restrictions; B13 sec. 3 | Compatible with restriction | High | Keep independent positive-domain rule in compatibility-1; document P1/P2 xfails and grounding blocker. |
+| Ordinary-variable safety | CF P1-P3 accepted; P4-P5 rejected | Variables in dependent n-literals follow safety conditions like variables under default negation; positive seed equality can provide safety for key and value variables. | CF Syntax restrictions; B13 sec. 3 | Compatible with restriction | Implemented | Positive scalar seed equality supplies rule-local safety through the value relation; dependent and default-negated n-atoms remain non-binding. |
 | Non-Herbrand variables | Historical n-variable spelling uses a special prefixed identifier (rendered as `_v` by Clingo{f} documentation/examples). | Treated as grounder-inert value variables; defining n-atoms and n-stratification govern their use and reduce grounding. | B13 sec. 3, pp. 552-553; CF examples | Unsupported | Backend-dependent | Defer. A relational parse alone cannot reproduce grounding behavior. |
 | `#hide #nherb` | `#hide #nherb.`, optionally `f/n` or `f(X)` | Hides all or selected seed assignments from displayed models without changing solving. | CF Syntax | Compatible | Medium | Implemented as ordered typed output policy after solving and reconstruction. |
 | `#show #nherb` | `#show #nherb f/1.` or `f(X)` | Selectively shows seed assignments, including in combination with ordinary `#hide.`. | CF Syntax | Compatible | Medium | Implemented as typed output policy; the exact historical ordinary hide-all form is bridged to modern `#show.`. |
@@ -83,9 +83,9 @@ occurrence outside an n-atom retains ordinary Herbrand meaning.
 
 ## Intentionally stricter behavior after this branch
 
-ASPf-next continues to require independent ordinary positive domain atoms for
-variables in n-atom keys; accepts ordered comparisons only for integer runtime
-values; accepts only one `not` before a complete supported body n-atom; and
+ASPf-next accepts only direct key variables and complete right value variables;
+ordered value variables remain unsupported because ordinary domains do not
+establish an integer sort. It accepts only one `not` before a complete supported body n-atom; and
 rejects n-atoms in choices, aggregates, conditional literals, and arithmetic.
 It also reserves executable
 identifiers beginning with `__aspf_`. These restrictions are explicit and

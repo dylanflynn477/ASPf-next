@@ -131,12 +131,13 @@ compares it with the right operand. For example,
 `balance(account1)` has a defined value other than `600`. It is false when the
 application is undefined; `#!=` is never interpreted as the absence of `#=`.
 
-Direct key arguments may use independently domain-safe ordinary variables. For
-example, `low(A) :- account(A), balance(A) #< 1000.` is accepted because
-`account(A)` supplies `A`'s source-level grounding domain. The generated private
-lookup never supplies that safety. A scalar right operand remains ground; a
-declared application right operand may use variables that independently satisfy
-the same source-level rule.
+Direct key arguments may use ordinary variables. An ordinary positive body atom
+can supply safety, as in `low(A) :- account(A), balance(A) #< 1000.` A positive,
+non-default-negated scalar seed equality can also supply safety for its key and
+optional value variables, as in `p(X,Y) :- balance(X) #= Y.` The latter lowers
+directly to `__aspf_value(balance(X),Y)`; it invents no values and ranges over no
+unrelated constants. Dependent application equality, inequality, ordering, and
+default negation do not supply safety.
 
 Application-to-application equality and inequality compare values rather than
 key syntax. Both lookups must succeed, so two undefined applications are neither
@@ -190,8 +191,9 @@ The current implementation deliberately rejects:
   complete positive or singly default-negated body literal;
 - non-integer scalar right operands for `#<`, `#<=`, `#>`, and `#>=`;
 - double default negation and negated assignment heads;
-- variables as n-atom values, variables nested inside application arguments,
-  anonymous variables, and variables without an ordinary positive body domain;
+- ordinary value variables in rule heads or ordered comparisons, variables
+  nested inside application arguments, anonymous variables, and variables not
+  made safe by an ordinary positive body atom or positive scalar seed equality;
 - `_v` non-Herbrand variables in every n-atom position;
 - arithmetic expressions inside n-atoms;
 - aggregates, choices, disjunctions, or conditional literals containing
@@ -215,13 +217,13 @@ explicit and application-style declarations, exact name/arity identity,
 ordinary declared-symbol use outside n-atoms, and declared versus undeclared
 ground functional operands. It also includes global `#nherb.` with a documented
 zero-arity signature restriction, non-Herbrand visibility controls,
-default-negated equality,
-inequality, integer ordering, application operands, and independently
-domain-safe key variables, with historical partiality behavior.
+default-negated equality, inequality, integer ordering, application operands,
+ordinary value variables, and historical seed-equality safety, with historical
+partiality behavior.
 
 This is a historical compatibility subset, not a blanket backward-compatibility
-claim. Historical equality-provided safety, choices, aggregates, arithmetic,
-and non-Herbrand variables remain explicit strict xfails or unresolved cases.
+claim. Choices, aggregates, arithmetic, and non-Herbrand variables remain
+explicit strict xfails.
 
 Run the corpus and its manifest-derived report with:
 

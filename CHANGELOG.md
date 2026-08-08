@@ -51,8 +51,8 @@ releases. Python package metadata uses the equivalent PEP 440 version.
   outside `#` connectives.
 - Ground compound Herbrand assignment and comparison values, with typed
   declared-versus-undeclared right operand disambiguation.
-- An attributed 39-case historical compatibility corpus: 33 passing cases, 4
-  expected unsupported cases, and 2 unresolved safety cases, plus a
+- An attributed 39-case historical compatibility corpus: 35 passing cases, 4
+  expected unsupported cases, and no unresolved cases, plus a
   manifest-derived report and independent CI invocation.
 - Primary-source audit, compatibility policy, deferment designs, and runnable
   historically styled examples.
@@ -73,6 +73,13 @@ releases. Python package metadata uses the equivalent PEP 440 version.
   multi-file programs, and matching human/JSON output.
 - A presentation-only bridge from historical ordinary `#hide.` to modern
   Clingo `#show.`, preserving the documented selective assignment-show example.
+- A typed ordinary value-variable operand for equality and independently safe
+  inequality in rule bodies.
+- Historical seed-equality safety for key variables and optional right value
+  variables, lowered as a direct positive `__aspf_value/2` join without an
+  inferred global value domain.
+- Focused recursive, partial, multi-file, multi-model, dependent-safety, CLI,
+  and primary-source-attributed conformance regressions for the P1-P5 boundary.
 
 No release number has been assigned to these development increments.
 

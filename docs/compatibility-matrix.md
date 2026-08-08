@@ -24,6 +24,9 @@ ASP{f} compatibility.
 | Default-negated application/application body comparison | Supported | Parameterized private positive-satisfaction helper |
 | Undefined operand under default negation | True | Positive helper absent; no operator complement |
 | Direct domain-safe ordinary variable in an n-atom key | Supported | Source safety validation, then ordinary Clingo grounding |
+| Key variable made safe by positive scalar `#=` | Supported | Direct positive value-relation join |
+| Ordinary value variable in positive scalar `#=` | Supported | Typed value-variable operand and direct relation join |
+| Independently safe value variable in `#!=` | Supported | Defined lookup plus ordinary inequality |
 | Integer value | Supported | Clingo number symbol |
 | Symbolic constant value | Supported | Clingo function symbol, arity 0 |
 | String value | Supported | Clingo string symbol |
@@ -46,9 +49,11 @@ ASP{f} compatibility.
 | Comparison other than assignment `#=` in a rule head | Unsupported | Location-aware error |
 | Default-negated assignment or rule head | Unsupported | Location-aware error |
 | Double default negation | Unsupported | Location-aware error |
-| Ordinary variable as an n-atom value | Unsupported | Location-aware error |
+| Ordinary value variable in an assignment head | Unsupported | Location-aware error; assignment values remain ground |
+| Ordinary value variable in ordered comparison | Unsupported | No source integer-sort proof |
 | Ordinary variable nested in a key argument | Unsupported | Location-aware error |
-| Key variable without an ordinary positive body domain | Unsupported | Location-aware error |
+| Variable without an ordinary positive body domain or positive scalar seed equality | Unsupported | Location-aware error |
+| Dependent/default-negated n-atom used as the only safety source | Unsupported | Location-aware error |
 | Anonymous `_` in an n-atom | Unsupported | Location-aware error |
 | `_v` non-Herbrand variables | Unsupported | Location-aware error |
 | Arithmetic in n-atoms | Unsupported | Location-aware error |

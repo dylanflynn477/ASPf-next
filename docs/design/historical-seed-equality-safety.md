@@ -56,12 +56,14 @@ value variable therefore remain explicit alternatives in the IR.
 The following body literal is a **seed-equality safety provider**:
 
 ```text
-positive, non-default-negated application #= ordinary-value-variable
+positive, non-default-negated application #= scalar
 ```
 
-Such a literal provides safe occurrences for its direct application-argument
-variables and its right value variable. The safety information is rule-local
-and may be shared with other literals in the same rule.
+The scalar may be ground or an ordinary value variable. Such a literal provides
+safe occurrences for its direct application-argument variables and, when
+present, its right value variable. The safety information is rule-local and may
+be shared with other literals in the same rule. A ground form such as
+`p(X) :- l(X) #= 3.` therefore supplies safety for `X`.
 
 These forms do not provide safety:
 
@@ -160,7 +162,7 @@ numeric order to Clingo's generic term order.
 ## Decision
 
 **GO with a narrow grammar.** Add a typed ordinary value-variable operand and
-allow positive seed equality to establish rule-local safety exactly as above.
+allow positive scalar seed equality to establish rule-local safety exactly as above.
 Keep dependent comparisons and default negation non-binding, keep `_v`
 non-Herbrand variables distinct and unsupported, and do not add an inferred
 value domain.

@@ -44,12 +44,12 @@ integer values and integer scalar right operands.
 Undefined and non-integer application values make the comparison false. No
 coercion or arithmetic is included, and no release number has been assigned.
 
-Domain-safe ordinary uppercase variables are implemented only as complete,
-direct application arguments. Every such variable must have an independent occurrence
-in an ordinary, unnegated positive symbolic body atom in the same rule. Right
-operands remain ground; nested argument variables, equality-provided safety,
-anonymous variables, and `_v` non-Herbrand variables remain unsupported. This
-increment also has no release number.
+The initial domain-safe ordinary-variable increment implemented complete direct application
+arguments with independent ordinary positive domains. The later seed-equality
+increment adds rule-local safety for positive scalar equality and complete body
+value variables. Nested argument variables, ordered value variables, anonymous
+variables, and `_v` non-Herbrand variables remain unsupported. These increments
+have no release number yet.
 
 Typed scalar and application operands are implemented in distinct assignment
 and body-comparison IR nodes. Positive application-to-application equality and
@@ -70,18 +70,17 @@ Implemented as an unreleased compatibility subset:
 - typed declared-versus-undeclared functional operands.
 
 The milestone established the attributed historical corpus and its
-manifest-derived report. After the visibility increment, the corpus has 39
-cases: 33 pass, 4 are expected unsupported, and 2 equality-safety cases remain
-unresolved. Equality-provided safety, choices, aggregates, arithmetic, and
-n-variables remain visible strict xfails. See the
+manifest-derived report. After the seed-equality increment, the corpus has 39
+cases: 35 pass and 4 are expected unsupported, with no unresolved cases.
+Choices, aggregates, arithmetic, and n-variables remain visible strict xfails. See the
 [audit](compatibility/historical-clingof-audit.md) and
 [policy](compatibility/policy.md). No release number has been assigned.
 
 ## Historical default negation
 
 One `not` before an otherwise supported complete body n-atom is implemented
-for scalar and application operands, all six operators, and the existing
-independently domain-safe key variables. It means failure of positive
+for scalar and application operands, all six operators, and source-safe key and
+value variables. It means failure of positive
 satisfaction: an undefined operand makes default-negated equality, inequality,
 and ordering true. The reference backend defines positive satisfaction with a
 fresh parameterized helper and negates that helper, preserving the supported
@@ -104,13 +103,21 @@ multiple arities, files, models, and human/JSON parity are covered. Historical
 ordinary `#hide.` is bridged to modern `#show.` so the documented selective-show
 example passes without changing stable-model semantics.
 
+## Historical seed-equality safety
+
+Positive, non-default-negated scalar `#=` now supplies rule-local safety for
+direct key variables and an optional complete right value variable. The
+reference backend uses the positive value relation as the finite join domain;
+it adds no totality or inferred value-universe rules. Dependent comparisons and
+default negation remain non-binding, while ordered value variables remain
+deferred for lack of a source integer sort.
+
 ## Next compatibility candidates
 
-A deliberately bounded seed-equality safety subset is the next compatibility
-research candidate. Arithmetic expressions, broader variable positions, and
-every broader n-atom context remain deferred. Each candidate requires its own
-primary-source review, explicit undefinedness rule, typed IR, conservative
-diagnostics, and focused conformance cases.
+Arithmetic expressions, broader variable positions, and every broader n-atom
+context remain deferred. Each candidate requires its own primary-source review,
+explicit undefinedness rule, typed IR, conservative diagnostics, and focused
+conformance cases.
 
 ## Later research
 

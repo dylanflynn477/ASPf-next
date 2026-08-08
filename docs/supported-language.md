@@ -80,7 +80,7 @@ anonymous variables, arithmetic expressions, intervals, and nested declared
 non-Herbrand applications are rejected. Zero-arity functions use the bare form
 `mode`; `mode()` is also accepted as input and normalized to `mode`.
 
-## Domain-safe ordinary variables
+## Ordinary-variable safety
 
 An ordinary uppercase variable may replace one complete application argument:
 
@@ -91,32 +91,49 @@ low(A) :- account(A), balance(A) #< 1000.
 balance(A) #= 0 :- account(A), empty(A).
 ```
 
-Every variable used in any n-atom key in a rule must also occur in an ordinary,
-unnegated positive symbolic body atom in that same rule. The domain atom may
-appear before or after the n-atom. A generated `__aspf_value` lookup, another
-n-atom, ordinary equality or comparison, a default-negated atom, and a
-classically negated atom do not establish source-variable safety.
+An ordinary, unnegated positive symbolic body atom may make its variables safe,
+before or after an n-atom. A positive, non-default-negated scalar seed equality
+may also provide safety for its direct key variables and optional complete
+right value variable:
 
-This deliberately narrower rule is checked before lowering. It prevents a
-private backend variable or lookup from accidentally widening the source
-grounding domain. Scalar variables on the right, variables inside a compound
-key argument such as `balance(owner(A))`, anonymous `_`, and non-Herbrand
-variables such as `_V` remain unsupported. A declared application used as the
-right operand may contain direct variables, but each one needs the same
-independent ordinary domain occurrence.
+```asp
+p(X) :- balance(X) #= 500.
+value_at(X,Y) :- balance(X) #= Y.
+```
+
+The reference lowering uses matching `__aspf_value/2` tuples as the finite join
+domain. It does not enumerate unrelated constants, add totality, or invent a
+value for an undefined key.
+
+Application-to-application equality, inequality, ordered comparison, and every
+default-negated n-atom are dependent and do not provide safety. Variables used
+there must be made safe by an ordinary positive atom or another positive scalar
+seed equality in the same rule. This rule is checked before lowering so a
+generated private lookup cannot accidentally make historical P4/P5-style
+source programs safe.
+
+Variables inside a compound key argument such as `balance(owner(A))`, anonymous
+`_`, and non-Herbrand variables such as `_V` remain unsupported. A declared
+application used as the right operand may contain direct variables subject to
+the same source-safety rule.
 
 ## Values
 
-An assignment value or scalar comparison operand is restricted to exactly one
-ground term from this list:
+An assignment value is restricted to exactly one ground term from this list:
 
 - integer: `500` or `-3`;
 - symbolic constant: `employed`;
 - string: `"cold brew"`;
 - undeclared ordinary function term: `k(1)` or `wrapper(k(1))`.
 
-Variables of every kind, arithmetic, intervals, and tuples are not scalar
-values in this milestone. Compound values must be fully ground.
+Compound values must be fully ground. Assignment-head value variables,
+arithmetic, intervals, and tuples remain unsupported.
+
+In a body n-atom, an ordinary uppercase variable may occupy the entire scalar
+right operand. Positive scalar equality can make it safe. Inequality and
+default negation may consume it only when another permitted source supplies its
+safety. Ordered value variables remain unsupported because an ordinary symbolic
+domain does not establish the integer sort required by ASP{f} order.
 
 In a positive body comparison, the right operand may instead be another
 explicitly declared non-Herbrand application. This is an application operand,
@@ -176,17 +193,18 @@ guards before the ordinary arithmetic relation is evaluated, so Clingo's
 general term ordering cannot make symbolic or string values compare in order.
 
 The ordinary parts of a rule can use normal Clingo variables. A direct
-application argument on either comparison side may use the domain-safe subset
-described above. Scalar right operands remain ground. Several positive n-atoms
-may appear as separate comma-delimited body literals.
+application argument on either comparison side may use the safety rules
+described above. A complete scalar value variable is supported for equality and
+independently safe inequality. Several positive n-atoms may appear as separate
+comma-delimited body literals.
 
 Exactly one `not` may precede any otherwise supported complete body n-atom.
 `not L` succeeds when positive `L` is not satisfied. Therefore undefined
 equality, inequality, and order all satisfy their default-negated forms. This
 is failure of positive satisfaction, not replacement by a complementary
 operator. Several positive and default-negated comparisons may coexist in one
-rule. Every variable keeps the same independent ordinary positive-domain
-requirement.
+rule. Default negation supplies no safety; its variables must be safe elsewhere
+in the same rule.
 
 The following positions are unsupported:
 
@@ -257,7 +275,7 @@ translated by this milestone.
 
 The separately attributed historical target lives in
 [`tests/historical_compat`](../tests/historical_compat/). Passing cases lock the
-supported historical subset; strict xfails expose equality-provided safety,
-choices, aggregates, arithmetic, and non-Herbrand variables. See the
+supported historical subset; strict xfails expose choices, aggregates,
+arithmetic, and non-Herbrand variables. See the
 [compatibility policy](compatibility/policy.md) and
 [historical audit](compatibility/historical-clingof-audit.md).
