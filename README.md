@@ -94,10 +94,11 @@ ordinary Clingo rules that do not contain unsupported ASP{f} syntax.
 | Presentation | Stable text/JSON models and historical `#hide #nherb` / `#show #nherb` controls |
 | Explicitly deferred | Arithmetic in n-atoms, aggregates/choices containing n-atoms, nested application operands, and `_v` non-Herbrand variables |
 
-The executable historical corpus currently records 35 compatible cases, 7
-compatible-with-restriction cases, 2 historically invalid cases that are
-rejected, 4 expected unsupported cases, 4 intentionally deferred cases, and 0
-unresolved cases. These counts are derived from
+The executable historical corpus has 39 cases: 35 pass and 4 are strict
+expected-unsupported cases. Within the 35 passing cases, 7 carry a documented
+restriction and 2 reproduce historical rejection of invalid inputs; all 4
+unsupported cases are intentionally deferred, and none are unresolved. These
+counts are derived from
 [`tests/historical_compat/manifest.json`](tests/historical_compat/manifest.json),
 not a claim about the whole historical language.
 
@@ -219,6 +220,7 @@ affiliated with Potassco.
 - [Specification traceability](docs/specification-traceability.md)
 - [Architecture and future backend](docs/architecture.md)
 - [Architecture decisions](docs/decisions/)
+- [0.2.0a1 adversarial semantic review](docs/reviews/0.2.0a1-semantic-review.md)
 - [Provenance and clean-room policy](docs/provenance.md)
 - [Roadmap](docs/roadmap.md)
 - [0.2.0a1 release notes](docs/releases/0.2.0a1.md)
