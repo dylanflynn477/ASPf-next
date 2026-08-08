@@ -9,6 +9,7 @@ ASP{f} compatibility.
 | --- | --- | --- |
 | `#nherb f/n.` | Supported | Frontend declaration IR |
 | `#nherb f(X).` | Supported | Placeholder-only arity inference |
+| Global `#nherb.` | Supported with zero-arity restriction | Program policy plus whole-program key signature |
 | Same name declared at multiple arities | Supported | Exact `(name, arity)` identity |
 | Zero-arity `f #= v` | Supported | Reference lowering |
 | Ground `f(args) #= value.` | Supported | Reference lowering |
@@ -55,7 +56,6 @@ ASP{f} compatibility.
 | Choice/disjunctive constructs containing n-atoms | Unsupported | Location-aware error |
 | Declared n-application nested in another | Unsupported | Location-aware error |
 | Declared n-application nested in a scalar value | Unsupported | Location-aware error |
-| Global `#nherb.` | Unsupported | Location-aware error |
 | `#show #nherb` / `#hide #nherb` | Unsupported | Location-aware error |
 | Native theory-atom backend | Planned only | Not implemented |
 | Custom propagator | Planned only | Not implemented |

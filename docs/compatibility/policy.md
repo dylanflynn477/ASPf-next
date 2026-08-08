@@ -78,11 +78,12 @@ body positions, scope-sensitive declared/undeclared functional operands, and
 ordinary use of declared symbols outside n-atoms. It retains ASPf-next's
 integer-only ordering and conservative ordinary-variable safety restrictions.
 One `not` before an otherwise supported body comparison follows historical
-failure-of-positive-satisfaction semantics.
+failure-of-positive-satisfaction semantics. Global declaration mode is included
+with the documented zero-arity key-signature restriction.
 
-Global declaration mode, legacy visibility directives, historical
-equality-provided safety, non-Herbrand variables, arithmetic, choices, and
-aggregates are visible deferred cases rather than part of this target.
+Legacy visibility directives, historical equality-provided safety,
+non-Herbrand variables, arithmetic, choices, and aggregates are visible
+deferred cases rather than part of this target.
 
 ## Clean-room rule
 

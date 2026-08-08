@@ -83,10 +83,15 @@ and unresolved historical cases independently of the project-boundary
 conformance corpus. `scripts/compatibility_report.py` renders only that manifest
 data.
 
+Global `#nherb.` is represented by `Program.global_nherb`, not synthesized
+declaration text. Before statement parsing, the frontend collects left/key
+application signatures across all files so a bare right token can be resolved
+as a zero-arity application when its signature is established. Positive-arity
+functional operands under `#` are applications in global mode; ordinary
+occurrences outside n-atoms still pass through unchanged.
+
 Deferred historical constructs keep their architectural boundaries explicit:
 
-- global `#nherb.` needs a program declaration mode and a source-backed rule
-  for bare right operands;
 - legacy `#show/#hide #nherb` needs typed output-policy IR carried into model
   normalization;
 - equality-provided safety needs a grounding-domain design.

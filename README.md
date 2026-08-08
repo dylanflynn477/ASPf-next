@@ -61,6 +61,8 @@ The implemented slice supports:
 
 - `#nherb f/n.` declarations, including zero-arity functions, plus historical
   application-style declarations such as `#nherb f(X).`;
+- historical global `#nherb.` mode for functional expressions under `#`, with
+  ordinary occurrences outside n-atoms left unchanged;
 - the same declared name at multiple arities, identified by exact `name/arity`;
 - function applications and `#=` assignments as facts or complete rule heads;
 - positive `#=` and `#!=` comparisons as complete rule-body literals, with
@@ -80,7 +82,9 @@ The implemented slice supports:
   values;
 - scope-sensitive functional operands: an exact declared `name/arity` under a
   `#` connective is an application, while an undeclared ground function term is
-  a Herbrand value;
+  a Herbrand value; in global mode, positive-arity right functional expressions
+  are applications, and zero-arity right applications use the program's
+  explicit or key-established signature;
 - ordinary Clingo statements that do not contain ASP{f} syntax in this slice;
 - `%` and `%* ... *%` comments, quoted strings, multiline statements, and
   context-aware scanning of nested delimiters;
@@ -191,7 +195,7 @@ The current implementation deliberately rejects:
 - aggregates, choices, disjunctions, or conditional literals containing
   n-atoms;
 - declared non-Herbrand applications nested inside another n-atom operand;
-- global `#nherb.` and legacy `#show #nherb` / `#hide #nherb` directives;
+- legacy `#show #nherb` / `#hide #nherb` directives;
 - user-written executable identifiers beginning with the reserved `__aspf_`
   prefix.
 
@@ -208,14 +212,15 @@ subset listed in the
 [historical audit](docs/compatibility/historical-clingof-audit.md), including
 explicit and application-style declarations, exact name/arity identity,
 ordinary declared-symbol use outside n-atoms, and declared versus undeclared
-ground functional operands. It also includes default-negated equality,
+ground functional operands. It also includes global `#nherb.` with a documented
+zero-arity signature restriction, default-negated equality,
 inequality, integer ordering, application operands, and independently
 domain-safe key variables, with historical partiality behavior.
 
 This is a historical compatibility subset, not a blanket backward-compatibility
-claim. Global `#nherb.`, legacy non-Herbrand visibility, historical
-equality-provided safety, choices, aggregates, arithmetic, and non-Herbrand
-variables remain explicit strict xfails or unresolved cases.
+claim. Legacy non-Herbrand visibility, historical equality-provided safety,
+choices, aggregates, arithmetic, and non-Herbrand variables remain explicit
+strict xfails or unresolved cases.
 
 Run the corpus and its manifest-derived report with:
 

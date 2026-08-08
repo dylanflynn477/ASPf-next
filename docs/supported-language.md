@@ -25,7 +25,19 @@ does not introduce a program variable and arbitrary expressions are rejected.
 The audited sources do not establish an alternative zero-arity spelling, so
 zero arity uses `#nherb mode/0.`.
 
-Global `#nherb.` remains unsupported.
+Historical global mode is supported with:
+
+```asp
+#nherb.
+```
+
+It makes functional expressions under supported `#` connectives
+non-Herbrand without per-function declarations. Positive-arity right operands
+are applications. A bare right symbol is a zero-arity application only when
+its `(name, 0)` signature is established by an explicit declaration or by a
+left/key occurrence somewhere in the combined program; otherwise it is a
+symbolic scalar value. This whole-program rule is independent of input-file
+order. Explicit and global declarations may coexist.
 
 A declaration changes interpretation only under a `#` connective. The same
 symbol outside an n-atom retains ordinary Herbrand meaning, so both of these
@@ -45,7 +57,8 @@ lowering. Prefix-like text inside comments and quoted strings is inert.
 
 ## Applications and arguments
 
-An n-atom key is a declared application with exactly the declared arity:
+An n-atom key is an explicitly declared application with exactly the declared
+arity, or any valid application under global mode:
 
 ```asp
 balance(account1)
@@ -225,8 +238,8 @@ Legacy `#show #nherb` and `#hide #nherb` directives are unsupported.
 
 The separately attributed historical target lives in
 [`tests/historical_compat`](../tests/historical_compat/). Passing cases lock the
-supported historical subset; strict xfails expose global declaration mode,
-legacy visibility, equality-provided safety, choices, aggregates, arithmetic,
-and non-Herbrand variables. See the
+supported historical subset; strict xfails expose legacy visibility,
+equality-provided safety, choices, aggregates, arithmetic, and non-Herbrand
+variables. See the
 [compatibility policy](compatibility/policy.md) and
 [historical audit](compatibility/historical-clingof-audit.md).
