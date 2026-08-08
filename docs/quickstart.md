@@ -81,8 +81,8 @@ solvent(account1) :- balance(account1) #= 500.
 ```
 
 The rule derives `solvent(account1)` because the application has the tested
-value. Scalar n-atom right operands must be ground, and default negation is not
-supported. A later section shows the distinct declared-application operand.
+value. Scalar n-atom right operands must be ground. A later section shows the
+distinct declared-application operand and its default-negated form.
 
 ## 6. Compare with a different defined value
 
@@ -165,7 +165,28 @@ The ordinary `account(A)` atom independently supplies variable safety for both
 keys. Application equality is body-only: `actual(a) #= expected(a).` is rejected
 rather than interpreted as a copy assignment.
 
-## 10. Inspect the reference lowering
+## 10. Use default negation with partiality
+
+Run:
+
+```console
+aspf examples/09_default_negation.aspf
+```
+
+Its key rule is:
+
+```asp
+needs_review(A) :- account(A), not balance(A) #>= 1000.
+```
+
+`needs_review(a)` is derived because `500 >= 1000` is false.
+`needs_review(b)` is not derived because `1500 >= 1000` is true.
+`needs_review(c)` is derived because `balance(c)` is undefined, so the positive
+comparison is not satisfied. The same rule applies to `#=`, `#!=`, and every
+supported ordered operator: `not L` is failure of positive satisfaction, never
+an operator complement.
+
+## 11. Inspect the reference lowering
 
 ```console
 aspf hello.aspf --emit-lowered
@@ -213,7 +234,18 @@ __aspf_value(expected(A),_AspfCmp0)
 Application ordering retrieves both values and applies an integer marker to
 each before evaluating the relation.
 
-## 11. Use JSON output
+A default-negated comparison names its positive satisfaction before negating
+it. `--emit-lowered` therefore includes a private helper such as:
+
+```asp
+__aspf_sat_0(A) :- __aspf_value(balance(A),V), __aspf_integer(V), V >= 1000.
+needs_review(A) :- account(A), not __aspf_sat_0(A).
+```
+
+These helpers are intentionally visible in lowered output but filtered from
+human and JSON model output.
+
+## 12. Use JSON output
 
 ```console
 aspf examples/03_conditional_assignment.aspf --json
@@ -244,7 +276,7 @@ aspf examples/03_conditional_assignment.aspf --json
 The JSON object separates ordinary shown atoms from reconstructed assignments.
 Use `--models 0` when every model is required.
 
-## 12. Understand partiality
+## 13. Understand partiality
 
 Run:
 
@@ -257,7 +289,7 @@ therefore includes `balance(account2)#=500` and no assignment for `account1`.
 Declarations introduce possible function applications; they do not add values
 or a totality rule.
 
-## 13. Understand conflicting assignments
+## 14. Understand conflicting assignments
 
 ```console
 aspf examples/04_conflicting_values.aspf
@@ -270,7 +302,7 @@ UNSATISFIABLE
 The same ground application is assigned both `500` and `600`, violating the
 functionality constraint.
 
-## 14. Recognize unsupported syntax
+## 15. Recognize unsupported syntax
 
 For example, an ordered comparison cannot use a symbolic right operand:
 
@@ -287,6 +319,6 @@ aspf: error: unsupported.aspf:2:29: operator '#>=' requires an integer literal o
 
 The same explicit rejection policy covers arithmetic, variables outside the
 restricted direct-key subset, comparisons in heads, aggregates containing
-n-atoms, default-negated n-atoms, and other deferred constructs. See the
+n-atoms, double default negation, and other deferred constructs. See the
 [compatibility matrix](compatibility-matrix.md) before adapting historical
 ASP{f} programs.

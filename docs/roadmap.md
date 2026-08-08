@@ -69,19 +69,31 @@ Implemented as an unreleased compatibility subset:
 - ground compound Herbrand values under equality and inequality; and
 - typed declared-versus-undeclared functional operands.
 
-The milestone also establishes an attributed 29-case historical corpus and a
-manifest-derived report. Eighteen cases pass, nine are expected unsupported,
-and two equality-safety cases remain unresolved. Global `#nherb.`, legacy
-visibility, equality-provided safety, default-negated n-atoms, choices,
-aggregates, arithmetic, and n-variables remain visible strict xfails. See the
+The milestone established the attributed historical corpus and its
+manifest-derived report. After the default-negation increment, the corpus has
+39 cases: 30 pass, 7 are expected unsupported, and 2 equality-safety cases
+remain unresolved. Global `#nherb.`, legacy visibility, equality-provided
+safety, choices, aggregates, arithmetic, and n-variables remain visible strict
+xfails. See the
 [audit](compatibility/historical-clingof-audit.md) and
 [policy](compatibility/policy.md). No release number has been assigned.
 
+## Historical default negation
+
+One `not` before an otherwise supported complete body n-atom is implemented
+for scalar and application operands, all six operators, and the existing
+independently domain-safe key variables. It means failure of positive
+satisfaction: an undefined operand makes default-negated equality, inequality,
+and ordering true. The reference backend defines positive satisfaction with a
+fresh parameterized helper and negates that helper, preserving the supported
+reduct behavior without complementing operators.
+
 ## Next compatibility candidates
 
-Default-negated n-atoms with exact undefinedness behavior, legacy assignment
-visibility, and a deliberately bounded seed-equality safety subset are the
-recommended compatibility-2 research candidates. Global declaration mode
+Legacy assignment visibility and a deliberately bounded seed-equality safety
+subset are the next compatibility research candidates. Legacy visibility is
+the recommended next milestone because its semantics are source-documented and
+orthogonal to grounding, although it requires typed output-policy IR. Global declaration mode
 remains blocked on bare right-operand classification. Arithmetic expressions,
 broader variable positions, and every broader n-atom context remain deferred.
 Each candidate requires its own

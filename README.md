@@ -49,11 +49,11 @@ solvent(account1) balance(account1)#=500
 SATISFIABLE
 ```
 
-Continue with the [eight guided examples](examples/README.md) or the
+Continue with the [nine guided examples](examples/README.md) or the
 [step-by-step quickstart](docs/quickstart.md). The examples include partiality,
 a conditional assignment, a conflicting-value program, ordered integer
-comparisons, application-to-application comparisons, and ordinary ASP model
-enumeration.
+comparisons, application-to-application comparisons, historically compatible
+default negation, and ordinary ASP model enumeration.
 
 ## What the current implementation can do
 
@@ -70,6 +70,9 @@ The implemented slice supports:
 - positive body comparisons between two declared non-Herbrand applications for
   all six operators; equality and inequality require two defined values, while
   ordering additionally requires two integer values;
+- one `not` before any otherwise supported complete body comparison. It is true
+  when the positive n-atom is not satisfied, including when either required
+  application value is undefined;
 - ordinary uppercase variables as direct application arguments when every such
   variable also occurs in an ordinary, unnegated positive body atom in the same
   rule;
@@ -108,6 +111,13 @@ cannot have two distinct values. It adds no totality rule: an absent value atom
 means the application is undefined. Models are then normalized back to notation
 such as `balance(account1)#=500`, without exposing the private `__aspf_`
 predicates in normal output.
+
+Default negation names the satisfaction of the positive comparison with a
+fresh private helper and negates that helper. For example, `not f(a) #!= 1` is
+true when `f(a)` equals `1` and when `f(a)` is undefined; it is never rewritten
+as positive equality. Helpers are parameterized by the source variables in the
+comparison, so different ground keys cannot be mixed. They remain visible only
+in intentional `--emit-lowered` output.
 
 A supported body inequality first looks up the application's value and then
 compares it with the right operand. For example,
@@ -170,10 +180,10 @@ aspf examples/05_multiple_models.aspf --models 0
 
 The current implementation deliberately rejects:
 
-- comparisons other than `#=` in rule heads, under default negation, or anywhere
-  except a complete positive body literal;
+- comparisons other than `#=` in rule heads, and n-atoms anywhere except a
+  complete positive or singly default-negated body literal;
 - non-integer scalar right operands for `#<`, `#<=`, `#>`, and `#>=`;
-- default-negated n-atoms;
+- double default negation and negated assignment heads;
 - variables as n-atom values, variables nested inside application arguments,
   anonymous variables, and variables without an ordinary positive body domain;
 - `_v` non-Herbrand variables in every n-atom position;
@@ -198,13 +208,14 @@ subset listed in the
 [historical audit](docs/compatibility/historical-clingof-audit.md), including
 explicit and application-style declarations, exact name/arity identity,
 ordinary declared-symbol use outside n-atoms, and declared versus undeclared
-ground functional operands.
+ground functional operands. It also includes default-negated equality,
+inequality, integer ordering, application operands, and independently
+domain-safe key variables, with historical partiality behavior.
 
 This is a historical compatibility subset, not a blanket backward-compatibility
 claim. Global `#nherb.`, legacy non-Herbrand visibility, historical
-equality-provided safety, default-negated n-atoms, choices, aggregates,
-arithmetic, and non-Herbrand variables remain explicit strict xfails or
-unresolved cases.
+equality-provided safety, choices, aggregates, arithmetic, and non-Herbrand
+variables remain explicit strict xfails or unresolved cases.
 
 Run the corpus and its manifest-derived report with:
 

@@ -19,6 +19,9 @@ ASP{f} compatibility.
 | Positive body application/application `#=` | Supported | Two defined lookups with one shared value variable |
 | Positive body application/application `#!=` | Supported | Two defined lookups plus ordinary inequality |
 | Positive body application/application ordering | Supported | Two defined lookups, two integer guards, then ordinary comparison |
+| Default-negated scalar body comparison, all six operators | Supported | Default negation of a private positive-satisfaction helper |
+| Default-negated application/application body comparison | Supported | Parameterized private positive-satisfaction helper |
+| Undefined operand under default negation | True | Positive helper absent; no operator complement |
 | Direct domain-safe ordinary variable in an n-atom key | Supported | Source safety validation, then ordinary Clingo grounding |
 | Integer value | Supported | Clingo number symbol |
 | Symbolic constant value | Supported | Clingo function symbol, arity 0 |
@@ -39,8 +42,9 @@ ASP{f} compatibility.
 | Non-integer scalar right operand for an ordered comparison | Unsupported | Location-aware error |
 | Symbolic/string application value in ordered comparison | False | Integer guards prevent Clingo term ordering |
 | Application/application comparison in a rule head | Unsupported | Location-aware error; never copy assignment |
-| Head or default-negated comparison other than `#=` | Unsupported | Location-aware error |
-| Default-negated n-atoms | Unsupported | Location-aware error |
+| Comparison other than assignment `#=` in a rule head | Unsupported | Location-aware error |
+| Default-negated assignment or rule head | Unsupported | Location-aware error |
+| Double default negation | Unsupported | Location-aware error |
 | Ordinary variable as an n-atom value | Unsupported | Location-aware error |
 | Ordinary variable nested in a key argument | Unsupported | Location-aware error |
 | Key variable without an ordinary positive body domain | Unsupported | Location-aware error |

@@ -70,18 +70,19 @@ Strict xfails represent known work, not ignored failures. An XPASS fails the
 historical suite so the manifest and documentation must be reviewed before the
 new behavior is counted as compatible.
 
-## Compatibility target for this branch
+## Current compatibility target
 
-`historical-compatibility-1` targets documented explicit declarations,
+The implemented compatibility increments target documented explicit declarations,
 positive ground seed assignments, positive dependent comparisons in supported
 body positions, scope-sensitive declared/undeclared functional operands, and
 ordinary use of declared symbols outside n-atoms. It retains ASPf-next's
 integer-only ordering and conservative ordinary-variable safety restrictions.
+One `not` before an otherwise supported body comparison follows historical
+failure-of-positive-satisfaction semantics.
 
 Global declaration mode, legacy visibility directives, historical
-equality-provided safety, default-negated n-atoms, non-Herbrand variables,
-arithmetic, choices, and aggregates are visible deferred cases rather than part
-of this target.
+equality-provided safety, non-Herbrand variables, arithmetic, choices, and
+aggregates are visible deferred cases rather than part of this target.
 
 ## Clean-room rule
 

@@ -51,11 +51,20 @@ releases. Python package metadata uses the equivalent PEP 440 version.
   outside `#` connectives.
 - Ground compound Herbrand assignment and comparison values, with typed
   declared-versus-undeclared right operand disambiguation.
-- An attributed 29-case historical compatibility corpus: 18 passing cases, 9
+- An attributed 39-case historical compatibility corpus: 30 passing cases, 7
   expected unsupported cases, and 2 unresolved safety cases, plus a
   manifest-derived report and independent CI invocation.
 - Primary-source audit, compatibility policy, deferment designs, and runnable
   historically styled examples.
+- Historically compatible default-negated n-atoms for all six currently
+  supported body operators, scalar and application operands, and independently
+  domain-safe key variables.
+- Explicit comparison polarity in the typed IR and deterministic private
+  positive-satisfaction helpers that preserve undefinedness without operator
+  complementation.
+- Historical and conformance matrices for defined, false, undefined,
+  application, variable, recursive, and multi-model default-negation behavior,
+  plus a ninth guided example.
 
 No release number has been assigned to these development increments.
 
@@ -77,8 +86,8 @@ No release number has been assigned to these development increments.
 
 ### Known limitations
 
-The current unreleased package does not implement default-negated n-atoms,
-right-side scalar variables, historical equality-provided safety,
+The current unreleased package does not implement right-side scalar variables,
+historical equality-provided safety,
 non-Herbrand variables, arithmetic inside n-atoms, n-atoms in aggregates or
 choices, or a native theory-atom/propagator backend. It does not claim full
 historical ASP{f} compatibility.

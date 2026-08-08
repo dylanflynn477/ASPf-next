@@ -96,6 +96,22 @@ EXAMPLES = PROJECT_ROOT / "examples"
                 )
             },
         ),
+        (
+            "09_default_negation.aspf",
+            SolveStatus.SATISFIABLE,
+            1,
+            {
+                (
+                    "account(a)",
+                    "account(b)",
+                    "account(c)",
+                    "needs_review(a)",
+                    "needs_review(c)",
+                    "balance(a)#=500",
+                    "balance(b)#=1500",
+                )
+            },
+        ),
     ],
 )
 def test_documented_example(
@@ -117,7 +133,7 @@ def test_examples_guide_covers_every_program() -> None:
     guide = (EXAMPLES / "README.md").read_text(encoding="utf-8")
     programs = sorted(EXAMPLES.glob("*.aspf"))
 
-    assert len(programs) == 8
+    assert len(programs) == 9
     for program in programs:
         assert program.name in guide
 
