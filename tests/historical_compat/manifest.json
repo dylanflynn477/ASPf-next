@@ -258,11 +258,11 @@
       "primary_source_origin": "CF Syntax",
       "expected_historical_status": "valid",
       "baseline_aspf_next_status": "unsupported",
-      "expected_aspf_next_status": "unsupported",
-      "disposition": "intentionally-deferred",
+      "expected_aspf_next_status": "passing",
+      "disposition": "passing",
       "expected_models": [{"ordinary_atoms": ["p"], "assignments": []}],
-      "semantic_notes": "Legacy assignment visibility belongs in model normalization, not solving.",
-      "compatibility_tier": "deferred"
+      "semantic_notes": "Hide-all is typed presentation policy applied after all assignments are solved and reconstructed.",
+      "compatibility_tier": "output"
     },
     {
       "id": "show-nherb-selected",
@@ -271,11 +271,11 @@
       "primary_source_origin": "CF Syntax",
       "expected_historical_status": "valid",
       "baseline_aspf_next_status": "unsupported",
-      "expected_aspf_next_status": "unsupported",
-      "disposition": "intentionally-deferred",
+      "expected_aspf_next_status": "passing",
+      "disposition": "passing",
       "expected_models": [{"ordinary_atoms": [], "assignments": ["f(a)#=2"]}],
-      "semantic_notes": "Selective assignment visibility needs typed output policy.",
-      "compatibility_tier": "deferred"
+      "semantic_notes": "Historical ordinary hide-all plus selective non-Herbrand show is reproduced as output policy without changing solving.",
+      "compatibility_tier": "output"
     },
     {
       "id": "safety-p1-seed-equality",

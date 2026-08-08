@@ -43,6 +43,22 @@ def test_lowers_global_zero_arity_application_comparison() -> None:
     assert "same :- __aspf_value(current,_AspfCmp0), __aspf_value(mode,_AspfCmp0)." in result
 
 
+def test_non_herbrand_visibility_directives_do_not_enter_solver_program() -> None:
+    result = lowered("#nherb f/1.\nf(a) #= 2.\n#hide #nherb.\n#show #nherb f/1.\n")
+
+    assert "__aspf_value(f(a),2)." in result
+    assert "#hide #nherb" not in result
+    assert "#show #nherb" not in result
+
+
+def test_historical_ordinary_hide_all_lowers_to_modern_show_empty() -> None:
+    result = lowered("p.\n#hide.\n#show p/0.\n")
+
+    assert "#hide." not in result
+    assert "#show." in result
+    assert "#show p/0." in result
+
+
 def test_lowers_positive_body_comparison() -> None:
     result = lowered(
         """#nherb balance/1.

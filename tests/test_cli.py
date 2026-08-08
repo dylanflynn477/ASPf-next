@@ -456,3 +456,44 @@ def test_global_mode_human_json_and_lowered_output(
     assert "__aspf_value(f(a),2)" in lowered
     assert "__aspf_value(k(1),2)" in lowered
     assert "same :- __aspf_value(f(a),_AspfCmp0)" in lowered
+
+
+def test_non_herbrand_visibility_human_json_and_lowered_output(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    declarations = write_program(
+        tmp_path,
+        "#nherb f/1.\n#nherb k/1.\n",
+        "declarations.aspf",
+    )
+    program = write_program(
+        tmp_path,
+        "f(a) #= 2.\nk(a) #= 3.\nderived :- f(a) #= 2.\n",
+        "program.aspf",
+    )
+    visibility = write_program(
+        tmp_path,
+        "#hide #nherb.\n#show #nherb f/1.\n",
+        "visibility.aspf",
+    )
+    arguments = [str(declarations), str(program), str(visibility)]
+
+    assert main(arguments) == 0
+    human = capsys.readouterr().out
+    assert "derived f(a)#=2" in human
+    assert "k(a)#=3" not in human
+    assert "__aspf_" not in human
+
+    assert main([*arguments, "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["models"][0]["ordinary_atoms"] == ["derived"]
+    assert payload["models"][0]["assignments"] == ["f(a)#=2"]
+    assert payload["models"][0]["atoms"] == ["derived", "f(a)#=2"]
+
+    assert main([*arguments, "--emit-lowered"]) == 0
+    lowered = capsys.readouterr().out
+    assert "__aspf_value(f(a),2)." in lowered
+    assert "__aspf_value(k(a),3)." in lowered
+    assert "#hide #nherb" not in lowered
+    assert "#show #nherb" not in lowered

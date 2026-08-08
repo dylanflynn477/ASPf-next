@@ -1,0 +1,4 @@
+#nherb f/1.
+f(a) #= 2.
+derived :- f(a) #= 2.
+#hide #nherb.

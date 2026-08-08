@@ -14,6 +14,7 @@ from aspf_next.ir import (
     OrdinaryStatement,
     ScalarOperand,
     VariableTerm,
+    VisibilityAction,
 )
 from aspf_next.source import SourceText
 
@@ -145,6 +146,79 @@ def test_rejects_invalid_global_declaration_placements_with_location(
 
     assert caught.value.location.filename == "invalid-global.aspf"
     assert caught.value.location.line == line
+    assert caught.value.location.column == column
+
+
+def test_parses_ordered_non_herbrand_visibility_policy() -> None:
+    program = parse_program("#nherb f/1.\n#hide #nherb.\n#show #nherb f/1.\n#hide #nherb f(X).\n")
+
+    assert [
+        (directive.action, directive.name, directive.arity)
+        for directive in program.nherb_visibility
+    ] == [
+        (VisibilityAction.HIDE, None, None),
+        (VisibilityAction.SHOW, "f", 1),
+        (VisibilityAction.HIDE, "f", 1),
+    ]
+    assert all("#nherb" not in statement.text for statement in program.statements)
+
+
+def test_application_style_visibility_selector_infers_arity() -> None:
+    program = parse_program("#nherb pair/2.\n#hide #nherb pair(Left,Right).\n")
+
+    directive = program.nherb_visibility[0]
+    assert directive.action is VisibilityAction.HIDE
+    assert (directive.name, directive.arity) == ("pair", 2)
+
+
+def test_visibility_policy_retains_source_order_across_files() -> None:
+    program = parse_sources(
+        (
+            SourceText("#hide #nherb.\n", "hide.aspf"),
+            SourceText("#show #nherb f/1.\n", "show.aspf"),
+            SourceText("#hide #nherb f/1.\n", "hide-again.aspf"),
+        )
+    )
+
+    assert [directive.action for directive in program.nherb_visibility] == [
+        VisibilityAction.HIDE,
+        VisibilityAction.SHOW,
+        VisibilityAction.HIDE,
+    ]
+
+
+def test_historical_ordinary_hide_all_becomes_modern_show_empty_policy() -> None:
+    program = parse_program("p.\n#hide.\n#show p/0.\n")
+
+    assert len(program.nherb_visibility) == 1
+    assert program.nherb_visibility[0].action is VisibilityAction.HIDE
+    lowered_statements = "".join(statement.text for statement in program.statements)
+    assert "#hide." not in lowered_statements
+    assert "#show." in lowered_statements
+    assert "#show p/0." in lowered_statements
+
+
+def test_visibility_markers_in_comments_and_strings_are_inert() -> None:
+    program = parse_program('% #hide #nherb.\nmessage("#show #nherb f/1.").\n')
+
+    assert program.nherb_visibility == ()
+
+
+@pytest.mark.parametrize(
+    ("source", "column"),
+    [
+        ("#hide #nherb f.\n", 1),
+        ("p :- #show #nherb f/1.\n", 6),
+        ("#show #nherb f/-1.\n", 1),
+        ("#hide #nherb f(1).\n", 1),
+    ],
+)
+def test_rejects_invalid_visibility_syntax_with_location(source: str, column: int) -> None:
+    with pytest.raises(UnsupportedSyntaxError, match="unsupported legacy non-Herbrand") as caught:
+        parse_program(source, filename="visibility.aspf")
+
+    assert caught.value.location.filename == "visibility.aspf"
+    assert caught.value.location.line == 1
     assert caught.value.location.column == column
 
 
@@ -532,7 +606,6 @@ label("balance(account1) #!= 500").
 @pytest.mark.parametrize(
     ("source", "message"),
     [
-        ("#show #nherb.\n", "legacy '#show #nherb'"),
         (
             "#nherb balance/1.\np :- #count { X : balance(account1) #= 500 } > 0.\n",
             "aggregates or choice",

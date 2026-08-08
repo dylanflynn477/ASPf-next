@@ -1688,6 +1688,135 @@
         "references": ["CF Syntax", "Global #nherb implementation contract"],
         "notes": "Only a complete top-level global declaration is accepted."
       }
+    },
+    {
+      "id": "visibility-hide-all-preserves-semantics",
+      "category": "satisfiable",
+      "sources": ["fixtures/satisfiable/visibility-hide-all.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [{"ordinary_atoms": ["derived"], "assignments": []}]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["CF Syntax #hide #nherb"],
+        "notes": "Hide-all suppresses reconstructed assignments but the hidden value still satisfies the ordinary rule."
+      }
+    },
+    {
+      "id": "visibility-selective-hide-exact-arity",
+      "category": "accepted-syntax",
+      "sources": ["fixtures/accepted-syntax/visibility-selective-hide.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {"ordinary_atoms": [], "assignments": ["f#=zero", "k(a)#=other"]}
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["CF Syntax #hide #nherb f/1"],
+        "notes": "A selected visibility signature matches exact name and arity, leaving f/0 and k/1 visible."
+      }
+    },
+    {
+      "id": "visibility-show-selected-application-form",
+      "category": "satisfiable",
+      "sources": ["fixtures/satisfiable/visibility-show-selected.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [{"ordinary_atoms": ["p"], "assignments": ["f(a)#=2"]}]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["CF Syntax application-style visibility selectors"],
+        "notes": "A selected show after non-Herbrand hide-all exposes only the chosen assignment signature."
+      }
+    },
+    {
+      "id": "visibility-historical-ordinary-hide",
+      "category": "satisfiable",
+      "sources": ["fixtures/satisfiable/visibility-ordinary-hide.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [{"ordinary_atoms": [], "assignments": ["f(a)#=2"]}]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["CF Syntax selective-show example"],
+        "notes": "Historical ordinary hide-all is bridged to modern #show. and also hides all assignments before selective non-Herbrand show."
+      }
+    },
+    {
+      "id": "visibility-multi-file-order",
+      "category": "multi-file",
+      "sources": [
+        "fixtures/multi-file/visibility-declarations.aspf",
+        "fixtures/multi-file/visibility-program.aspf",
+        "fixtures/multi-file/visibility-hide.aspf",
+        "fixtures/multi-file/visibility-show.aspf"
+      ],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {"ordinary_atoms": ["derived"], "assignments": ["f(a)#=2"]}
+        ]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["CF Syntax", "Legacy visibility implementation contract"],
+        "notes": "Visibility directives retain command-line source order across files without changing solving."
+      }
+    },
+    {
+      "id": "visibility-multiple-models",
+      "category": "multiple-models",
+      "sources": ["fixtures/multiple-models/visibility-hidden.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 2,
+        "models": [
+          {"ordinary_atoms": [], "assignments": []},
+          {"ordinary_atoms": ["choose"], "assignments": []}
+        ]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["CF Syntax", "Legacy visibility implementation contract"],
+        "notes": "Presentation filtering is deterministic for every stable model and does not collapse model enumeration."
+      }
+    },
+    {
+      "id": "rejected-visibility-invalid-selector",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/visibility-invalid.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "unsupported legacy non-Herbrand visibility syntax",
+          "source": "fixtures/rejected-syntax/visibility-invalid.aspf",
+          "line": 1,
+          "column": 1
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["CF Syntax", "Legacy visibility implementation contract"],
+        "notes": "Only documented all, name/arity, and placeholder selector forms are accepted."
+      }
     }
   ]
 }

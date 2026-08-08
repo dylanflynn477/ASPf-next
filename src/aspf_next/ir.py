@@ -153,6 +153,28 @@ class NHerbDeclaration:
     span: SourceSpan
 
 
+class VisibilityAction(Enum):
+    """Presentation action for reconstructed non-Herbrand assignments."""
+
+    SHOW = "show"
+    HIDE = "hide"
+
+
+@dataclass(frozen=True, slots=True)
+class NHerbVisibilityDirective:
+    """An ordered all-assignments or exact name/arity visibility directive."""
+
+    action: VisibilityAction
+    name: str | None
+    arity: int | None
+    span: SourceSpan
+
+    def selects(self, name: str, arity: int) -> bool:
+        """Return whether this directive applies to the given application key."""
+
+        return self.name is None or (self.name == name and self.arity == arity)
+
+
 @dataclass(frozen=True, slots=True)
 class OrdinaryStatement:
     """A source statement requiring no compatibility lowering."""
@@ -181,3 +203,4 @@ class Program:
     statements: tuple[ProgramStatement, ...]
     filename: str
     global_nherb: bool = False
+    nherb_visibility: tuple[NHerbVisibilityDirective, ...] = ()

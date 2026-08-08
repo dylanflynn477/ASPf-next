@@ -21,11 +21,13 @@ from aspf_next.ir import (
     NAtom,
     NAtomOperator,
     NHerbDeclaration,
+    NHerbVisibilityDirective,
     OrdinaryStatement,
     Program,
     ProgramStatement,
     ScalarOperand,
     VariableTerm,
+    VisibilityAction,
 )
 from aspf_next.source import (
     ScannedStatement,
@@ -45,6 +47,16 @@ _APPLICATION_DECLARATION = re.compile(
 )
 _GLOBAL_DECLARATION = re.compile(r"\s*#nherb\s*\.\s*")
 _LEGACY_VISIBILITY = re.compile(r"#(?:show|hide)\s+#nherb\b")
+_LEGACY_VISIBILITY_ALL = re.compile(r"\s*#(show|hide)\s+#nherb\s*\.\s*")
+_LEGACY_VISIBILITY_SIGNATURE = re.compile(
+    r"\s*#(show|hide)\s+#nherb\s+([a-z][A-Za-z0-9_]*)\s*/\s*(\d+)\s*\.\s*"
+)
+_LEGACY_VISIBILITY_APPLICATION = re.compile(
+    r"\s*#(show|hide)\s+#nherb\s+([a-z][A-Za-z0-9_]*)\s*\(\s*"
+    r"((?:[A-Z][A-Za-z0-9_]*|_)(?:\s*,\s*(?:[A-Z][A-Za-z0-9_]*|_))*)"
+    r"\s*\)\s*\.\s*"
+)
+_ORDINARY_HIDE_ALL = re.compile(r"\s*#hide\s*\.\s*")
 _SYMBOLIC_CONSTANT = re.compile(r"[a-z][A-Za-z0-9_]*")
 _INTEGER = re.compile(r"-?\d+")
 _FUNCTION_TERM = re.compile(r"([a-z][A-Za-z0-9_]*)\s*\(")
@@ -97,15 +109,20 @@ def parse_sources(sources: Sequence[SourceText]) -> Program:
     declarations: list[NHerbDeclaration] = []
     declared: set[_DeclarationKey] = set()
     global_nherb = False
+    nherb_visibility: list[NHerbVisibilityDirective] = []
     for source in sources:
         scanned = split_statements(source)
         contexts = tuple(_context(statement) for statement in scanned)
         for context in contexts:
             _reject_reserved_identifier(context, source)
-        source_declarations, declaration_indexes, source_global = _collect_declarations(
-            contexts, source
-        )
+        (
+            source_declarations,
+            declaration_indexes,
+            source_global,
+            source_visibility,
+        ) = _collect_declarations(contexts, source)
         global_nherb = global_nherb or source_global
+        nherb_visibility.extend(source_visibility)
         for declaration in source_declarations:
             key = (declaration.name, declaration.arity)
             if key not in declared:
@@ -132,7 +149,13 @@ def parse_sources(sources: Sequence[SourceText]) -> Program:
             statements.append(OrdinaryStatement("\n", SourceSpan(boundary, boundary)))
 
     filename = sources[0].filename if len(sources) == 1 else "<multiple sources>"
-    return Program(tuple(declarations), tuple(statements), filename, global_nherb)
+    return Program(
+        tuple(declarations),
+        tuple(statements),
+        filename,
+        global_nherb,
+        tuple(nherb_visibility),
+    )
 
 
 def _context(statement: ScannedStatement) -> _StatementContext:
@@ -144,22 +167,79 @@ def _context(statement: ScannedStatement) -> _StatementContext:
     )
 
 
-def _collect_declarations(
-    contexts: tuple[_StatementContext, ...], source: SourceText
-) -> tuple[list[NHerbDeclaration], set[int], bool]:
-    declarations: list[NHerbDeclaration] = []
-    indexes: set[int] = set()
-    global_nherb = False
-    for index, context in enumerate(contexts):
-        code = context.code
-        visibility = _LEGACY_VISIBILITY.search(context.executable)
-        if visibility:
+def _parse_visibility_directive(
+    context: _StatementContext, source: SourceText
+) -> NHerbVisibilityDirective | None:
+    executable = context.executable
+    all_match = _LEGACY_VISIBILITY_ALL.fullmatch(executable)
+    signature_match = _LEGACY_VISIBILITY_SIGNATURE.fullmatch(executable)
+    application_match = _LEGACY_VISIBILITY_APPLICATION.fullmatch(executable)
+    match = all_match or signature_match or application_match
+    if match is None:
+        marker_match = _LEGACY_VISIBILITY.search(executable)
+        if marker_match is not None:
             _unsupported(
                 source,
                 context,
-                visibility.start(),
-                "legacy '#show #nherb' and '#hide #nherb' directives are not supported",
+                marker_match.start(),
+                "unsupported legacy non-Herbrand visibility syntax; use "
+                "'#hide #nherb.', '#hide #nherb f/n.', or '#show #nherb f/n.'",
             )
+        return None
+
+    action = VisibilityAction(match.group(1))
+    if all_match is not None:
+        name = None
+        arity = None
+    elif signature_match is not None:
+        name = signature_match.group(2)
+        arity = int(signature_match.group(3))
+    else:
+        assert application_match is not None
+        name = application_match.group(2)
+        arity = len(_split_arguments(application_match.group(3)))
+
+    marker = executable.index(f"#{action.value}")
+    absolute_start = context.statement.span.start + marker
+    return NHerbVisibilityDirective(
+        action,
+        name,
+        arity,
+        SourceSpan(absolute_start, context.statement.span.end),
+    )
+
+
+def _collect_declarations(
+    contexts: tuple[_StatementContext, ...], source: SourceText
+) -> tuple[
+    list[NHerbDeclaration],
+    set[int],
+    bool,
+    list[NHerbVisibilityDirective],
+]:
+    declarations: list[NHerbDeclaration] = []
+    indexes: set[int] = set()
+    global_nherb = False
+    visibility_directives: list[NHerbVisibilityDirective] = []
+    for index, context in enumerate(contexts):
+        code = context.code
+        visibility = _parse_visibility_directive(context, source)
+        if visibility is not None:
+            visibility_directives.append(visibility)
+            indexes.add(index)
+            continue
+        if _ORDINARY_HIDE_ALL.fullmatch(context.executable):
+            marker = context.executable.index("#hide")
+            absolute_start = context.statement.span.start + marker
+            visibility_directives.append(
+                NHerbVisibilityDirective(
+                    VisibilityAction.HIDE,
+                    None,
+                    None,
+                    SourceSpan(absolute_start, absolute_start + len("#hide.")),
+                )
+            )
+            continue
         global_match = _GLOBAL_DECLARATION.fullmatch(context.executable)
         if global_match:
             indexes.add(index)
@@ -192,7 +272,7 @@ def _collect_declarations(
             NHerbDeclaration(name, arity, SourceSpan(absolute_start, absolute_start + len(name)))
         )
         indexes.add(index)
-    return declarations, indexes, global_nherb
+    return declarations, indexes, global_nherb, visibility_directives
 
 
 def _collect_global_application_keys(
@@ -249,14 +329,10 @@ def _parse_statement(
     if not text:
         return None
 
-    visibility = _LEGACY_VISIBILITY.search(context.executable)
-    if visibility:
-        _unsupported(
-            source,
-            context,
-            visibility.start(),
-            "legacy '#show #nherb' and '#hide #nherb' directives are not supported",
-        )
+    if _ORDINARY_HIDE_ALL.fullmatch(context.executable):
+        marker = context.executable.index("#hide")
+        translated = f"{text[:marker]}#show{text[marker + len('#hide') :]}"
+        return OrdinaryStatement(translated, context.statement.span)
 
     operators = _find_n_atom_operators(context.executable)
     if not operators:

@@ -267,6 +267,63 @@ hidden.
     assert "__aspf_" not in result.models[0].render()
 
 
+def test_hide_all_non_herbrand_assignments_changes_only_presentation() -> None:
+    result = solve("#nherb f/1.\nf(a) #= 2.\nderived :- f(a) #= 2.\n#hide #nherb.\n")
+
+    assert result.models[0].ordinary_atoms == ("derived",)
+    assert result.models[0].assignments == ()
+    assert "__aspf_value(f(a),2)." in result.lowered.source
+
+
+def test_selective_hide_uses_exact_name_and_arity() -> None:
+    result = solve(
+        "#nherb f/0.\n#nherb f/1.\n#nherb k/1.\n"
+        "f #= zero.\nf(a) #= one.\nk(a) #= other.\n"
+        "#hide #nherb f/1.\n"
+    )
+
+    assert result.models[0].assignments == ("f#=zero", "k(a)#=other")
+
+
+def test_selective_show_after_hide_all_exposes_only_selected_assignment() -> None:
+    result = solve(
+        "#nherb f/1.\n#nherb k/1.\nf(a) #= 2.\nk(a) #= 3.\n#hide #nherb.\n#show #nherb f(X).\n"
+    )
+
+    assert result.models[0].assignments == ("f(a)#=2",)
+
+
+def test_visibility_directive_order_is_deterministic() -> None:
+    result = solve("#nherb f/1.\nf(a) #= 2.\n#hide #nherb.\n#show #nherb f/1.\n#hide #nherb f/1.\n")
+
+    assert result.models[0].assignments == ()
+
+
+def test_ordinary_show_and_non_herbrand_visibility_are_independent() -> None:
+    result = solve("#nherb f/1.\nf(a) #= 2.\nvisible.\nhidden.\n#show visible/0.\n#hide #nherb.\n")
+
+    assert result.models[0].ordinary_atoms == ("visible",)
+    assert result.models[0].assignments == ()
+
+
+def test_historical_ordinary_hide_all_supports_selective_non_herbrand_show() -> None:
+    result = solve(
+        "#nherb f/1.\n#nherb k/1.\nf(a) #= 2.\nk(a) #= 3.\np.\n#hide.\n#show #nherb f/1.\n"
+    )
+
+    assert result.models[0].ordinary_atoms == ()
+    assert result.models[0].assignments == ("f(a)#=2",)
+
+
+def test_hidden_assignment_policy_is_stable_across_multiple_models() -> None:
+    result = solve(
+        "#nherb f/0.\n{ choose }.\nf #= 1 :- choose.\n#hide #nherb.\n",
+        models=0,
+    )
+
+    assert {model.atoms for model in result.models} == {(), ("choose",)}
+
+
 def test_string_value_is_rendered_as_aspf_assignment() -> None:
     result = solve('#nherb label/1.\nlabel(item1) #= "cold brew".\n')
 
