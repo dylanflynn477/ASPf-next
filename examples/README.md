@@ -69,8 +69,9 @@ aspf examples/03_conditional_assignment.aspf
 ```
 
 Because `active(alice)` is true, the model contains
-`status(alice)#=employed`. Milestone 0.1 supports only a complete assignment as
-the rule head, not disjunctive or choice heads containing n-atoms.
+`status(alice)#=employed`. The current language supports only a complete
+assignment as the rule head, not disjunctive or choice heads containing
+n-atoms.
 
 ## 04 — Conflicting values
 

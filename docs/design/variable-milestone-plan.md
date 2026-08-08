@@ -1,7 +1,8 @@
 # Restricted ordinary-variable milestone plan
 
-Status: implemented as an unreleased development increment. This document
-records the design contract used by the implementation.
+Status: implemented historical design record. Later seed-equality and value
+variable work expanded this initial conservative contract; the current boundary
+is normative in `docs/supported-language.md`.
 
 ## Decision
 

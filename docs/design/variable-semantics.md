@@ -2,11 +2,11 @@
 
 Status: primary-source design basis for the implemented restricted subset.
 
-This document records the primary-source basis for ASPf-next's first restricted
-variable milestone. The recommended direct-key, independently domain-safe
-subset is now implemented as an unreleased development increment. The document
-separates historical ASP{f}, historical Clingo{f}, current Clingo behavior, and
-ASPf-next restrictions. No historical implementation source code was consulted.
+This document records the primary-source basis for ASPf-next's restricted
+ordinary-variable support. The direct-key, domain-safe subset and the later
+seed-equality safety increment are implemented. The document separates
+historical ASP{f}, historical Clingo{f}, current Clingo behavior, and ASPf-next
+restrictions. No historical implementation source code was consulted.
 
 ## Executive conclusion
 

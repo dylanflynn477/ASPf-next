@@ -67,11 +67,11 @@ def test_release_metadata_is_consistent() -> None:
     assert "Current release | Not yet published" in portfolio
 
 
-def test_productization_documents_exist() -> None:
+def test_project_and_release_documents_exist() -> None:
     expected = (
         "CHANGELOG.md",
         "CONTRIBUTING.md",
-        "PRODUCTIZATION_PLAN.md",
+        "PLAN.md",
         "docs/quickstart.md",
         "docs/roadmap.md",
         "docs/demo-recording.md",
