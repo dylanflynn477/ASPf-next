@@ -223,6 +223,32 @@ def test_lowers_domain_safe_variable_positive_equality() -> None:
     assert "zero(A) :- account(A), __aspf_value(balance(A),0)." in result
 
 
+def test_lowers_seed_equality_value_variable_as_a_direct_relation_join() -> None:
+    result = lowered("#nherb l/1.\np(X,Y) :- l(X) #= Y.\n")
+
+    assert "p(X,Y) :- __aspf_value(l(X),Y)." in result
+    assert "value(Y)" not in result
+
+
+def test_lowers_independently_safe_value_variable_inequality_with_definedness() -> None:
+    result = lowered(
+        "#nherb l/1.\nkey(a).\nvalue(1;2).\ndifferent(X,Y) :- key(X), value(Y), l(X) #!= Y.\n"
+    )
+
+    assert (
+        "different(X,Y) :- key(X), value(Y), __aspf_value(l(X),_AspfNeq0), _AspfNeq0 != Y."
+    ) in result
+
+
+def test_default_negated_value_equality_keys_helper_by_value_variable() -> None:
+    result = lowered(
+        "#nherb l/1.\nkey(a).\nvalue(1;2).\nmissing(X,Y) :- key(X), value(Y), not l(X) #= Y.\n"
+    )
+
+    assert "missing(X,Y) :- key(X), value(Y), not __aspf_sat_0(X,Y)." in result
+    assert "__aspf_sat_0(X,Y) :- __aspf_value(l(X),Y)." in result
+
+
 def test_lowers_domain_safe_variable_not_equal_with_definedness_lookup() -> None:
     result = lowered("#nherb balance/1.\nnonzero(A) :- account(A), balance(A) #!= 0.\n")
 

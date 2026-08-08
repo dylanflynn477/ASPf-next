@@ -106,6 +106,56 @@ def test_multiple_files_share_declarations(tmp_path: Path, capsys) -> None:  # t
     assert "status(alice)#=employed" in capsys.readouterr().out
 
 
+def test_seed_equality_human_json_and_lowered_output(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = write_program(
+        tmp_path,
+        "#nherb l/1.\nl(a) #= 3.\np(X,Y) :- l(X) #= Y.\n",
+        "seed.aspf",
+    )
+
+    assert main([str(path)]) == 0
+    human = capsys.readouterr().out
+    assert "p(a,3) l(a)#=3" in human
+    assert "__aspf_" not in human
+
+    assert main([str(path), "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["models"][0]["ordinary_atoms"] == ["p(a,3)"]
+    assert payload["models"][0]["assignments"] == ["l(a)#=3"]
+
+    assert main([str(path), "--emit-lowered"]) == 0
+    lowered = capsys.readouterr().out
+    assert "p(X,Y) :- __aspf_value(l(X),Y)." in lowered
+
+
+def test_seed_equality_is_stable_across_command_line_file_order(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rules = write_program(tmp_path, "p(X,Y) :- l(X) #= Y.\n", "rules.aspf")
+    assignments = write_program(tmp_path, "l(a) #= 3.\n", "assignments.aspf")
+    declarations = write_program(tmp_path, "#nherb l/1.\n", "declarations.aspf")
+
+    assert main([str(rules), str(assignments), str(declarations)]) == 0
+    assert "p(a,3) l(a)#=3" in capsys.readouterr().out
+
+
+def test_cli_reports_unsafe_dependent_value_variable_location(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = write_program(
+        tmp_path,
+        "#nherb l/1.\nl(a) #= 3.\np(X,Y) :- l(X) #!= Y.\n",
+        "unsafe-value.aspf",
+    )
+
+    assert main([str(path)]) == 2
+    error = capsys.readouterr().err
+    assert f"{path}:3:13" in error
+    assert "do not provide source safety" in error
+
+
 @pytest.mark.parametrize(
     ("operator", "assigned", "right"),
     [("#<", -1, 0), ("#<=", 0, 0), ("#>", 1, 0), ("#>=", 0, 0)],

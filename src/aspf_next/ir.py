@@ -106,6 +106,20 @@ class ScalarOperand:
 
 
 @dataclass(frozen=True, slots=True)
+class ValueVariableOperand:
+    """An ordinary source variable occupying a body n-atom value position."""
+
+    name: str
+    span: SourceSpan
+
+    @property
+    def text(self) -> str:
+        """Return the source spelling used by the reference lowering."""
+
+        return self.name
+
+
+@dataclass(frozen=True, slots=True)
 class ApplicationOperand:
     """A non-Herbrand application operand and its source span."""
 
@@ -118,7 +132,7 @@ class ApplicationOperand:
         return self.application.render()
 
 
-ComparisonOperand: TypeAlias = ScalarOperand | ApplicationOperand
+ComparisonOperand: TypeAlias = ScalarOperand | ValueVariableOperand | ApplicationOperand
 
 
 @dataclass(frozen=True, slots=True)

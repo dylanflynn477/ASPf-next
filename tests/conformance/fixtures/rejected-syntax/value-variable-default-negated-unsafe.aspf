@@ -1,0 +1,2 @@
+#nherb l/1.
+p(X,Y) :- not l(X) #= Y.

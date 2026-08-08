@@ -26,6 +26,7 @@ from aspf_next.ir import (
     Program,
     ProgramStatement,
     ScalarOperand,
+    ValueVariableOperand,
     VariableTerm,
     VisibilityAction,
 )
@@ -500,6 +501,23 @@ def _parse_n_atom(
             "application-to-application comparison is supported only as a complete "
             "positive rule-body literal; a '#=' rule head remains a scalar assignment",
         )
+    if not is_body and isinstance(right, ValueVariableOperand):
+        _unsupported(
+            source,
+            context,
+            right.span.start - context.statement.span.start,
+            "ordinary value variables are supported only as complete right operands "
+            "of rule-body n-atoms; assignment values must remain ground",
+        )
+    if operator.is_ordered and isinstance(right, ValueVariableOperand):
+        _unsupported(
+            source,
+            context,
+            right.span.start - context.statement.span.start,
+            f"operator '{operator.value}' cannot use an ordinary value variable in the "
+            "reference backend: ordered n-atoms do not provide source safety, and an "
+            "ordinary domain does not establish an integer sort",
+        )
     if (
         operator.is_ordered
         and isinstance(right, ScalarOperand)
@@ -610,6 +628,12 @@ def _parse_right_operand(
     stripped = code.strip()
     term_start = start + (len(code) - len(code.lstrip()))
     term_end = term_start + len(stripped)
+    if _ORDINARY_VARIABLE.fullmatch(stripped):
+        absolute_start = context.statement.span.start + term_start
+        return ValueVariableOperand(
+            stripped,
+            SourceSpan(absolute_start, absolute_start + len(stripped)),
+        )
     if _SYMBOLIC_CONSTANT.fullmatch(stripped) and policy.right_is_application(stripped, 0):
         return _parse_application_operand(
             context, source, policy, term_start, term_end, side="right operand"
@@ -764,33 +788,38 @@ def _validate_n_atom_variable_safety(
     separator: int | None,
 ) -> None:
     variables = sorted(
-        (
-            argument
-            for n_atom in n_atoms
-            for operand in _application_operands(n_atom)
-            for argument in operand.application.arguments
-            if isinstance(argument, VariableTerm)
-        ),
+        (variable for n_atom in n_atoms for variable in _n_atom_variables(n_atom)),
         key=lambda variable: variable.span.start,
     )
     if not variables:
         return
 
     domain_variables = _ordinary_domain_variables(context, n_atoms, separator)
+    seed_equality_variables = {
+        variable.name
+        for n_atom in n_atoms
+        if isinstance(n_atom, BodyComparison)
+        and n_atom.operator is NAtomOperator.EQUAL
+        and not n_atom.negated
+        and not isinstance(n_atom.right, ApplicationOperand)
+        for variable in _n_atom_variables(n_atom)
+    }
+    safe_variables = domain_variables | seed_equality_variables
     checked: set[str] = set()
     for variable in variables:
         if variable.name in checked:
             continue
         checked.add(variable.name)
-        if variable.name in domain_variables:
+        if variable.name in safe_variables:
             continue
         local_offset = variable.span.start - context.statement.span.start
         _unsupported(
             source,
             context,
             local_offset,
-            f"variable '{variable.name}' in a non-Herbrand application must occur in an "
-            "ordinary positive body atom in the same rule",
+            f"variable '{variable.name}' is unsafe: it must occur in an ordinary positive "
+            "body atom or a positive, non-default-negated seed equality in the same rule; "
+            "dependent and default-negated n-atoms do not provide source safety",
         )
 
 
@@ -956,6 +985,18 @@ def _application_operands(n_atom: NAtom) -> tuple[ApplicationOperand, ...]:
     if isinstance(n_atom.right, ApplicationOperand):
         return n_atom.left, n_atom.right
     return (n_atom.left,)
+
+
+def _n_atom_variables(n_atom: NAtom) -> tuple[VariableTerm | ValueVariableOperand, ...]:
+    variables: list[VariableTerm | ValueVariableOperand] = [
+        argument
+        for operand in _application_operands(n_atom)
+        for argument in operand.application.arguments
+        if isinstance(argument, VariableTerm)
+    ]
+    if isinstance(n_atom, BodyComparison) and isinstance(n_atom.right, ValueVariableOperand):
+        variables.append(n_atom.right)
+    return tuple(variables)
 
 
 def _parse_ground_term(

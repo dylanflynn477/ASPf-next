@@ -1,0 +1,5 @@
+#nherb l/1.
+key(a;b).
+unrelated(999).
+l(a) #= 3.
+p(X,Y) :- l(X) #= Y.

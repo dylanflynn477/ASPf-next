@@ -1079,7 +1079,7 @@
         "solve_status": "NOT_RUN",
         "model_count": null,
         "diagnostic": {
-          "contains": "variables as n-atom values are not supported",
+          "contains": "assignment values must remain ground",
           "source": "fixtures/rejected-syntax/variable-value.aspf",
           "line": 3,
           "column": 22
@@ -1087,8 +1087,8 @@
       },
       "source_basis": {
         "kind": "aspf-next-boundary",
-        "references": ["Variable milestone plan"],
-        "notes": "The first variable milestone changes only direct key arguments and leaves every right operand ground."
+        "references": ["Historical seed equality design"],
+        "notes": "Ordinary value variables are body operands in this increment; assignment-head values remain ground."
       }
     },
     {
@@ -1816,6 +1816,233 @@
         "kind": "aspf-next-boundary",
         "references": ["CF Syntax", "Legacy visibility implementation contract"],
         "notes": "Only documented all, name/arity, and placeholder selector forms are accepted."
+      }
+    },
+    {
+      "id": "seed-equality-p1-empty",
+      "category": "satisfiable",
+      "sources": ["fixtures/satisfiable/seed-equality-p1.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [{"ordinary_atoms": [], "assignments": []}]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["CF Syntax restrictions P1", "B13 section 3, pp. 552-553"],
+        "notes": "A positive seed equality provides source safety, but an undefined application supplies no tuple and invents no value."
+      }
+    },
+    {
+      "id": "seed-equality-p2-key-and-value",
+      "category": "satisfiable",
+      "sources": ["fixtures/satisfiable/seed-equality-p2.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [{"ordinary_atoms": ["p(a,3)"], "assignments": ["l(a)#=3"]}]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["CF Syntax restrictions P2", "B13 section 3, pp. 552-553"],
+        "notes": "The positive value relation supplies exactly the supported key/value tuple to both ordinary variables."
+      }
+    },
+    {
+      "id": "seed-equality-ground-key-variable",
+      "category": "satisfiable",
+      "sources": ["fixtures/satisfiable/seed-equality-ground-key.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [{"ordinary_atoms": ["p(a)"], "assignments": ["l(a)#=3", "l(b)#=4"]}]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["CF Syntax restrictions P1-P3", "B13 seed n-atom definition"],
+        "notes": "A positive equality to a ground scalar is also a seed equality and provides safety for its key variable."
+      }
+    },
+    {
+      "id": "seed-equality-value-kinds",
+      "category": "satisfiable",
+      "sources": ["fixtures/satisfiable/seed-equality-values.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [{"ordinary_atoms": ["p(a,1)", "p(b,two)", "p(c,wrapper(k(3)))"], "assignments": ["l(a)#=1", "l(b)#=two", "l(c)#=wrapper(k(3))"]}]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["CF undeclared-term rule", "Historical seed equality design"],
+        "notes": "The relational join carries every already-supported ground value kind without building a global value universe."
+      }
+    },
+    {
+      "id": "seed-equality-shared-value-join",
+      "category": "satisfiable",
+      "sources": ["fixtures/satisfiable/seed-equality-shared.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [{"ordinary_atoms": ["pair(a,b,shared)"], "assignments": ["left(a)#=shared", "right(b)#=shared", "right(c)#=other"]}]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["CF seed-equality safety", "B13 grounding discussion"],
+        "notes": "One ordinary value variable can join two positive seed equalities; each equality remains a safety provider."
+      }
+    },
+    {
+      "id": "seed-equality-recursive-domain",
+      "category": "satisfiable",
+      "sources": ["fixtures/satisfiable/seed-equality-recursive.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [{"ordinary_atoms": ["edge(b,a)", "edge(c,c)", "seen(a,root)", "seen(b,root)"], "assignments": ["l(a)#=root", "l(b)#=root"]}]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B13 grounding discussion", "Historical seed equality design"],
+        "notes": "Positive recursion propagates a supported base tuple to b; the base-free c cycle creates no value or grounding domain."
+      }
+    },
+    {
+      "id": "seed-equality-undefined-and-unrelated",
+      "category": "partiality",
+      "sources": ["fixtures/partiality/seed-equality-undefined.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [{"ordinary_atoms": ["key(a)", "key(b)", "p(a,3)", "unrelated(999)"], "assignments": ["l(a)#=3"]}]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B12 section 3", "B13 section 2"],
+        "notes": "The undefined b key and unrelated 999 constant do not become candidate value tuples."
+      }
+    },
+    {
+      "id": "seed-equality-multiple-models",
+      "category": "multiple-models",
+      "sources": ["fixtures/multiple-models/seed-equality-choices.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 2,
+        "models": [
+          {"ordinary_atoms": ["choose(1)", "p(a,1)"], "assignments": ["l(a)#=1"]},
+          {"ordinary_atoms": ["choose(2)", "p(a,2)"], "assignments": ["l(a)#=2"]}
+        ]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B13 seed semantics", "Historical seed equality design"],
+        "notes": "Potential assignment tuples ground the join, while each stable model exposes only its selected supported value."
+      }
+    },
+    {
+      "id": "value-variable-ordinary-domain",
+      "category": "satisfiable",
+      "sources": ["fixtures/satisfiable/value-variable-domain.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [{"ordinary_atoms": ["different(a,2)", "key(a)", "key(b)", "missing(a,2)", "missing(b,1)", "missing(b,2)", "value(1)", "value(2)"], "assignments": ["l(a)#=1"]}]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["CF Syntax restrictions P3-P5", "B12 definedness semantics"],
+        "notes": "Inequality and default negation may consume independently safe value variables but provide no safety themselves."
+      }
+    },
+    {
+      "id": "seed-equality-multi-file",
+      "category": "multi-file",
+      "sources": ["fixtures/multi-file/seed-equality-rules.aspf", "fixtures/multi-file/seed-equality-assignments.aspf", "fixtures/multi-file/seed-equality-declarations.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [{"ordinary_atoms": ["p(a,3)", "p(b,4)"], "assignments": ["l(a)#=3", "l(b)#=4"]}]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B13 grounding discussion", "Historical seed equality design"],
+        "notes": "Whole-program declaration and value-relation analysis is stable when rules precede assignments and declarations on the command line."
+      }
+    },
+    {
+      "id": "rejected-dependent-application-equality-safety",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/seed-equality-dependent-application.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {"contains": "do not provide source safety", "source": "fixtures/rejected-syntax/seed-equality-dependent-application.aspf", "line": 3, "column": 14}
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["CF Syntax restrictions", "B13 dependent n-atom definition"],
+        "notes": "Application-to-application equality is dependent and cannot establish safety for X."
+      }
+    },
+    {
+      "id": "rejected-value-variable-inequality-safety",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/value-variable-inequality-unsafe.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {"contains": "do not provide source safety", "source": "fixtures/rejected-syntax/value-variable-inequality-unsafe.aspf", "line": 3, "column": 13}
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["CF Syntax restrictions P5"],
+        "notes": "Dependent inequality provides safety for neither its key variable nor its ordinary value variable."
+      }
+    },
+    {
+      "id": "rejected-value-variable-default-negated-safety",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/value-variable-default-negated-unsafe.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {"contains": "do not provide source safety", "source": "fixtures/rejected-syntax/value-variable-default-negated-unsafe.aspf", "line": 2, "column": 17}
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["CF dependent-literal safety", "B12 default negation semantics"],
+        "notes": "Default negation never provides source safety, even when its positive form would be a seed equality."
+      }
+    },
+    {
+      "id": "rejected-ordered-value-variable-sort",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/value-variable-ordered.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {"contains": "does not establish an integer sort", "source": "fixtures/rejected-syntax/value-variable-ordered.aspf", "line": 4, "column": 38}
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["B13 numeric comparison semantics", "Historical seed equality design"],
+        "notes": "An ordinary symbolic domain does not prove the numeric sort needed to avoid Clingo generic term ordering."
       }
     }
   ]

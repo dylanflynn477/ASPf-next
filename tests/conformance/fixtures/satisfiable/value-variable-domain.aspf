@@ -1,0 +1,6 @@
+#nherb l/1.
+key(a;b).
+value(1;2).
+l(a) #= 1.
+different(X,Y) :- key(X), value(Y), l(X) #!= Y.
+missing(X,Y) :- key(X), value(Y), not l(X) #= Y.

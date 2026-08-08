@@ -13,6 +13,7 @@ from aspf_next.ir import (
     NAtomOperator,
     OrdinaryStatement,
     ScalarOperand,
+    ValueVariableOperand,
     VariableTerm,
     VisibilityAction,
 )
@@ -818,7 +819,7 @@ def test_accepts_domain_safe_variable_in_assignment_head() -> None:
     assert assignment.target.render() == "status(P)"
 
 
-@pytest.mark.parametrize("operator", ["#=", "#!=", "#<", "#<=", "#>", "#>="])
+@pytest.mark.parametrize("operator", ["#!=", "#<", "#<=", "#>", "#>="])
 def test_rejects_variable_bound_only_by_n_atom_for_every_operator(operator: str) -> None:
     source = f"#nherb balance/1.\nok(A) :- balance(A) {operator} 0.\n"
 
@@ -829,12 +830,21 @@ def test_rejects_variable_bound_only_by_n_atom_for_every_operator(operator: str)
     assert caught.value.location.column == source.splitlines()[1].index("balance(A)") + 9
 
 
+def test_positive_ground_seed_equality_provides_key_variable_safety() -> None:
+    program = parse_program("#nherb balance/1.\nzero(A) :- balance(A) #= 0.\n")
+
+    statement = program.statements[0]
+    assert isinstance(statement, AspfStatement)
+    comparison = statement.n_atoms[0]
+    assert isinstance(comparison, BodyComparison)
+    assert comparison.left.render() == "balance(A)"
+
+
 @pytest.mark.parametrize(
     "body",
     [
         "not account(A), balance(A) #< 1000",
         "A = account1, balance(A) #< 1000",
-        "status(A) #= active, balance(A) #< 1000",
         "-account(A), balance(A) #< 1000",
     ],
 )
@@ -847,14 +857,97 @@ def test_rejects_unapproved_variable_domain_sources(body: str) -> None:
     assert caught.value.location.line == 3
 
 
-def test_rejects_ordinary_variable_as_n_atom_value() -> None:
+def test_ground_seed_equality_can_supply_safety_to_a_dependent_comparison() -> None:
+    program = parse_program(
+        "#nherb balance/1.\n#nherb status/1.\nlow(A) :- status(A) #= active, balance(A) #< 1000.\n"
+    )
+
+    statement = program.statements[0]
+    assert isinstance(statement, AspfStatement)
+    assert len(statement.n_atoms) == 2
+
+
+def test_rejects_ordinary_value_variable_in_assignment_head() -> None:
     source = "#nherb balance/1.\nvalue(V).\nbalance(account1) #= V :- value(V).\n"
 
-    with pytest.raises(UnsupportedSyntaxError, match="variables as n-atom values") as caught:
+    with pytest.raises(
+        UnsupportedSyntaxError, match="assignment values must remain ground"
+    ) as caught:
         parse_program(source, filename="value.aspf")
 
     assert caught.value.location.line == 3
     assert caught.value.location.column == source.splitlines()[2].index("V") + 1
+
+
+def test_parses_seed_equality_value_variable_as_a_distinct_ir_operand() -> None:
+    source = "#nherb l/1.\np(X,Y) :- l(X) #= Y.\n"
+
+    program = parse_program(source, filename="seed.aspf")
+    statement = program.statements[0]
+
+    assert isinstance(statement, AspfStatement)
+    comparison = statement.n_atoms[0]
+    assert isinstance(comparison, BodyComparison)
+    assert isinstance(comparison.left.application.arguments[0], VariableTerm)
+    assert isinstance(comparison.right, ValueVariableOperand)
+    assert comparison.right.name == comparison.right.text == "Y"
+    assert comparison.right.span.start == source.index("Y", source.index("#="))
+
+
+def test_positive_seed_equality_provides_key_and_value_variable_safety() -> None:
+    program = parse_program(
+        "#nherb left/1.\n#nherb right/1.\npair(X,Y) :- left(X) #= Y, right(Y) #= X.\n"
+    )
+
+    statement = program.statements[0]
+    assert isinstance(statement, AspfStatement)
+    assert len(statement.n_atoms) == 2
+    assert all(isinstance(atom.right, ValueVariableOperand) for atom in statement.n_atoms)
+
+
+def test_independently_safe_value_variable_is_accepted_for_inequality() -> None:
+    program = parse_program(
+        "#nherb l/1.\nkey(a).\nvalue(1;2).\ndifferent(X,Y) :- key(X), value(Y), l(X) #!= Y.\n"
+    )
+
+    statement = program.statements[2]
+    assert isinstance(statement, AspfStatement)
+    comparison = statement.n_atoms[0]
+    assert isinstance(comparison, BodyComparison)
+    assert isinstance(comparison.right, ValueVariableOperand)
+
+
+@pytest.mark.parametrize(
+    ("body", "token"),
+    [
+        ("l(X) #!= 2", "X"),
+        ("l(X) #!= Y", "X"),
+        ("not l(X) #= Y", "X"),
+    ],
+)
+def test_dependent_and_default_negated_value_forms_do_not_provide_safety(
+    body: str, token: str
+) -> None:
+    source = f"#nherb l/1.\np(X,Y) :- {body}.\n"
+
+    with pytest.raises(UnsupportedSyntaxError, match="do not provide source safety") as caught:
+        parse_program(source, filename="dependent.aspf")
+
+    assert caught.value.location.line == 2
+    assert caught.value.location.column == source.splitlines()[1].rindex(token) + 1
+
+
+@pytest.mark.parametrize("operator", ["#<", "#<=", "#>", "#>="])
+def test_ordered_value_variable_has_a_precise_integer_sort_diagnostic(operator: str) -> None:
+    source = f"#nherb l/1.\nkey(a).\nnumber(1).\np(X,Y) :- key(X), number(Y), l(X) {operator} Y.\n"
+
+    with pytest.raises(
+        UnsupportedSyntaxError, match="does not establish an integer sort"
+    ) as caught:
+        parse_program(source, filename="ordered-value.aspf")
+
+    assert caught.value.location.line == 4
+    assert caught.value.location.column == source.splitlines()[3].rindex("Y") + 1
 
 
 @pytest.mark.parametrize(

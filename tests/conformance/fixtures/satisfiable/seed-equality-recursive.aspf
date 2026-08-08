@@ -1,0 +1,6 @@
+#nherb l/1.
+edge(b,a).
+edge(c,c).
+l(a) #= root.
+l(X) #= root :- edge(X,Y), l(Y) #= root.
+seen(X,V) :- l(X) #= V.
