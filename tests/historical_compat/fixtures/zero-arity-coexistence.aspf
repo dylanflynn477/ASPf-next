@@ -1,0 +1,4 @@
+#nherb f/0.
+#nherb f/1.
+f #= zero.
+f(a) #= one.

@@ -194,11 +194,6 @@ def test_cli_rejects_ordered_comparison_rule_head_with_location(
     ("source", "message", "column"),
     [
         ("ordinary.\n__aspf_injected(a).\n", "reserved for aspf-next internals", 1),
-        (
-            "#nherb balance/1.\np(balance(account1)).\n",
-            "may only be used as the key of a supported n-atom",
-            3,
-        ),
     ],
 )
 def test_cli_rejects_semantic_boundary_violations_with_location(
@@ -215,6 +210,35 @@ def test_cli_rejects_semantic_boundary_violations_with_location(
     assert captured.out == ""
     assert f"{path}:2:{column}" in captured.err
     assert message in captured.err
+
+
+def test_cli_preserves_ordinary_use_of_declared_symbol(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    path = write_program(
+        tmp_path,
+        "#nherb k(X).\nk(1) #= 5.\nordinary(k(1)).\n",
+        "historical.aspf",
+    )
+
+    assert main([str(path)]) == 0
+    output = capsys.readouterr().out
+    assert "ordinary(k(1))" in output
+    assert "k(1)#=5" in output
+    assert "ordinary(5)" not in output
+
+
+def test_cli_json_reconstructs_compound_herbrand_value(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    path = write_program(tmp_path, "#nherb f(X).\nf(a) #= wrapper(k(1)).\n")
+
+    assert main([str(path), "--json"]) == 0
+    output = capsys.readouterr().out
+    assert '"f(a)#=wrapper(k(1))"' in output
+    assert "__aspf_" not in output
 
 
 def test_domain_safe_variable_human_json_and_lowered_output(

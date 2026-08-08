@@ -1,0 +1,3 @@
+% Clingo{f} public Syntax documentation: application-style declaration.
+#nherb f(X).
+f(a) #= 2.

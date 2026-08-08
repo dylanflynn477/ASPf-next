@@ -106,10 +106,24 @@ def test_conformance_traceability_and_decisions_cover_the_current_boundary() -> 
         "Constants and values",
         "Ordinary ASP interaction",
         "Variables and arithmetic",
-        "Declaration/use restrictions",
+        "Declaration scope",
         "Reserved internal identifiers",
     ):
         assert f"| {construct} |" in traceability
+
+
+def test_historical_compatibility_documents_and_manifest_are_linked() -> None:
+    readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
+    policy = (PROJECT_ROOT / "docs" / "compatibility" / "policy.md").read_text(encoding="utf-8")
+    audit = (PROJECT_ROOT / "docs" / "compatibility" / "historical-clingof-audit.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "Historical Clingo{f} compatibility" in readme
+    assert "does not claim full" in readme
+    assert "Source compatible" in policy and "Semantically compatible" in policy
+    assert "Default-negated n-atoms" in audit
+    assert "tests/historical_compat" in readme
 
     decision_files = sorted((PROJECT_ROOT / "docs" / "decisions").glob("*.md"))
     assert [path.name for path in decision_files] == [

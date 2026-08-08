@@ -178,3 +178,11 @@ They are defined and different for `b`, so `changed(b)` and
 `above_expected(b)` are derived. Neither application is defined for `c`, so
 none of its comparison rules succeeds. Application equality is a positive body
 comparison, not assignment or value-copy syntax.
+
+## Historical compatibility examples
+
+The separate [`historical/`](historical/) directory contains minimal,
+attributed programs using historical declaration, scope, arity, and compound
+Herbrand-value syntax that now runs unchanged. Deferred historical constructs
+remain in the strict compatibility xfail corpus rather than appearing as
+runnable examples.

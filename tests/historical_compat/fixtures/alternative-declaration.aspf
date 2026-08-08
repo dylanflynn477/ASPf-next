@@ -1,0 +1,4 @@
+#nherb f(X).
+#nherb pair(X,Y).
+f(a) #= 2.
+pair(a,b) #= ready.

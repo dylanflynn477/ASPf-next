@@ -1,0 +1,4 @@
+% Clingo{f} public Syntax documentation: declarations affect only #-connectives.
+#nherb k/1.
+k(1) #= 5.
+ordinary(k(1)).

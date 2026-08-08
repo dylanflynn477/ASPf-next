@@ -1,0 +1,4 @@
+#nherb f/1.
+f(a) #= 2.
+p.
+#hide #nherb.

@@ -156,9 +156,23 @@ def test_lowering_rejects_user_identifier_in_internal_namespace() -> None:
         lowered("__aspf_value(user,key).\n")
 
 
-def test_lowering_rejects_declared_symbol_as_ordinary_term() -> None:
-    with pytest.raises(UnsupportedSyntaxError, match="may only be used as the key"):
-        lowered("#nherb balance/1.\np(balance(account1)).\n")
+def test_lowering_preserves_declared_symbol_as_ordinary_term() -> None:
+    result = lowered("#nherb balance/1.\np(balance(account1)).\n")
+
+    assert "p(balance(account1))." in result
+    assert INTERNAL_DEFINITIONS in result
+
+
+def test_lowers_compound_herbrand_assignment_and_comparison_values() -> None:
+    result = lowered(
+        "#nherb status/1.\nstatus(alice) #= wrapper(k(1)).\n"
+        "same :- status(alice) #= wrapper(k(1)).\n"
+        "different :- status(alice) #!= wrapper(k(2)).\n"
+    )
+
+    assert "__aspf_value(status(alice),wrapper(k(1)))." in result
+    assert "same :- __aspf_value(status(alice),wrapper(k(1)))." in result
+    assert "_AspfNeq0 != wrapper(k(2))" in result
 
 
 def test_lowers_domain_safe_variable_assignment_head_without_emitting_a_domain_rule() -> None:

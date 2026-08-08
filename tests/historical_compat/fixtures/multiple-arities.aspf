@@ -1,0 +1,4 @@
+#nherb f/1.
+#nherb f/2.
+f(a) #= one.
+f(a,b) #= two.

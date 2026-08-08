@@ -1,0 +1,4 @@
+#nherb f/1.
+#nherb k/1.
+f(a) #= 2.
+same :- f(a) #= k(1).

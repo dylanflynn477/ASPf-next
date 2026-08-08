@@ -122,6 +122,32 @@ def test_examples_guide_covers_every_program() -> None:
         assert program.name in guide
 
 
+@pytest.mark.parametrize(
+    ("filename", "expected_atoms"),
+    [
+        ("alternative-declaration.aspf", ("f(a)#=2",)),
+        ("compound-herbrand-value.aspf", ("same", "f(a)#=k(1)")),
+        ("ordinary-declared-symbol.aspf", ("ordinary(k(1))", "k(1)#=5")),
+        ("multiple-arities.aspf", ("f(a)#=one", "f(a,b)#=two")),
+    ],
+)
+def test_historical_example(filename: str, expected_atoms: tuple[str, ...]) -> None:
+    path = EXAMPLES / "historical" / filename
+    program = parse_program(path.read_text(encoding="utf-8"), filename=str(path))
+    result = solve_program(program, models=0)
+
+    assert result.status is SolveStatus.SATISFIABLE
+    assert result.models[0].atoms == expected_atoms
+
+
+def test_historical_examples_guide_covers_every_program() -> None:
+    directory = EXAMPLES / "historical"
+    guide = (directory / "README.md").read_text(encoding="utf-8")
+
+    for program in sorted(directory.glob("*.aspf")):
+        assert program.name in guide
+
+
 def test_readme_basic_command_output(capsys: pytest.CaptureFixture[str]) -> None:
     path = EXAMPLES / "01_basic_assignment.aspf"
 

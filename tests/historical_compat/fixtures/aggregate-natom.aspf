@@ -1,0 +1,3 @@
+#nherb f/1.
+f(a) #= 1.
+num(N) :- N = #count { 1 : f(a) #= 1 }.

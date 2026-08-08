@@ -37,6 +37,9 @@ ruff format --check src tests
 ruff check src tests
 mypy src
 pytest
+pytest tests/conformance
+pytest tests/historical_compat
+python scripts/compatibility_report.py
 ```
 
 ## Pull requests
@@ -55,3 +58,11 @@ When a change affects a documented semantic boundary, add or update a case in
 [`tests/conformance/manifest.json`](tests/conformance/manifest.json). Each case
 must state whether it represents source-backed historical behavior or an
 ASPf-next-specific boundary.
+
+Historically documented behavior targeted for compatibility belongs in the
+separate
+[`tests/historical_compat/manifest.json`](tests/historical_compat/manifest.json).
+A not-yet-supported historical program should be a strict xfail with an
+attributed reason, never a fake passing test. When an xfail starts passing,
+review its exact models and update the manifest, audit, and compatibility
+report together.

@@ -1,0 +1,3 @@
+#nherb f/1.
+f(a) #= 3.
+greater :- f(a) #> 2.

@@ -388,24 +388,24 @@
       }
     },
     {
-      "id": "rejected-declared-symbol-outside-key",
-      "category": "rejected-syntax",
-      "sources": ["fixtures/rejected-syntax/declared-symbol-outside-key.aspf"],
+      "id": "accepted-declared-symbol-ordinary-use",
+      "category": "accepted-syntax",
+      "sources": ["fixtures/accepted-syntax/declared-symbol-ordinary-use.aspf"],
       "expect": {
-        "parse": "rejected",
-        "solve_status": "NOT_RUN",
-        "model_count": null,
-        "diagnostic": {
-          "contains": "may only be used as the key of a supported n-atom",
-          "source": "fixtures/rejected-syntax/declared-symbol-outside-key.aspf",
-          "line": 2,
-          "column": 3
-        }
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": ["p(balance(account1))"],
+            "assignments": []
+          }
+        ]
       },
       "source_basis": {
-        "kind": "aspf-next-boundary",
+        "kind": "historical-behavior",
         "references": ["B13 §3 p. 552", "CF Syntax"],
-        "notes": "This intentionally rejects historical Clingo{f}'s scope-dependent Herbrand interpretation."
+        "notes": "A declared symbol retains ordinary Herbrand meaning outside the scope of a # connective."
       }
     },
     {
@@ -906,24 +906,24 @@
       }
     },
     {
-      "id": "rejected-conflicting-arity",
-      "category": "rejected-syntax",
-      "sources": ["fixtures/rejected-syntax/conflicting-arity.aspf"],
+      "id": "accepted-multiple-arities",
+      "category": "accepted-syntax",
+      "sources": ["fixtures/accepted-syntax/multiple-arities.aspf"],
       "expect": {
-        "parse": "rejected",
-        "solve_status": "NOT_RUN",
-        "model_count": null,
-        "diagnostic": {
-          "contains": "already declared with arity 1",
-          "source": "fixtures/rejected-syntax/conflicting-arity.aspf",
-          "line": 2,
-          "column": 8
-        }
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": [],
+            "assignments": ["item(a)#=one", "item(a,b)#=two"]
+          }
+        ]
       },
       "source_basis": {
-        "kind": "aspf-next-boundary",
+        "kind": "historical-behavior",
         "references": ["B13 §3 p. 552"],
-        "notes": "Historical Clingo{f} permits one function name at multiple arities; ASPf-next currently reserves one arity per name."
+        "notes": "B13 explicitly permits one function name at multiple arities when each name/arity pair is declared."
       }
     },
     {
