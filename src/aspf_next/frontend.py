@@ -158,7 +158,7 @@ def _collect_declarations(
         else:
             assert application_match is not None
             name = application_match.group(1)
-            arity = len([*_VARIABLE.finditer(application_match.group(2))])
+            arity = len(_split_arguments(application_match.group(2)))
             local_start = application_match.start(1)
         absolute_start = context.statement.span.start + local_start
         declarations.append(
