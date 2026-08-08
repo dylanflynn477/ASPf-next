@@ -18,6 +18,36 @@ def test_basic_assignment_is_reconstructed() -> None:
     assert result.models[0].atoms == ("balance(account1)#=500",)
 
 
+def test_global_mode_reconstructs_multiple_automatic_function_symbols() -> None:
+    result = solve("#nherb.\nf(a) #= 2.\nk(1) #= 2.\nsame :- f(a) #= k(1).\n")
+
+    assert result.models[0].ordinary_atoms == ("same",)
+    assert result.models[0].assignments == ("f(a)#=2", "k(1)#=2")
+
+
+def test_global_mode_keeps_undefined_applications_partial() -> None:
+    result = solve(
+        "#nherb.\naccount(a).\nequal :- missing(a) #= 1.\ndifferent :- missing(a) #!= 1.\n"
+    )
+
+    assert result.models[0].ordinary_atoms == ("account(a)",)
+    assert result.models[0].assignments == ()
+
+
+def test_global_mode_supports_zero_arity_assignments_and_comparisons() -> None:
+    result = solve("#nherb.\nsame :- current #= mode.\ncurrent #= active.\nmode #= active.\n")
+
+    assert result.models[0].ordinary_atoms == ("same",)
+    assert result.models[0].assignments == ("current#=active", "mode#=active")
+
+
+def test_global_mode_does_not_evaluate_ordinary_herbrand_occurrences() -> None:
+    result = solve("#nherb.\nf(a) #= 2.\nordinary(f(a)).\n")
+
+    assert result.models[0].ordinary_atoms == ("ordinary(f(a))",)
+    assert result.models[0].assignments == ("f(a)#=2",)
+
+
 def test_positive_body_comparison_derives_ordinary_atom() -> None:
     result = solve(
         """#nherb balance/1.

@@ -870,24 +870,21 @@
       }
     },
     {
-      "id": "rejected-global-declaration",
-      "category": "rejected-syntax",
-      "sources": ["fixtures/rejected-syntax/global-declaration.aspf"],
+      "id": "accepted-global-declaration",
+      "category": "accepted-syntax",
+      "sources": ["fixtures/accepted-syntax/global-declaration.aspf"],
       "expect": {
-        "parse": "rejected",
-        "solve_status": "NOT_RUN",
-        "model_count": null,
-        "diagnostic": {
-          "contains": "global '#nherb.' declarations are not supported",
-          "source": "fixtures/rejected-syntax/global-declaration.aspf",
-          "line": 1,
-          "column": 1
-        }
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {"ordinary_atoms": [], "assignments": ["balance(account1)#=500"]}
+        ]
       },
       "source_basis": {
-        "kind": "aspf-next-boundary",
+        "kind": "historical-behavior",
         "references": ["CF Syntax"],
-        "notes": "Global declaration is documented historical Clingo{f} syntax but is deliberately rejected in favor of explicit f/n declarations."
+        "notes": "The historical global declaration makes functional expressions under hash connectives non-Herbrand without per-function declarations."
       }
     },
     {
@@ -1549,6 +1546,147 @@
         "kind": "aspf-next-boundary",
         "references": ["CF Syntax restrictions P3-P5"],
         "notes": "Generated helpers cannot make an independently unsafe source variable acceptable."
+      }
+    },
+    {
+      "id": "global-application-equality",
+      "category": "satisfiable",
+      "sources": ["fixtures/satisfiable/global-application-equality.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": ["same"],
+            "assignments": ["f(a)#=2", "k(1)#=2"]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["CF Syntax global #nherb example"],
+        "notes": "Global mode recognizes multiple positive-arity function symbols and compares their defined values."
+      }
+    },
+    {
+      "id": "global-undefined-partiality",
+      "category": "partiality",
+      "sources": ["fixtures/partiality/global-undefined.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [{"ordinary_atoms": ["account(a)"], "assignments": []}]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["B12 section 3", "B13 section 2", "CF Syntax"],
+        "notes": "Global declaration changes operand interpretation but introduces no totality; undefined positive equality and inequality remain false."
+      }
+    },
+    {
+      "id": "global-zero-arity",
+      "category": "accepted-syntax",
+      "sources": ["fixtures/accepted-syntax/global-zero-arity.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": ["same"],
+            "assignments": ["current#=active", "mode#=active"]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["CF Example of use", "B13 section 2"],
+        "notes": "Bare key positions establish zero-arity applications; a right key is resolved from the whole-program signature."
+      }
+    },
+    {
+      "id": "global-ordinary-herbrand-use",
+      "category": "accepted-syntax",
+      "sources": ["fixtures/accepted-syntax/global-ordinary-use.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {"ordinary_atoms": ["ordinary(f(a))"], "assignments": ["f(a)#=2"]}
+        ]
+      },
+      "source_basis": {
+        "kind": "historical-behavior",
+        "references": ["CF Syntax scope example", "B13 section 3 p. 552"],
+        "notes": "The spelling f(a) retains ordinary Herbrand meaning outside an n-atom even under global mode."
+      }
+    },
+    {
+      "id": "global-multi-file-mixed-declarations",
+      "category": "multi-file",
+      "sources": [
+        "fixtures/multi-file/global-declaration.aspf",
+        "fixtures/multi-file/global-explicit.aspf",
+        "fixtures/multi-file/global-rules.aspf",
+        "fixtures/multi-file/global-assignments.aspf"
+      ],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {
+            "ordinary_atoms": ["ordinary(f(a))", "same"],
+            "assignments": ["current#=active", "f(a)#=2", "mode#=active"]
+          }
+        ]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["CF Syntax", "Global #nherb implementation contract"],
+        "notes": "Global and explicit declarations share one order-independent program policy across all CLI input files."
+      }
+    },
+    {
+      "id": "global-comments-and-strings-inert",
+      "category": "comments-layout",
+      "sources": ["fixtures/comments-layout/global-inert-markers.aspf"],
+      "expect": {
+        "parse": "accepted",
+        "solve_status": "SATISFIABLE",
+        "model_count": 1,
+        "models": [
+          {"ordinary_atoms": ["message(\"#nherb.\")"], "assignments": ["f(a)#=1"]}
+        ]
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["Scanner architecture", "Global #nherb implementation contract"],
+        "notes": "Directive text in comments and strings is inert; only the complete executable declaration activates global mode."
+      }
+    },
+    {
+      "id": "rejected-global-invalid-placement",
+      "category": "rejected-syntax",
+      "sources": ["fixtures/rejected-syntax/global-invalid-placement.aspf"],
+      "expect": {
+        "parse": "rejected",
+        "solve_status": "NOT_RUN",
+        "model_count": null,
+        "diagnostic": {
+          "contains": "unsupported #nherb declaration syntax",
+          "source": "fixtures/rejected-syntax/global-invalid-placement.aspf",
+          "line": 1,
+          "column": 6
+        }
+      },
+      "source_basis": {
+        "kind": "aspf-next-boundary",
+        "references": ["CF Syntax", "Global #nherb implementation contract"],
+        "notes": "Only a complete top-level global declaration is accepted."
       }
     }
   ]

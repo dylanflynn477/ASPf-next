@@ -1,0 +1,4 @@
+#nherb.
+account(a).
+equal :- missing(a) #= 1.
+different :- missing(a) #!= 1.

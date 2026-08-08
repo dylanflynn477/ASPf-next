@@ -87,7 +87,7 @@ def lower_program(program: Program) -> LoweredProgram:
             helper_rules.extend(statement_helpers)
 
     source = "".join(pieces)
-    if program.declarations:
+    if program.declarations or program.global_nherb:
         if source and not source.endswith("\n"):
             source += "\n"
         if helper_rules:

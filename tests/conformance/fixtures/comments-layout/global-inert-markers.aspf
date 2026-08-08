@@ -1,0 +1,4 @@
+% #nherb.
+message("#nherb.").
+#nherb.
+f(a) #= 1.

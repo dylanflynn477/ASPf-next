@@ -107,7 +107,7 @@ class ScalarOperand:
 
 @dataclass(frozen=True, slots=True)
 class ApplicationOperand:
-    """A declared non-Herbrand application operand and its source span."""
+    """A non-Herbrand application operand and its source span."""
 
     application: FunctionApplication
     span: SourceSpan
@@ -180,3 +180,4 @@ class Program:
     declarations: tuple[NHerbDeclaration, ...]
     statements: tuple[ProgramStatement, ...]
     filename: str
+    global_nherb: bool = False

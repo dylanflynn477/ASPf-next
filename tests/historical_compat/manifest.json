@@ -245,11 +245,11 @@
       "primary_source_origin": "CF Syntax",
       "expected_historical_status": "valid",
       "baseline_aspf_next_status": "unsupported",
-      "expected_aspf_next_status": "unsupported",
-      "disposition": "intentionally-deferred",
+      "expected_aspf_next_status": "passing-with-zero-arity-signature-restriction",
+      "disposition": "passing",
       "expected_models": [{"ordinary_atoms": ["same"], "assignments": ["f(a)#=2", "k(1)#=2"]}],
-      "semantic_notes": "Needs an explicit global declaration mode and zero-arity disambiguation.",
-      "compatibility_tier": "deferred"
+      "semantic_notes": "Global mode follows the documented scope rule; a bare right-side zero-arity application must be established by an explicit declaration or key occurrence.",
+      "compatibility_tier": "restricted"
     },
     {
       "id": "hide-nherb",

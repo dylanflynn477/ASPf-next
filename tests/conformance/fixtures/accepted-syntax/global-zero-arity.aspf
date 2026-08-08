@@ -1,0 +1,4 @@
+#nherb.
+same :- current #= mode.
+current #= active.
+mode #= active.

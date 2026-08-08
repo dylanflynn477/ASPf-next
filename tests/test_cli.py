@@ -424,3 +424,35 @@ def test_cli_rejects_double_default_negation_with_location(
     assert captured.out == ""
     assert f"{path}:2:6" in captured.err
     assert "double default negation" in captured.err
+
+
+def test_global_mode_human_json_and_lowered_output(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    declaration = write_program(tmp_path, "#nherb.\n", "global.aspf")
+    assignments = write_program(
+        tmp_path,
+        "f(a) #= 2.\nk(1) #= 2.\n",
+        "assignments.aspf",
+    )
+    rule = write_program(tmp_path, "same :- f(a) #= k(1).\n", "rule.aspf")
+    arguments = [str(declaration), str(assignments), str(rule)]
+
+    assert main(arguments) == 0
+    human = capsys.readouterr().out
+    assert "same" in human
+    assert "f(a)#=2" in human
+    assert "k(1)#=2" in human
+    assert "__aspf_" not in human
+
+    assert main([*arguments, "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["models"][0]["ordinary_atoms"] == ["same"]
+    assert payload["models"][0]["assignments"] == ["f(a)#=2", "k(1)#=2"]
+
+    assert main([*arguments, "--emit-lowered"]) == 0
+    lowered = capsys.readouterr().out
+    assert "__aspf_value(f(a),2)" in lowered
+    assert "__aspf_value(k(1),2)" in lowered
+    assert "same :- __aspf_value(f(a),_AspfCmp0)" in lowered

@@ -24,6 +24,25 @@ def test_lowers_basic_assignment_and_functionality() -> None:
     assert result.count(FUNCTIONALITY_CONSTRAINT) == 1
 
 
+def test_lowers_global_assignment_and_functionality_without_explicit_declarations() -> None:
+    result = lowered("#nherb.\nbalance(account1) #= 500.\n")
+
+    assert "__aspf_value(balance(account1),500)." in result
+    assert result.count(FUNCTIONALITY_CONSTRAINT) == 1
+
+
+def test_lowers_global_application_comparison_as_two_defined_lookups() -> None:
+    result = lowered("#nherb.\nf(a) #= 2.\nk(1) #= 2.\nsame :- f(a) #= k(1).\n")
+
+    assert "same :- __aspf_value(f(a),_AspfCmp0), __aspf_value(k(1),_AspfCmp0)." in result
+
+
+def test_lowers_global_zero_arity_application_comparison() -> None:
+    result = lowered("#nherb.\nsame :- current #= mode.\ncurrent #= active.\nmode #= active.\n")
+
+    assert "same :- __aspf_value(current,_AspfCmp0), __aspf_value(mode,_AspfCmp0)." in result
+
+
 def test_lowers_positive_body_comparison() -> None:
     result = lowered(
         """#nherb balance/1.

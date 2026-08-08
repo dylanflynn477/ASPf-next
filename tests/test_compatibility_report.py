@@ -18,7 +18,7 @@ def test_compatibility_report_is_derived_from_manifest() -> None:
 
     assert "Historical Clingo{f} compatibility matrix" in result.stdout
     assert "baseline matching cases: 10" in result.stdout
-    assert "passing:                30" in result.stdout
-    assert "expected unsupported:   7" in result.stdout
+    assert "passing:                31" in result.stdout
+    assert "expected unsupported:   6" in result.stdout
     assert "unresolved:             2" in result.stdout
     assert "total target cases:     39" in result.stdout

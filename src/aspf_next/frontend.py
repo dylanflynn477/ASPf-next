@@ -43,7 +43,7 @@ _APPLICATION_DECLARATION = re.compile(
     r"((?:[A-Z][A-Za-z0-9_]*|_)(?:\s*,\s*(?:[A-Z][A-Za-z0-9_]*|_))*)"
     r"\s*\)\s*\.\s*$"
 )
-_GLOBAL_DECLARATION = re.compile(r"#nherb\s*\.")
+_GLOBAL_DECLARATION = re.compile(r"\s*#nherb\s*\.\s*")
 _LEGACY_VISIBILITY = re.compile(r"#(?:show|hide)\s+#nherb\b")
 _SYMBOLIC_CONSTANT = re.compile(r"[a-z][A-Za-z0-9_]*")
 _INTEGER = re.compile(r"-?\d+")
@@ -64,6 +64,26 @@ class _StatementContext:
     points: dict[int, ScanPoint]
 
 
+@dataclass(frozen=True, slots=True)
+class _NHerbPolicy:
+    """Whole-program non-Herbrand operand classification policy."""
+
+    declared: frozenset[_DeclarationKey]
+    global_mode: bool
+    application_keys: frozenset[_DeclarationKey]
+
+    def accepts_application(self, name: str, arity: int) -> bool:
+        return self.global_mode or (name, arity) in self.declared
+
+    def right_is_application(self, name: str, arity: int) -> bool:
+        if not self.global_mode:
+            return (name, arity) in self.declared
+        return arity > 0 or (name, arity) in self.application_keys
+
+    def nested_is_application(self, name: str, arity: int) -> bool:
+        return self.right_is_application(name, arity)
+
+
 def parse_program(text: str, *, filename: str = "<string>") -> Program:
     """Parse and validate the supported compatibility slice."""
 
@@ -76,12 +96,16 @@ def parse_sources(sources: Sequence[SourceText]) -> Program:
     prepared: list[tuple[SourceText, tuple[_StatementContext, ...], set[int]]] = []
     declarations: list[NHerbDeclaration] = []
     declared: set[_DeclarationKey] = set()
+    global_nherb = False
     for source in sources:
         scanned = split_statements(source)
         contexts = tuple(_context(statement) for statement in scanned)
         for context in contexts:
             _reject_reserved_identifier(context, source)
-        source_declarations, declaration_indexes = _collect_declarations(contexts, source)
+        source_declarations, declaration_indexes, source_global = _collect_declarations(
+            contexts, source
+        )
+        global_nherb = global_nherb or source_global
         for declaration in source_declarations:
             key = (declaration.name, declaration.arity)
             if key not in declared:
@@ -89,12 +113,18 @@ def parse_sources(sources: Sequence[SourceText]) -> Program:
                 declarations.append(declaration)
         prepared.append((source, contexts, declaration_indexes))
 
+    application_keys = set(declared)
+    if global_nherb:
+        for _source, contexts, declaration_indexes in prepared:
+            application_keys.update(_collect_global_application_keys(contexts, declaration_indexes))
+    policy = _NHerbPolicy(frozenset(declared), global_nherb, frozenset(application_keys))
+
     statements: list[ProgramStatement] = []
     for source_index, (source, contexts, declaration_indexes) in enumerate(prepared):
         for index, context in enumerate(contexts):
             if index in declaration_indexes:
                 continue
-            parsed = _parse_statement(context, source, declared)
+            parsed = _parse_statement(context, source, policy)
             if parsed is not None:
                 statements.append(parsed)
         if source_index + 1 < len(prepared) and not source.text.endswith("\n"):
@@ -102,7 +132,7 @@ def parse_sources(sources: Sequence[SourceText]) -> Program:
             statements.append(OrdinaryStatement("\n", SourceSpan(boundary, boundary)))
 
     filename = sources[0].filename if len(sources) == 1 else "<multiple sources>"
-    return Program(tuple(declarations), tuple(statements), filename)
+    return Program(tuple(declarations), tuple(statements), filename, global_nherb)
 
 
 def _context(statement: ScannedStatement) -> _StatementContext:
@@ -116,9 +146,10 @@ def _context(statement: ScannedStatement) -> _StatementContext:
 
 def _collect_declarations(
     contexts: tuple[_StatementContext, ...], source: SourceText
-) -> tuple[list[NHerbDeclaration], set[int]]:
+) -> tuple[list[NHerbDeclaration], set[int], bool]:
     declarations: list[NHerbDeclaration] = []
     indexes: set[int] = set()
+    global_nherb = False
     for index, context in enumerate(contexts):
         code = context.code
         visibility = _LEGACY_VISIBILITY.search(context.executable)
@@ -131,13 +162,9 @@ def _collect_declarations(
             )
         global_match = _GLOBAL_DECLARATION.fullmatch(context.executable)
         if global_match:
-            _unsupported(
-                source,
-                context,
-                global_match.start(),
-                "global '#nherb.' declarations are not supported; declare each function as "
-                "'#nherb f/n.'",
-            )
+            indexes.add(index)
+            global_nherb = True
+            continue
         match = _DECLARATION.fullmatch(code)
         application_match = _APPLICATION_DECLARATION.fullmatch(code)
         if not match and not application_match:
@@ -165,11 +192,58 @@ def _collect_declarations(
             NHerbDeclaration(name, arity, SourceSpan(absolute_start, absolute_start + len(name)))
         )
         indexes.add(index)
-    return declarations, indexes
+    return declarations, indexes, global_nherb
+
+
+def _collect_global_application_keys(
+    contexts: tuple[_StatementContext, ...], declaration_indexes: set[int]
+) -> set[_DeclarationKey]:
+    """Collect application signatures established by n-atom key positions."""
+
+    keys: set[_DeclarationKey] = set()
+    for index, context in enumerate(contexts):
+        if index in declaration_indexes:
+            continue
+        for operator_offset, _operator in _find_n_atom_operators(context.executable):
+            key = _left_application_key(context, operator_offset)
+            if key is not None:
+                keys.add(key)
+    return keys
+
+
+def _left_application_key(
+    context: _StatementContext, operator_offset: int
+) -> _DeclarationKey | None:
+    end = _trim_code_end(context.code, 0, operator_offset)
+    if end <= 0:
+        return None
+    if context.code[end - 1] != ")":
+        name_start = end
+        while name_start > 0 and (
+            context.code[name_start - 1].isalnum() or context.code[name_start - 1] == "_"
+        ):
+            name_start -= 1
+        name = context.code[name_start:end]
+        return (name, 0) if _SYMBOLIC_CONSTANT.fullmatch(name) else None
+
+    open_paren = _matching_open_paren(context.code, end - 1)
+    if open_paren is None:
+        return None
+    name_end = _trim_code_end(context.code, 0, open_paren)
+    name_start = name_end
+    while name_start > 0 and (
+        context.code[name_start - 1].isalnum() or context.code[name_start - 1] == "_"
+    ):
+        name_start -= 1
+    name = context.code[name_start:name_end]
+    if not _SYMBOLIC_CONSTANT.fullmatch(name):
+        return None
+    arguments = _split_argument_ranges(context.code, open_paren + 1, end - 1)
+    return name, len(arguments)
 
 
 def _parse_statement(
-    context: _StatementContext, source: SourceText, declared: set[_DeclarationKey]
+    context: _StatementContext, source: SourceText, policy: _NHerbPolicy
 ) -> ProgramStatement | None:
     text = context.statement.text
     if not text:
@@ -213,7 +287,7 @@ def _parse_statement(
             _parse_n_atom(
                 context,
                 source,
-                declared,
+                policy,
                 operator_offset,
                 comparison_operator,
                 is_body,
@@ -266,7 +340,7 @@ def _find_top_level(context: _StatementContext, needle: str) -> int | None:
 def _parse_n_atom(
     context: _StatementContext,
     source: SourceText,
-    declared: set[_DeclarationKey],
+    policy: _NHerbPolicy,
     operator_offset: int,
     operator: NAtomOperator,
     is_body: bool,
@@ -280,7 +354,7 @@ def _parse_n_atom(
             f"operator '{operator.value}' is supported only as a complete positive "
             "rule-body literal",
         )
-    left = _parse_application_left(context, source, declared, operator_offset, operator)
+    left = _parse_application_left(context, source, policy, operator_offset, operator)
     application_start = left.span.start - context.statement.span.start
     literal_start, literal_end = _literal_bounds(context, operator_offset, is_body, separator)
     if is_body:
@@ -338,7 +412,7 @@ def _parse_n_atom(
     right = _parse_right_operand(
         context,
         source,
-        declared,
+        policy,
         value_start,
         value_end,
     )
@@ -360,7 +434,7 @@ def _parse_n_atom(
             context,
             value_start,
             f"operator '{operator.value}' requires an integer literal on the right or a "
-            "declared application",
+            "non-Herbrand application",
         )
 
     if not is_body:
@@ -398,7 +472,7 @@ def _parse_n_atom(
 def _parse_application_left(
     context: _StatementContext,
     source: SourceText,
-    declared: set[_DeclarationKey],
+    policy: _NHerbPolicy,
     operator_offset: int,
     operator: NAtomOperator,
 ) -> ApplicationOperand:
@@ -408,7 +482,7 @@ def _parse_application_left(
             source,
             context,
             operator_offset,
-            f"left side of '{operator.value}' must be a declared function application",
+            f"left side of '{operator.value}' must be a non-Herbrand function application",
         )
     if context.code[end - 1] != ")":
         name_start = end
@@ -419,7 +493,7 @@ def _parse_application_left(
         return _parse_application_operand(
             context,
             source,
-            declared,
+            policy,
             name_start,
             end,
             side=f"left side of '{operator.value}'",
@@ -442,7 +516,7 @@ def _parse_application_left(
     return _parse_application_operand(
         context,
         source,
-        declared,
+        policy,
         name_start,
         end,
         side=f"left side of '{operator.value}'",
@@ -452,7 +526,7 @@ def _parse_application_left(
 def _parse_right_operand(
     context: _StatementContext,
     source: SourceText,
-    declared: set[_DeclarationKey],
+    policy: _NHerbPolicy,
     start: int,
     end: int,
 ) -> ComparisonOperand:
@@ -460,9 +534,9 @@ def _parse_right_operand(
     stripped = code.strip()
     term_start = start + (len(code) - len(code.lstrip()))
     term_end = term_start + len(stripped)
-    if _SYMBOLIC_CONSTANT.fullmatch(stripped) and (stripped, 0) in declared:
+    if _SYMBOLIC_CONSTANT.fullmatch(stripped) and policy.right_is_application(stripped, 0):
         return _parse_application_operand(
-            context, source, declared, term_start, term_end, side="right operand"
+            context, source, policy, term_start, term_end, side="right operand"
         )
 
     function_match = _FUNCTION_TERM.match(stripped)
@@ -470,9 +544,9 @@ def _parse_right_operand(
         open_offset = stripped.find("(")
         if _matching_open_paren(stripped, len(stripped) - 1) == open_offset:
             argument_ranges = _split_argument_ranges(stripped, open_offset + 1, len(stripped) - 1)
-            if (function_match.group(1), len(argument_ranges)) in declared:
+            if policy.right_is_application(function_match.group(1), len(argument_ranges)):
                 return _parse_application_operand(
-                    context, source, declared, term_start, term_end, side="right operand"
+                    context, source, policy, term_start, term_end, side="right operand"
                 )
 
     term = _parse_ground_term(
@@ -480,7 +554,7 @@ def _parse_right_operand(
         context=context,
         source=source,
         local_offset=start,
-        declared=declared,
+        policy=policy,
         as_value=True,
     )
     absolute_start = context.statement.span.start + term_start
@@ -490,7 +564,7 @@ def _parse_right_operand(
 def _parse_application_operand(
     context: _StatementContext,
     source: SourceText,
-    declared: set[_DeclarationKey],
+    policy: _NHerbPolicy,
     start: int,
     end: int,
     *,
@@ -509,7 +583,7 @@ def _parse_application_operand(
                 source,
                 context,
                 start,
-                f"{side} must be a declared function application",
+                f"{side} must be a non-Herbrand function application",
             )
         open_offset = text.find("(")
         if _matching_open_paren(text, len(text) - 1) != open_offset:
@@ -517,15 +591,15 @@ def _parse_application_operand(
                 source,
                 context,
                 start,
-                f"{side} must be one complete declared function application",
+                f"{side} must be one complete non-Herbrand function application",
             )
         name = match.group(1)
         argument_ranges = _split_argument_ranges(text, open_offset + 1, len(text) - 1)
 
     arity = len(argument_ranges)
-    if (name, arity) not in declared:
+    if not policy.accepts_application(name, arity):
         declared_arities = sorted(
-            item_arity for item_name, item_arity in declared if item_name == name
+            item_arity for item_name, item_arity in policy.declared if item_name == name
         )
         if not declared_arities:
             _unsupported(source, context, start, f"non-Herbrand function '{name}' is not declared")
@@ -543,7 +617,7 @@ def _parse_application_operand(
             context=context,
             source=source,
             local_offset=start + argument_start,
-            declared=declared,
+            policy=policy,
         )
         for argument_start, argument_end in argument_ranges
     ]
@@ -558,7 +632,7 @@ def _parse_application_argument(
     context: _StatementContext,
     source: SourceText,
     local_offset: int,
-    declared: set[_DeclarationKey],
+    policy: _NHerbPolicy,
 ) -> ApplicationArgument:
     stripped = text.strip()
     term_offset = local_offset + (len(text) - len(text.lstrip()))
@@ -602,7 +676,7 @@ def _parse_application_argument(
         context=context,
         source=source,
         local_offset=local_offset,
-        declared=declared,
+        policy=policy,
         as_value=False,
     )
 
@@ -814,7 +888,7 @@ def _parse_ground_term(
     context: _StatementContext,
     source: SourceText,
     local_offset: int,
-    declared: set[_DeclarationKey],
+    policy: _NHerbPolicy,
     as_value: bool,
 ) -> GroundTerm:
     stripped = text.strip()
@@ -853,7 +927,7 @@ def _parse_ground_term(
     if _INTEGER.fullmatch(stripped):
         return GroundTerm(stripped, GroundTermKind.INTEGER)
     if _SYMBOLIC_CONSTANT.fullmatch(stripped):
-        if (stripped, 0) in declared:
+        if policy.nested_is_application(stripped, 0):
             message = (
                 "a declared non-Herbrand application cannot be used as the value of another "
                 "non-Herbrand application"
@@ -877,7 +951,7 @@ def _parse_ground_term(
                 "arithmetic or unsupported term syntax inside n-atoms is not supported",
             )
         argument_ranges = _split_argument_ranges(stripped, open_offset + 1, len(stripped) - 1)
-        if (function_name, len(argument_ranges)) in declared:
+        if policy.nested_is_application(function_name, len(argument_ranges)):
             message = (
                 "a declared non-Herbrand application cannot be used as the value of another "
                 "non-Herbrand application"
@@ -891,7 +965,7 @@ def _parse_ground_term(
                 context=context,
                 source=source,
                 local_offset=term_offset + argument_start,
-                declared=declared,
+                policy=policy,
                 as_value=as_value,
             )
         return GroundTerm(stripped, GroundTermKind.FUNCTION)
