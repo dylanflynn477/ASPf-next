@@ -52,6 +52,21 @@ separate propagator-initialization and model-reconstruction timings plus determi
 counts for decode-cache activity, watched literal changes, seed support updates, total
 checks, rule evaluations, blocking clauses, snapshots, and undo work.
 
+Separate solver/search cost from output cost with:
+
+```console
+python -m benchmarks.solve_decomposition \
+  --sizes 10 100 1000 5000 10000 \
+  --warmups 1 --repeats 7 \
+  --output benchmarks/results/solve-decomposition-final.json
+```
+
+Each representation is measured in first-model, fixed-ten, exhaustive-raw, and
+exhaustive-visible modes. Raw mode consumes models without constructing visible model
+objects. Visible mode retains deterministic rendering and exact digest equality. The
+native profile separately records initialization, snapshot construction, lookup,
+ordinary-symbol handling, assignment rendering, storage, sorting, and digest work.
+
 The original total-rescan result remains in `native-vs-reference.json` and is limited
 to sizes through 1,000. The incremental result covers all five sizes with the same
 repeat policy. Grounding-only structure and the original untimed large equivalence
@@ -71,3 +86,18 @@ The structural runner does not solve or report a model count. The equivalence ru
 does not report timing: it performs one exact comparison of complete normalized model
 sets. Keeping these questions separate preserves the original preregistered evidence
 while the optimized paired runner now measures the large cases directly.
+
+The less synthetic observation-pipeline workload is reproducible with:
+
+```console
+python -m benchmarks.multi_application_workload \
+  --sizes 10 100 1000 --warmups 1 --repeats 7 \
+  --output benchmarks/results/multi-application-workload.json
+```
+
+It uses three ordinary-grounded devices, multiple non-Herbrand applications, an
+n-variable copy, one undefined source, a derived status, and a two-n-variable
+comparison. The paired reference and native programs have exact normalized model-set
+digests. Its exactly-one choice makes application conflicts impossible, so the
+reference source deliberately omits a redundant functionality constraint that would
+otherwise introduce an unrelated quadratic grounding artifact.

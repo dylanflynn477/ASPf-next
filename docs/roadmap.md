@@ -33,7 +33,8 @@ continued research and NO-GO for production integration**. The prototype keeps `
 out of ordinary grounding, preserves the tested copy/undefinedness/backtracking models,
 and holds copy-rule grounding overhead to one rule/theory atom through 10,000 candidate
 values. Its total-assignment state reconstruction scales poorly during exhaustive
-solving, exact historical n-loop detection is absent, and it supports one solver thread.
+solving on rule-heavy workloads, non-ground n-loop detection remains conservative,
+and two-thread support has only bounded feasibility evidence.
 
 The code remains under `research/`; the released syntax, reference backend, and CLI are
 unchanged. The [feasibility report](research/native-backend-feasibility.md) and
@@ -41,7 +42,7 @@ unchanged. The [feasibility report](research/native-backend-feasibility.md) and
 raw evidence, and limitations.
 
 The next native research step, if pursued, is incremental watched support with precise
-undo/explanation clauses plus the exact published n-loop analysis. Production IR or CLI
+undo/explanation clauses plus grounded exact n-loop analysis. Production IR or CLI
 integration should not begin until those gates pass.
 
 ## Deferred compatibility candidates

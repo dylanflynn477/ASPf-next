@@ -184,10 +184,10 @@ textual n-variable name in different ordinary groundings has independent state.
 
 ```text
 typed research IR
-  -> safety, n-stratification, and cycle screens
+  -> safety, n-stratification, and typed n-loop analysis
   -> ground theory metadata + ordinary ASP conditions
   -> Clingo grounding (ordinary variables only)
-  -> single-thread Python propagator
+  -> one- or two-thread Python propagator experiment
   -> thread-scoped value snapshot
   -> normalized ordinary atoms + ASP{f} assignments
 ```
@@ -195,16 +195,22 @@ typed research IR
 `Propagator.init` is the only theory-inspection point. It maps theory program literals
 to solver literals, canonicalizes repeated application/value terms within that one
 initialization, constructs literal-to-seed and application-to-rule indexes, installs
-positive watches, requires one solver thread, and selects total checks plus undo
-callbacks. Mutable state remains per thread. A propagation callback adds only the
-seeds associated with newly true watched literals; undo removes exactly those supports.
+positive watches for every solver thread, and selects total checks plus undo callbacks.
+Mutable support maps and snapshots remain keyed by thread; decoded theory metadata and
+indexes are immutable after initialization. The public research solver accepts only
+one or two threads because that is the evaluated boundary. A propagation callback adds
+only the seeds associated with newly true watched literals; undo removes exactly those
+supports.
 
 At each total assignment, the prototype copies the usually small active support map,
 evaluates active rules through an application-dependency work queue, rejects
 functionality conflicts or mismatched ordinary-head guards with a clause, and records
-only a valid immutable snapshot for model reconstruction. Provider rules are ordered
-before consumers, and a rule is reconsidered only when an application it reads gains a
-value. Total checks no longer scan the grounded candidate-seed domain.
+only a valid immutable snapshot for model reconstruction. Direct conflicts between two
+seed values are detected during propagation and explained by just those two support
+literals. Derived-value conflicts and guard mismatches still use broad total-assignment
+clauses. Provider rules are ordered before consumers, and a rule is reconsidered only
+when an application it reads gains a value. Total checks no longer scan the grounded
+candidate-seed domain.
 
 Dynamic application values are not Clingo symbolic atoms: the public API can create
 volatile solver literals during solving, but it cannot add a new grounded symbolic
@@ -214,7 +220,7 @@ The incremental design is still a research propagator, not a production backend.
 
 ## Semantic results
 
-Thirty focused research tests exercise the prototype and differential harness.
+Forty-three focused research tests exercise the prototype and differential harness.
 Every implemented semantic case passes:
 
 | Property | Result | Evidence boundary |
@@ -224,6 +230,8 @@ Every implemented semantic case passes:
 | partial source / undefined n-variable | pass | no target assignment; explicit internal undefined state |
 | defined zero | pass | distinguished from undefined |
 | application functionality | pass | conflicting active values make the model impossible |
+| direct functionality explanation | pass | two relevant seed supports; width at most two |
+| derived functionality explanation | partial | correct broad total-assignment clause |
 | one / agreeing definitions | pass | one derived value |
 | conflicting definitions | pass | n-variable becomes undefined; no target value |
 | undefined defining expression | pass | n-variable becomes undefined; no target value |
@@ -236,9 +244,12 @@ Every implemented semantic case passes:
 | multiple backtracking models | pass | no value crosses branches; undo observed |
 | incremental support trail | pass | literal-local add/remove counts; blocked branch restored |
 | reversed assignment chain | pass | provider ordering; each body evaluated once |
+| dependency diamond / two n-variables | pass | exhaustive backtracking; no stale value |
 | ordinary variables plus n-variables | pass | distinct ground theory instance per ordinary binding |
 | forbidden n-variable arguments | pass (rejected) | typed boundary and location-aware diagnostic |
 | repeated solve calls / independent controls | pass | deterministic model sets; no shared mutable state |
+| two solver threads | bounded pass | 20 exhaustive models match one-thread and repeated runs |
+| typed n-loop analysis | partial | exact ground constant-head subfragment; conservative wider screen |
 | private output | pass | no theory/private identifier in normalized models |
 
 The reusable differential harness compares normalized visible model sets, never raw
@@ -278,7 +289,15 @@ The reproducible raw data is in:
   before incremental optimization at sizes 10, 100, and 1,000;
 - `benchmarks/results/native-vs-reference-incremental.json` — seven exhaustive solve
   measurements after one warm-up at all five sizes, with deterministic propagator work
-  counters and separate initialization/model-reconstruction timings; and
+  counters and separate initialization/model-reconstruction timings;
+- `benchmarks/results/solve-decomposition-before-visible-index.json` and
+  `solve-decomposition-after-visible-index.json` — paired output-cost profiles before
+  and after removing per-model symbolic-atom scans;
+- `benchmarks/results/solve-decomposition-final.json` — final first-model, fixed-ten,
+  exhaustive-raw, and exhaustive-visible seven-repeat comparisons;
+- `benchmarks/results/multi-application-workload.json` — a three-device workload with
+  multiple applications, ordinary variables, n-variable binding, two definitions in
+  one rule, and one intentionally undefined source; and
 - `benchmarks/results/large-model-equivalence.json` — one untimed exhaustive visible
   model comparison at sizes 5,000 and 10,000.
 
@@ -298,33 +317,109 @@ atom per candidate assignment because those are the actual alternative source va
 the claim concerns the additional copy rule, not the whole program. Unrelated ordinary
 constants neither become assignment values nor change the copy model set.
 
-Median exhaustive solve timing in milliseconds (seven samples; IQRs and raw samples
-are in the JSON):
+### Solve and output decomposition
 
-| Values | Pre-optimization native | Incremental native | Incremental reference | Native change |
-| ---: | ---: | ---: | ---: | ---: |
-| 10 | 0.859 | 2.801 | 0.066 | noise/overhead dominates |
-| 100 | 13.537 | 12.192 | 0.432 | 1.11× faster |
-| 1,000 | 1,193.182 | 155.543 | 7.613 | 7.67× faster |
-| 5,000 | not completed | 1,597.811 | 593.375 | newly practical |
-| 10,000 | not completed | 4,188.990 | 1,300.900 | newly practical |
+The final copy-family medians below are milliseconds from seven samples after one
+warm-up. `exhaustive-raw` consumes every model without building visible model objects;
+`exhaustive-visible` includes stable ordinary atoms, reconstructed assignments,
+storage, sorting, and output normalization. Complete visible digests match in every
+visible case.
 
-Before optimization, a profile at 1,000 candidates recorded 1,002,000
-`Assignment.value` calls: one million were seed probes from 1,000 full rescans. The
-incremental run records zero check-time seed probes and zero full rescans. At 1,000 it
-instead records 1,000 watched literal changes, 1,000 seed activations, 1,000 matching
-undo removals, and 1,000 rule-body evaluations. At 10,000 the corresponding counts are
-10,000, not 100 million. Application canonicalization turns 10,002 application decode
-requests at that size into two actual application decodes; candidate values remain
-10,000 distinct decoded values.
+| Values | Mode | Reference solve | Native solve | Native initialization |
+| ---: | --- | ---: | ---: | ---: |
+| 10 | first model | 0.050 | 0.416 | 0.323 |
+| 10 | exhaustive raw | 0.063 | 0.564 | 0.324 |
+| 10 | exhaustive visible | 0.312 | 0.710 | 0.394 |
+| 1,000 | first model | 2.012 | 22.553 | 20.568 |
+| 1,000 | exhaustive raw | 7.911 | 42.176 | 21.487 |
+| 1,000 | exhaustive visible | 55.741 | 57.145 | 26.613 |
+| 5,000 | first model | 11.255 | 401.796 | 377.729 |
+| 5,000 | exhaustive raw | 687.646 | 1,262.722 | 342.981 |
+| 5,000 | exhaustive visible | 2,919.185 | 1,575.660 | 482.028 |
+| 10,000 | first model | 29.755 | 705.793 | 692.024 |
+| 10,000 | exhaustive raw | 1,611.042 | 2,657.385 | 639.030 |
+| 10,000 | exhaustive visible | 10,602.728 | 3,308.067 | 888.357 |
 
-The optimized native path remains slower than the mature relational solver in absolute
-terms, especially for tiny inputs where setup dominates. Its pathological
-candidate-count-times-model-count rescan has been removed without changing the
-grounding structure. At 10,000, median propagator initialization is 449.380 ms and
-model reconstruction is 2,004.245 ms; reconstruction of all visible models is now the
-largest measured component. The earlier aborted large repeated run is retained as
-historical evidence, while the optimized all-size seven-sample run completes.
+The first-model result isolates a large Python initialization cost: native search has
+not yet amortized its approximately 692 ms setup at N=10,000. Exhaustive raw adds
+roughly 1.95 seconds beyond first-model solve. Visible collection adds roughly 651 ms
+beyond exhaustive raw when all surrounding solve costs are included. These are
+different costs and none is presented as a grounding result.
+
+Before incremental support tracking, N=1,000 caused one million check-time seed probes.
+The final N=10,000 copy run records zero seed probes, 10,000 watched literal changes,
+10,000 seed activations, 10,000 matching undo removals, 10,000 rule evaluations, and
+no clauses. Application canonicalization turns 10,002 application decode requests
+into two actual application decodes.
+
+### Reconstruction profile
+
+The pre-index N=10,000 visible profile attributed a 2.550-second median to
+`model.symbols(atoms=True)` and 0.330 seconds to rendering ordinary atoms. The solver
+now indexes non-private ordinary symbolic atoms once during initialization, watches
+their solver literals, and trails only the atoms true in each thread. It no longer
+calls `model.symbols()` per model. In the final N=10,000 profile the corresponding
+timer placeholders are 1.289 ms and 1.503 ms across all 10,000 models. Other final
+medians are:
+
+| Component | N=10,000 median |
+| --- | ---: |
+| snapshot construction inside propagator | 66.293 ms |
+| snapshot lookup | 40.499 ms |
+| assignment rendering | 49.249 ms |
+| undefined-state rendering | 7.097 ms |
+| model storage | 15.685 ms |
+| deterministic model sort | 7.018 ms |
+| normalized digest | 9.312 ms |
+
+Native exhaustive-visible solve falls from 6,496.681 ms in the pre-index profile to
+3,308.067 ms in the final profile, a 49.1% reduction. This is a solver/output-path
+improvement because the removed `model.symbols()` calls were made by the native solver
+for normal visible models; digest calculation remains separately timed benchmark work.
+Human and JSON model semantics are unchanged. The reference visible path also spends
+heavily on Python symbol extraction, explaining why its output-inclusive timing is
+much higher than its raw enumeration timing.
+
+### Multi-application workload
+
+The additional workload has three devices, two defined raw readings, one undefined
+raw reading, per-device thresholds, a grounder-inert copy, a derived status, and a
+two-n-variable readiness comparison. Its relational source omits a functionality
+constraint that is provably redundant under the exactly-one choice; this avoids a
+quadratic grounding artifact while preserving the exact model set.
+
+| Candidate values | Reference rules | Native rules | Reference ground | Native ground | Reference solve | Native solve | Models equal |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | :---: |
+| 10 | 92 | 52 | 0.343 ms | 0.744 ms | 0.100 ms | 7.518 ms | yes |
+| 100 | 812 | 232 | 1.306 ms | 1.547 ms | 0.622 ms | 74.496 ms | yes |
+| 1,000 | 8,012 | 2,032 | 12.534 ms | 30.642 ms | 9.552 ms | 4,526.886 ms | yes |
+
+The structural advantage survives: the native program still grounds the actual
+alternative seed assignments, but the dependent copy/rules add fixed theory metadata
+per device instead of one relational rule per candidate value. Absolute native solve
+performance is poor. At N=1,000 the prototype performs 8,482 total checks and emits
+7,482 broad clauses containing 7,504,446 literals, with maximum width 1,003. Visible
+reconstruction is only 22.276 ms. This workload identifies broad guard explanations,
+not model output or grounding, as the dominant accidental cost.
+
+### Conflict and thread audit
+
+Direct seed functionality conflicts are now detected incrementally and receive a
+clause derived from the two incompatible support literals. Tests cover width two,
+unit, and empty conflicts. Conflicting n-variable definitions intentionally make that
+rule-local n-variable undefined; they are not themselves solver conflicts. A derived
+functionality conflict and an unsatisfied ordinary-head equality remain correct but
+use broad total-assignment clauses because the evaluator does not retain a provenance
+DAG for derived values or undefinedness. The Python API can accept narrower clauses;
+the missing component is reason tracking in this prototype.
+
+Clingo documents that one propagator instance can receive callbacks from different
+solver threads. The experiment now shares only immutable decoded indexes and keeps
+support maps and snapshots per thread. Exhaustive one-thread, two-thread, and repeated
+two-thread runs of a 20-model, two-application copy family have identical normalized
+models and balanced undo counts. The research solver is capped at two threads. This is
+bounded feasibility evidence, not a proof against every race or a production support
+claim; benchmark timings continue to use one thread.
 
 Peak process memory was not recorded because the Python standard library has no
 portable, comparable peak-process measure on all supported platforms. No extra
@@ -332,19 +427,20 @@ platform-specific dependency was added for this study.
 
 ## Environment
 
-The original and incremental measurements record:
+The final measurements record:
 
 - benchmark date (UTC): 2026-08-11;
-- original input commit: `3d04ee1ddc717428800b11a79f3888e0c2311601`;
-- incremental input commit: `9162315c97d332fb8be196445841cf54e44f748a`;
+- final decomposition input commit: `d5d78a710505bc6f51ea9aaf1339499ffd046723`;
+- multi-application input commit: `cd31d6885ec90a346d4fc794252957b13f7fc9b9`;
 - Python: 3.12.13;
 - Clingo: 5.8.1;
 - platform: Windows 11 (`10.0.26200`, AMD64);
 - CPU: Intel64 Family 6 Model 186 Stepping 3, GenuineIntel; and
 - logical CPU count: 12.
 
-All solver runs explicitly use one thread. Timings describe this machine and are
-informational; the deterministic rule/atom deltas are the primary evidence.
+All timing runs explicitly use one thread; two threads are tested semantically only.
+Timings describe this machine and are informational. Deterministic rule/atom deltas,
+work counters, and exact model digests are the primary evidence.
 
 ## GO decision
 
@@ -359,13 +455,14 @@ match the relation reference through 10,000 candidate values.
 It does not satisfy every GO gate:
 
 1. the full historical source frontend is not connected to this separate research IR;
-2. exact historical program-level n-loop detection is not implemented or proved;
-3. only single-thread solving is supported;
+2. n-loop detection is exact only for the variable-free constant-head subfragment and
+   conservative for non-ground or dynamic-head programs;
+3. two-thread behavior has bounded tests but not production-grade concurrency proof;
 4. cross-type historical ordering semantics are not established;
-5. total-assignment model filtering uses broad clauses rather than useful propagation
-   explanations; and
-6. native solving remains slower than the relational reference and large exhaustive
-   model reconstruction remains expensive.
+5. derived assignments, failed comparisons, and undefinedness lack reason provenance,
+   leaving broad total-assignment clauses; and
+6. native first-model and exhaustive solving remain slower than the relational
+   reference even after reconstruction overhead was substantially reduced.
 
 Accordingly there is no CLI flag, production import, version change, release, or claim
 that ASPf-next now supports historical n-variables. The released reference backend and
@@ -375,16 +472,17 @@ language contract are unchanged.
 
 Before reconsidering integration:
 
-1. separate solve/search cost from eager materialization of every visible model, and
-   evaluate a streaming or digest-only research measurement path;
-2. derive minimal explanation clauses for guard and functionality propagation;
-3. implement and test the published positive dependency/n-loop criterion, including
-   ordinary predicate paths;
-4. prove multi-thread isolation or retain an explicit documented one-thread mode;
+1. retain a provenance DAG for derived values, comparisons, and undefinedness so guard
+   clauses contain actual supports rather than the full native assignment;
+2. move exact n-loop analysis to grounded typed metadata while mapping witnesses back
+   to source locations;
+3. profile and reduce Python propagator initialization and raw enumeration overhead;
+4. stress the bounded two-thread design under substantially larger and conflicting
+   workloads, or return to an explicit one-thread production boundary;
 5. define how a production typed frontend represents rule-local n-variable identities
    after ordinary grounding; and
-6. determine whether remaining theory-value decoding and callback costs justify a
-   native extension after measuring representative workloads.
+6. determine whether the remaining reason-tracking and callback costs justify a native
+   Clingo extension rather than further Python micro-optimization.
 
 A C++ extension is not yet proved necessary. If Python callback overhead or the lack of
 symbolic solver-time value atoms prevents efficient incremental propagation, the next
@@ -416,6 +514,30 @@ not an ordinary relational fallback disguised as native support.
 9. **Does backtracking restore state?** Yes. Alternative models have isolated copied
    values, every activated benchmark seed has a matching undo removal, blocked-branch
    tests do not leak state, snapshots are deleted, and repeated controls agree.
-10. **Are limitations disclosed?** Yes: research-only typed input, incomplete n-loop
-    coverage, single-thread restriction, broad clauses, unproved cross-type order,
-    slower absolute solving, and model-reconstruction cost are all explicit.
+10. **Are n-loops distinguished from n-stratification and ordinary recursion?** Yes.
+    The typed analysis and focused note cover direct/indirect paths, ordinary cycles,
+    default-negated edges, full simple-term keys, and the conservative non-ground
+    boundary.
+11. **Are conflicts explained from relevant literals?** Direct seed functionality is;
+    derived functionality and guard mismatches are explicitly not yet.
+12. **Is thread safety accurately stated?** Yes. One and two threads are accepted,
+    timing remains one-thread, and the two-thread result is bounded evidence rather
+    than a production proof.
+13. **Are limitations disclosed?** Yes: research-only typed input, conservative wider
+    n-loop coverage, broad derived clauses, bounded threading, unproved cross-type
+    order, and slower absolute solving are explicit.
+14. **Is model reconstruction counted honestly?** Yes. Raw enumeration, native visible
+    reconstruction, stable sorting, and benchmark digest work have separate timers;
+    normal visible semantics still take the deterministic path.
+15. **Did a benchmark-only optimization leak into semantics?** No. Raw no-collection
+    mode is opt-in to the research solver; normal collection and every released API
+    remain unchanged.
+16. **Did production ASPf-next behavior change?** No imports or execution paths were
+    added under `src/aspf_next`, no CLI flag or `_V` syntax was added, and package
+    version `0.2.0a1` is unchanged.
+17. **Are grounding efficiency and solve speed separated?** Yes. Structural deltas,
+    ground time, first-model solve, exhaustive raw solve, and visible output are
+    reported independently.
+18. **Would the report invite an ASP researcher to infer too much?** It should not:
+    exactness is scoped to a small ground n-loop subfragment, historical ordering is
+    unproved, and PARTIAL GO explicitly remains NO-GO for production integration.

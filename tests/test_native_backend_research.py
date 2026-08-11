@@ -241,6 +241,24 @@ def test_functionality_rejects_conflicting_application_values() -> None:
     assert native.work_metrics.maximum_clause_width == 0
 
 
+def test_constant_and_conditional_functionality_conflict_has_a_unit_reason() -> None:
+    value = Variable("V")
+    program = NativeProgram(
+        choices=(Choice("choose", value, 1, 2),),
+        seeds=(
+            Seed(_app("f"), Integer(1)),
+            Seed(_app("f"), Integer(2), (Atom("choose", (Integer(1),)),)),
+        ),
+    )
+
+    result = NativeSolver().solve(program)
+
+    assert [model.visible for model in result.models] == [("choose(2)", "f(x)#=1")]
+    assert result.work_metrics.functionality_clauses == 1
+    assert result.work_metrics.clause_literals == 1
+    assert result.work_metrics.maximum_clause_width == 1
+
+
 def test_partial_source_leaves_nvariable_and_target_undefined() -> None:
     result = NativeSolver().solve(NativeProgram(rules=(_copy_rule(),)))
 

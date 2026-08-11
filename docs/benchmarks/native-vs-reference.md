@@ -166,6 +166,15 @@ propagator initialization, 0.205 seconds in all total checks, 0.195 seconds in C
 model-symbol extraction, and 0.081 seconds in rule bodies. Costs are now distributed;
 there is no remaining single full-domain check-time loop to remove.
 
+Those figures are the pre-decomposition incremental baseline. A later profile found
+that per-model `model.symbols()` scans dominated the reported reconstruction number.
+Indexing visible literals once and trailing true atoms reduces final N=10,000 native
+exhaustive-visible median from 6,496.681 to 3,308.067 ms. Final first-model,
+exhaustive-raw, and exhaustive-visible native medians are 705.793, 2,657.385, and
+3,308.067 ms respectively; the corresponding reference medians are 29.755, 1,611.042,
+and 10,602.728 ms. The reference visible figure also contains Python symbol extraction
+and is not a search-speed comparison.
+
 ## Commands
 
 Run from the repository root with the environment's Python:
@@ -184,6 +193,15 @@ python -m benchmarks.native_vs_reference \
 python -m benchmarks.equivalence_scaling \
   --sizes 5000 10000 \
   --output benchmarks/results/large-model-equivalence.json
+
+python -m benchmarks.solve_decomposition \
+  --sizes 10 100 1000 5000 10000 \
+  --warmups 1 --repeats 7 \
+  --output benchmarks/results/solve-decomposition-final.json
+
+python -m benchmarks.multi_application_workload \
+  --sizes 10 100 1000 --warmups 1 --repeats 7 \
+  --output benchmarks/results/multi-application-workload.json
 ```
 
 Raw result files:
@@ -192,18 +210,24 @@ Raw result files:
 - [`benchmarks/results/native-vs-reference.json`](../../benchmarks/results/native-vs-reference.json)
 - [`benchmarks/results/native-vs-reference-incremental.json`](../../benchmarks/results/native-vs-reference-incremental.json)
 - [`benchmarks/results/large-model-equivalence.json`](../../benchmarks/results/large-model-equivalence.json)
+- [`benchmarks/results/solve-decomposition-before-visible-index.json`](../../benchmarks/results/solve-decomposition-before-visible-index.json)
+- [`benchmarks/results/solve-decomposition-after-visible-index.json`](../../benchmarks/results/solve-decomposition-after-visible-index.json)
+- [`benchmarks/results/solve-decomposition-final.json`](../../benchmarks/results/solve-decomposition-final.json)
+- [`benchmarks/results/multi-application-workload.json`](../../benchmarks/results/multi-application-workload.json)
 
 ## Interpretation and limitations
 
 The theory/propagator representation materially improves copy-rule grounding growth,
 preserves the tested visible models, and no longer performs candidate-domain rescans
-at every model. It remains slower during exhaustive solving, with eager model-symbol
-extraction/rendering now the largest measured 10,000-model component. This is evidence
-that grounder-inert metadata and healthier solve scaling are possible through the
-Python API, not evidence that this implementation is production-ready or faster than
-the mature relational reference.
+at every model. It remains slower for first-model and raw exhaustive solving. The
+largest avoidable visible-output scan has been removed; a multi-application workload
+instead exposes broad guard clauses as the dominant solver problem. This is evidence
+that grounder-inert metadata is possible through the Python API, not evidence that this
+implementation is production-ready or faster than the mature relational reference.
 
-The family isolates one important historical motivation but is not a representative
-application workload. It has one application key, one n-variable, no n-loop, and an
-explicit finite set of source alternatives. The research report documents semantic,
-backtracking, n-stratification, threading, and n-loop boundaries separately.
+The copy family isolates one important historical motivation. The additional
+three-device workload exercises several applications, ordinary variables, partial
+undefinedness, a copy, two n-variable definitions, and several rules; at N=1,000 it
+grounds 2,032 native versus 8,012 reference rules with exact models, but solves in
+4,526.886 versus 9.552 ms because it generates 7,482 broad clauses. The research
+report documents the semantic, explanation, threading, and n-loop boundaries.
