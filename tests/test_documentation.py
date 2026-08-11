@@ -29,7 +29,7 @@ def test_readme_contains_required_scope_and_attribution() -> None:
     assert "undefined" in readme and "#!=" in readme
 
 
-def test_architecture_documents_required_pipeline_and_future_backend() -> None:
+def test_architecture_documents_required_pipeline_and_research_backend() -> None:
     architecture = (PROJECT_ROOT / "docs" / "architecture.md").read_text(encoding="utf-8")
 
     for stage in (
@@ -45,7 +45,8 @@ def test_architecture_documents_required_pipeline_and_future_backend() -> None:
     assert "stroke-dasharray" in architecture
     assert "theory atoms" in architecture
     assert "custom Python propagator" in architecture
-    assert "not implemented" in architecture
+    assert "not production-wired" in architecture
+    assert "PARTIAL GO" in architecture
 
 
 def test_release_metadata_is_consistent() -> None:
