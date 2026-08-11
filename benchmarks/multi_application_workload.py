@@ -171,7 +171,6 @@ __bench_value(reading(D),V) :- device(D), __bench_value(raw(D),V).
 __bench_value(status(D),active) :- device(D), __bench_value(reading(D),V), V > 0.
 ready(D) :- device(D), __bench_value(reading(D),V),
             __bench_value(threshold(D),L), V >= L.
-:- __bench_value(K,V1), __bench_value(K,V2), V1 != V2.
 """
 
 
