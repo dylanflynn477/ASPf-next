@@ -14,13 +14,15 @@ flowchart TD
     ordinary --> clingo["Clingo 5.8"]
     clingo --> output["Normalized ASP{f}-style<br/>model output"]
 
-    ir -. planned research .-> native["Future native backend<br/>theory atoms + custom propagator<br/>not implemented"]
+    ir -. separate research IR .-> native["Feasibility prototype<br/>theory atoms + Python propagator<br/>not production-wired"]
 
     classDef planned stroke-dasharray: 5 5,color:#666;
     class native planned;
 ```
 
-The solid path is implemented. The dashed branch is architecture research only.
+The solid path is the released implementation. The dashed branch denotes a completed,
+isolated feasibility study under `research/`; it is not connected to the production IR
+or CLI.
 
 Each boundary has a distinct responsibility:
 
@@ -162,25 +164,35 @@ its satisfaction test. Assignment dependencies through ordinary rules retain
 their original default-negation cycles. Private helpers are filtered from
 human and JSON models but intentionally remain visible in `--emit-lowered`.
 
-## Future native backend (not implemented)
+## Experimental native feasibility backend
 
-A later, separately reviewed backend may translate validated ASP{f} IR to Clingo
-theory atoms and register a custom Python propagator. Clingo 5.8 exposes both
+The research milestone tested a separate typed IR translated to Clingo theory atoms
+and a custom Python propagator. Clingo 5.8 exposes both
 [theory-atom inspection](https://potassco.org/clingo/python-api/5.8/clingo/theory_atoms.html)
 and a
 [propagator API](https://potassco.org/clingo/python-api/5.8/clingo/propagator.html).
 
-That backend would need an explicit semantic design for:
+The prototype demonstrates grounder-inert n-variable metadata, solver-time copy values,
+explicit undefinedness, functionality, default-negated comparison guards, ordinary
+variable grounding, model reconstruction, and safe backtracking in single-thread mode.
+For the measured copy family, reference overhead grows by one rule/atom per candidate;
+native overhead stays at one rule/theory atom.
 
-- theory syntax and mapping from grounded applications to solver literals;
-- functionality and undefinedness during propagation;
-- thread-local propagator state and undo behavior;
-- explanation clauses and conflict handling;
-- model reconstruction shared with the reference backend;
-- equivalence tests against the reference backend; and
-- performance measurements that separate grounding size from solving cost.
+The outcome is **PARTIAL GO for research and NO-GO for production integration**. The
+prototype is isolated under `research/native_backend`; `src/aspf_next`, the reference
+backend, the CLI, and released syntax are unchanged. It still needs:
 
-No theory definition, propagator, native arithmetic, or optimization work
-belongs to the current historical compatibility increment. The frontend and IR are separated
-so a native backend can be added without changing the legacy-syntax scanner or
-silently changing the reference semantics.
+- an adapter from the production IR rather than a separate research input;
+- exact historical program-level n-loop analysis;
+- incremental value support and useful explanation clauses instead of total-state
+  rescanning and broad model-filter clauses;
+- proven multi-thread behavior (the prototype explicitly requires one thread);
+- confirmed historical cross-type ordering semantics; and
+- production-scale performance and adversarial review.
+
+The [feasibility report](research/native-backend-feasibility.md) and
+[benchmark report](benchmarks/native-vs-reference.md) contain the evidence and decision.
+A future backend should remain a distinct backend boundary, not scattered native-mode
+branches. The reference path optimizes for inspectability, compatibility, and a simple
+modern Clingo dependency; a native path would optimize for solver-time values and
+grounding behavior at substantially higher implementation complexity.

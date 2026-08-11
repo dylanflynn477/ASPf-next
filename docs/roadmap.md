@@ -26,18 +26,24 @@ compatible-with-restriction cases, 2 matching rejections of historically
 invalid inputs, 4 unsupported cases, 4 intentionally deferred cases, and no
 unresolved cases.
 
-## Next technical milestone: native-backend feasibility
+## Native-backend feasibility result
 
-The recommended next milestone is a bounded prototype using Clingo theory atoms
-and a custom Python propagator to test whether historical grounder-inert
-non-Herbrand variables can be represented faithfully. Its GO criteria must
-include semantic equivalence, no ordinary value-domain grounding, stable
-undefinedness, and reasonable grounding growth. The existing
-[n-variable analysis](design/non-herbrand-variables.md) explains why the
-relational reference backend is a NO-GO for this feature.
+The bounded theory-atom/Python-propagator study is complete with a **PARTIAL GO for
+continued research and NO-GO for production integration**. The prototype keeps `_v`
+out of ordinary grounding, preserves the tested copy/undefinedness/backtracking models,
+and holds copy-rule grounding overhead to one rule/theory atom through 10,000 candidate
+values. Its total-assignment state reconstruction scales poorly during exhaustive
+solving on rule-heavy workloads, non-ground n-loop detection remains conservative,
+and two-thread support has only bounded feasibility evidence.
 
-This prototype must remain separate from the reference backend and cannot alter
-the released syntax unless its semantics and operational behavior pass review.
+The code remains under `research/`; the released syntax, reference backend, and CLI are
+unchanged. The [feasibility report](research/native-backend-feasibility.md) and
+[benchmark report](benchmarks/native-vs-reference.md) record the preregistered gates,
+raw evidence, and limitations.
+
+The next native research step, if pursued, is incremental watched support with precise
+undo/explanation clauses plus grounded exact n-loop analysis. Production IR or CLI
+integration should not begin until those gates pass.
 
 ## Deferred compatibility candidates
 

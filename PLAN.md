@@ -19,8 +19,9 @@ coverage, and accurate compatibility classification.
 2. Expand adversarial tests around partiality, source safety, declaration
    scope, visibility, and private-namespace isolation without expanding the
    language by accident.
-3. Investigate a theory-atom/custom-propagator backend for grounder-inert
-   non-Herbrand variables. This is research, not a committed release feature.
+3. Preserve the native-backend feasibility result as a PARTIAL GO research
+   boundary. Further work must address incremental state, exact n-loop analysis,
+   and explanation clauses before any production integration.
 4. Consider each remaining historical construct separately, beginning with a
    primary-source semantic contract and a GO/NO-GO review.
 
