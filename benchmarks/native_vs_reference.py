@@ -156,7 +156,7 @@ def _digest(models: tuple[tuple[str, ...], ...]) -> str:
     return hashlib.sha256(canonical).hexdigest()
 
 
-def _equivalence(size: int) -> ModelEquivalence:
+def model_equivalence(size: int) -> ModelEquivalence:
     reference = (
         f"1 {{ choose(1..{size}) }} 1.\n"
         "__bench_value(f(x),V) :- choose(V).\n"
@@ -200,7 +200,7 @@ def run_comparison(
                 repeats=repeats,
                 warmups=warmups,
             ),
-            model_equivalence=_equivalence(size),
+            model_equivalence=model_equivalence(size),
         )
         for size, reference_case in zip(sizes, reference.cases, strict=True)
     )

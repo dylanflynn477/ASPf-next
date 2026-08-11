@@ -37,7 +37,7 @@ After the research prototype is available, run the paired experiment:
 
 ```console
 python -m benchmarks.native_vs_reference \
-  --sizes 10 100 1000 5000 10000 \
+  --sizes 10 100 1000 \
   --warmups 1 \
   --repeats 7 \
   --output benchmarks/results/native-vs-reference.json
@@ -48,3 +48,22 @@ Its copy variant adds one typed n-variable rule represented by theory metadata. 
 runner compares each encoding to its own no-copy baseline and exhaustively compares
 normalized visible copy models. SHA-256 digests make the compared model sets auditable
 without duplicating every model in the result file.
+
+The repeated exhaustive solve run is intentionally bounded at the largest practical
+size for the prototype. Grounding-only structure and one untimed exhaustive semantic
+comparison cover the larger sizes separately:
+
+```console
+python -m benchmarks.structural_scaling \
+  --sizes 10 100 1000 5000 10000 --warmups 1 --repeats 7 \
+  --output benchmarks/results/structural-scaling.json
+
+python -m benchmarks.equivalence_scaling \
+  --sizes 5000 10000 \
+  --output benchmarks/results/large-model-equivalence.json
+```
+
+The structural runner does not solve or report a model count. The equivalence runner
+does not report timing: it performs one exact comparison of complete normalized model
+sets. Keeping these questions separate avoids presenting an aborted large timing run
+as data.

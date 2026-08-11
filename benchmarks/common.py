@@ -66,9 +66,9 @@ class StructuralMetrics:
     observer_weight_rules: int
     symbolic_atoms: int
     theory_atoms: int
-    statistics_rules: int
-    statistics_atoms: int
-    statistics_bodies: int
+    statistics_rules: int | None
+    statistics_atoms: int | None
+    statistics_bodies: int | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,6 +89,14 @@ class Measurement:
     solve: TimingSummary
     total: TimingSummary
     model_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class GroundMeasurement:
+    """Structural and repeated ground-time observations without solving."""
+
+    structure: StructuralMetrics
+    ground: TimingSummary
 
 
 @dataclass(frozen=True, slots=True)
@@ -209,6 +217,48 @@ def measure_clingo_source(
         total=summarize(total_samples),
         model_count=expected_models,
     )
+
+
+def measure_ground_source(
+    source_factory: Callable[[], str],
+    *,
+    repeats: int,
+    warmups: int = 1,
+) -> GroundMeasurement:
+    """Measure grounding alone, suitable for large structural cases."""
+
+    if repeats < 1:
+        raise ValueError("repeats must be positive")
+    if warmups < 0:
+        raise ValueError("warmups must not be negative")
+    samples: list[float] = []
+    expected_structure: StructuralMetrics | None = None
+    for index in range(warmups + repeats):
+        control = clingo.Control(["0", "--stats=2", "-t1"])
+        observer = GroundObserver()
+        control.register_observer(observer)
+        control.add("base", [], source_factory())
+        started = time.perf_counter()
+        control.ground([("base", [])])
+        duration = time.perf_counter() - started
+        structure = StructuralMetrics(
+            observer_rules=observer.rules,
+            observer_weight_rules=observer.weight_rules,
+            symbolic_atoms=len(list(control.symbolic_atoms)),
+            theory_atoms=observer.theory_atoms,
+            statistics_rules=None,
+            statistics_atoms=None,
+            statistics_bodies=None,
+        )
+        if expected_structure is None:
+            expected_structure = structure
+        elif structure != expected_structure:
+            raise RuntimeError("grounding structure changed between repeats")
+        if index >= warmups:
+            samples.append(duration)
+    if expected_structure is None:
+        raise RuntimeError("grounding benchmark produced no observations")
+    return GroundMeasurement(expected_structure, summarize(samples))
 
 
 def project_root() -> Path:
