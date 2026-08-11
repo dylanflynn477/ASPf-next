@@ -161,6 +161,12 @@ class NativeWorkMetrics:
     theory_atoms: int
     seeds: int
     rules: int
+    application_decode_requests: int
+    decoded_applications: int
+    application_cache_hits: int
+    value_decode_requests: int
+    decoded_values: int
+    value_cache_hits: int
     watched_literals: int
     propagate_calls: int
     propagated_literals: int
@@ -259,16 +265,47 @@ def _decode_nvariable(term: clingo.TheoryTerm) -> str:
     return name.name
 
 
-def _decode_expression(term: clingo.TheoryTerm) -> GroundExpression:
-    if term.type is not clingo.TheoryTermType.Function or len(term.arguments) != 1:
-        raise RuntimeError(f"invalid native expression: {term}")
-    if term.name == "constant":
-        return ConstantGroundExpression(_decode_value(term.arguments[0]))
-    if term.name == "application":
-        return ApplicationGroundExpression(_decode_application(term.arguments[0]))
-    if term.name == "nvalue":
-        return NVariableGroundExpression(_decode_nvariable(term.arguments[0]))
-    raise RuntimeError(f"unknown native expression: {term}")
+class _TheoryDecoder:
+    """Initialization-local canonicalization for interned Clingo theory terms."""
+
+    def __init__(self) -> None:
+        self.applications: dict[clingo.TheoryTerm, GroundApplication] = {}
+        self.values: dict[clingo.TheoryTerm, GroundValue] = {}
+        self.application_requests = 0
+        self.application_cache_hits = 0
+        self.value_requests = 0
+        self.value_cache_hits = 0
+
+    def application(self, term: clingo.TheoryTerm) -> GroundApplication:
+        self.application_requests += 1
+        cached = self.applications.get(term)
+        if cached is not None:
+            self.application_cache_hits += 1
+            return cached
+        decoded = _decode_application(term)
+        self.applications[term] = decoded
+        return decoded
+
+    def value(self, term: clingo.TheoryTerm) -> GroundValue:
+        self.value_requests += 1
+        cached = self.values.get(term)
+        if cached is not None:
+            self.value_cache_hits += 1
+            return cached
+        decoded = _decode_value(term)
+        self.values[term] = decoded
+        return decoded
+
+    def expression(self, term: clingo.TheoryTerm) -> GroundExpression:
+        if term.type is not clingo.TheoryTermType.Function or len(term.arguments) != 1:
+            raise RuntimeError(f"invalid native expression: {term}")
+        if term.name == "constant":
+            return ConstantGroundExpression(self.value(term.arguments[0]))
+        if term.name == "application":
+            return ApplicationGroundExpression(self.application(term.arguments[0]))
+        if term.name == "nvalue":
+            return NVariableGroundExpression(_decode_nvariable(term.arguments[0]))
+        raise RuntimeError(f"unknown native expression: {term}")
 
 
 def _decode_meta(term: clingo.TheoryTerm) -> RuleKey:
@@ -281,13 +318,13 @@ def _decode_meta(term: clingo.TheoryTerm) -> RuleKey:
     )
 
 
-def _decode_head(term: clingo.TheoryTerm) -> GroundHead:
+def _decode_head(term: clingo.TheoryTerm, decoder: _TheoryDecoder) -> GroundHead:
     if term.type is not clingo.TheoryTermType.Function:
         raise RuntimeError(f"invalid native rule head: {term}")
     if term.name == "head_assignment" and len(term.arguments) == 2:
         return GroundAssignmentHead(
-            _decode_application(term.arguments[0]),
-            _decode_expression(term.arguments[1]),
+            decoder.application(term.arguments[0]),
+            decoder.expression(term.arguments[1]),
         )
     if term.name == "head_atom" and len(term.arguments) == 1:
         atom = term.arguments[0]
@@ -303,15 +340,15 @@ def _decode_head(term: clingo.TheoryTerm) -> GroundHead:
     raise RuntimeError(f"unknown native rule head: {term}")
 
 
-def _decode_definition(term: clingo.TheoryTerm) -> GroundDefinition:
+def _decode_definition(term: clingo.TheoryTerm, decoder: _TheoryDecoder) -> GroundDefinition:
     _expect_function(term, "define", 2)
     return GroundDefinition(
         _decode_nvariable(term.arguments[0]),
-        _decode_expression(term.arguments[1]),
+        decoder.expression(term.arguments[1]),
     )
 
 
-def _decode_comparison(term: clingo.TheoryTerm) -> GroundComparison:
+def _decode_comparison(term: clingo.TheoryTerm, decoder: _TheoryDecoder) -> GroundComparison:
     _expect_function(term, "compare", 4)
     operator_term, polarity_term, left_term, right_term = term.arguments
     if (
@@ -320,9 +357,9 @@ def _decode_comparison(term: clingo.TheoryTerm) -> GroundComparison:
     ):
         raise RuntimeError(f"invalid native comparison: {term}")
     return GroundComparison(
-        _decode_expression(left_term),
+        decoder.expression(left_term),
         GroundComparisonOperator(operator_term.name),
-        _decode_expression(right_term),
+        decoder.expression(right_term),
         polarity_term.name == "default_negated",
     )
 
@@ -338,28 +375,32 @@ def _element_terms(atom: clingo.TheoryAtom) -> tuple[clingo.TheoryTerm, ...]:
     return tuple(terms)
 
 
-def _decode_seed(atom: clingo.TheoryAtom, literal: int) -> GroundSeed:
+def _decode_seed(atom: clingo.TheoryAtom, literal: int, decoder: _TheoryDecoder) -> GroundSeed:
     terms = _element_terms(atom)
     if len(terms) != 1:
         raise RuntimeError(f"invalid native seed: {atom}")
     assignment = terms[0]
     _expect_function(assignment, "assignment", 2)
     return GroundSeed(
-        _decode_application(assignment.arguments[0]),
-        _decode_value(assignment.arguments[1]),
+        decoder.application(assignment.arguments[0]),
+        decoder.value(assignment.arguments[1]),
         literal,
     )
 
 
-def _decode_rule(atom: clingo.TheoryAtom, literal: int) -> GroundRule:
+def _decode_rule(atom: clingo.TheoryAtom, literal: int, decoder: _TheoryDecoder) -> GroundRule:
     terms = _element_terms(atom)
     if len(terms) < 2:
         raise RuntimeError(f"native rule lacks metadata or head: {atom}")
-    definitions = tuple(_decode_definition(term) for term in terms[2:] if term.name == "define")
-    comparisons = tuple(_decode_comparison(term) for term in terms[2:] if term.name == "compare")
+    definitions = tuple(
+        _decode_definition(term, decoder) for term in terms[2:] if term.name == "define"
+    )
+    comparisons = tuple(
+        _decode_comparison(term, decoder) for term in terms[2:] if term.name == "compare"
+    )
     return GroundRule(
         key=_decode_meta(terms[0]),
-        head=_decode_head(terms[1]),
+        head=_decode_head(terms[1], decoder),
         definitions=definitions,
         comparisons=comparisons,
         active_literal=literal,
@@ -541,6 +582,12 @@ class NativePropagator(clingo.Propagator):
         self._states: dict[int, _ThreadState] = {}
         self._snapshots: dict[int, NativeSnapshot] = {}
         self._theory_atom_count = 0
+        self._application_decode_requests = 0
+        self._decoded_applications = 0
+        self._application_cache_hits = 0
+        self._value_decode_requests = 0
+        self._decoded_values = 0
+        self._value_cache_hits = 0
         self.init_seconds = 0.0
         self.check_count = 0
         self.undo_count = 0
@@ -564,6 +611,7 @@ class NativePropagator(clingo.Propagator):
         rules: dict[RuleKey, GroundRule] = {}
         guards: dict[RuleKey, int] = {}
         native_literals: set[int] = set()
+        decoder = _TheoryDecoder()
         self._theory_atom_count = 0
         self._states.clear()
         self._snapshots.clear()
@@ -585,13 +633,20 @@ class NativePropagator(clingo.Propagator):
             literal = init.solver_literal(atom.literal)
             native_literals.add(literal)
             if name == "aspf_native_seed":
-                seeds.append(_decode_seed(atom, literal))
+                seeds.append(_decode_seed(atom, literal, decoder))
             elif name == "aspf_native_rule":
-                rule = _decode_rule(atom, literal)
+                rule = _decode_rule(atom, literal, decoder)
                 rules[rule.key] = rule
             elif name == "aspf_native_guard":
                 key, guard_literal = _decode_guard(atom, literal)
                 guards[key] = guard_literal
+
+        self._application_decode_requests = decoder.application_requests
+        self._decoded_applications = len(decoder.applications)
+        self._application_cache_hits = decoder.application_cache_hits
+        self._value_decode_requests = decoder.value_requests
+        self._decoded_values = len(decoder.values)
+        self._value_cache_hits = decoder.value_cache_hits
 
         self._seeds = tuple(sorted(seeds, key=lambda seed: (seed.application, seed.value)))
         self._rules = tuple(
@@ -786,6 +841,12 @@ class NativePropagator(clingo.Propagator):
             theory_atoms=self._theory_atom_count,
             seeds=len(self._seeds),
             rules=len(self._rules),
+            application_decode_requests=self._application_decode_requests,
+            decoded_applications=self._decoded_applications,
+            application_cache_hits=self._application_cache_hits,
+            value_decode_requests=self._value_decode_requests,
+            decoded_values=self._decoded_values,
+            value_cache_hits=self._value_cache_hits,
             watched_literals=sum(abs(literal) > 1 for literal in self._native_literals),
             propagate_calls=self.propagate_count,
             propagated_literals=self.propagated_literal_count,

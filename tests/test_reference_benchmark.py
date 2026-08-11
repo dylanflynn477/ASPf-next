@@ -49,6 +49,9 @@ def test_native_copy_overhead_is_constant_and_models_match() -> None:
     assert [case.native_copy.work.seed_activations for case in result.cases] == [2, 4]
     assert [case.native_copy.work.check_calls for case in result.cases] == [2, 4]
     assert [case.native_copy.work.rule_body_evaluations for case in result.cases] == [2, 4]
+    assert [case.native_copy.work.application_decode_requests for case in result.cases] == [4, 6]
+    assert [case.native_copy.work.decoded_applications for case in result.cases] == [2, 2]
+    assert [case.native_copy.work.application_cache_hits for case in result.cases] == [2, 4]
     assert all(
         case.native_copy.propagator_init.median_seconds >= 0
         and case.native_copy.model_reconstruction.median_seconds >= 0
