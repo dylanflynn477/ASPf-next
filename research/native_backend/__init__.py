@@ -23,6 +23,15 @@ from research.native_backend.ir import (
     Symbol,
     Variable,
 )
+from research.native_backend.nloops import (
+    DependencyEdge,
+    DependencyEdgeKind,
+    DependencyNode,
+    DependencyNodeKind,
+    NLoop,
+    NLoopAnalysis,
+    analyze_nloops,
+)
 from research.native_backend.propagator import NativeWorkMetrics
 from research.native_backend.solver import (
     NativeModel,
@@ -42,7 +51,13 @@ __all__ = [
     "ComparisonOperator",
     "ConstantExpression",
     "Definition",
+    "DependencyEdge",
+    "DependencyEdgeKind",
+    "DependencyNode",
+    "DependencyNodeKind",
     "Integer",
+    "NLoop",
+    "NLoopAnalysis",
     "NVariable",
     "NVariableExpression",
     "NativeModel",
@@ -58,4 +73,5 @@ __all__ = [
     "String",
     "Symbol",
     "Variable",
+    "analyze_nloops",
 ]

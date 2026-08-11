@@ -11,7 +11,6 @@ from research.native_backend.ir import (
     NativeProgram,
     NativeRule,
     Seed,
-    applications_in_expression,
     nvariables_in_expression,
     raise_at,
     variables_in_application,
@@ -19,6 +18,7 @@ from research.native_backend.ir import (
     variables_in_expression,
     variables_in_term,
 )
+from research.native_backend.nloops import analyze_nloops
 
 THEORY_DEFINITION = """#theory aspf_native {
     term { - : 0, unary };
@@ -127,20 +127,8 @@ def _validate_rule(rule: NativeRule) -> None:
         raise_at(f"non-Herbrand definitions are not n-stratified: {rendered}", rule.location)
 
 
-def _application_dependencies(rule: NativeRule) -> set[str]:
-    dependencies: set[str] = set()
-    expressions = [definition.expression for definition in rule.definitions]
-    for comparison in rule.comparisons:
-        expressions.extend((comparison.left, comparison.right))
-    for expression in expressions:
-        dependencies.update(
-            application.function for application in applications_in_expression(expression)
-        )
-    return dependencies
-
-
 def validate(program: NativeProgram) -> None:
-    """Enforce safety, n-stratification, and a limited function-cycle screen."""
+    """Enforce safety, n-stratification, and the typed positive n-loop screen."""
 
     for fact in program.facts:
         variables = variables_in_atom(fact)
@@ -155,22 +143,23 @@ def validate(program: NativeProgram) -> None:
         identifiers.add(rule.identifier)
         _validate_rule(rule)
 
-    dependency_graph: dict[str, set[str]] = {}
-    locations: dict[str, NativeRule] = {}
-    for rule in program.rules:
-        if not isinstance(rule.head, AssignmentHead):
-            continue
-        function = rule.head.application.function
-        dependency_graph.setdefault(function, set()).update(_application_dependencies(rule))
-        locations.setdefault(function, rule)
-    found_cycle = _cycle(dependency_graph)
-    if found_cycle is not None:
-        function = found_cycle[0]
-        rule = locations[function]
-        rendered = " -> ".join(found_cycle)
+    analysis = analyze_nloops(program)
+    if analysis.loop is not None:
+        loop = analysis.loop
+        path = " -> ".join(node.label for node in loop.path)
+        shared = ", ".join(
+            application.function
+            if not application.arguments
+            else application.function
+            + "("
+            + ",".join(argument.render() for argument in application.arguments)
+            + ")"
+            for application in loop.shared_terms
+        )
         raise_at(
-            "function-dependency cycle rejected by the limited n-loop screen: " + rendered,
-            rule.location,
+            "historical n-loop rejected: positive dependency path "
+            f"{path} shares simple term {shared}",
+            loop.seed.location,
         )
 
 

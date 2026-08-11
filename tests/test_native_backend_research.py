@@ -15,6 +15,7 @@ from research.native_backend import (
     ComparisonOperator,
     ConstantExpression,
     Definition,
+    DependencyEdgeKind,
     Integer,
     NativeProgram,
     NativeRule,
@@ -27,6 +28,7 @@ from research.native_backend import (
     String,
     Symbol,
     Variable,
+    analyze_nloops,
 )
 from research.native_backend.differential import compare_with_reference
 from research.native_backend.ir import Term
@@ -485,7 +487,7 @@ def test_nvariables_are_rejected_in_application_and_ordinary_atom_arguments() ->
         Atom("p", (forbidden,), location)
 
 
-def test_limited_program_nloop_screen_rejects_self_and_mutual_cycles() -> None:
+def test_program_nloop_screen_rejects_self_and_mutual_cycles() -> None:
     variable = NVariable("_v")
     self_rule = NativeRule(
         "self_loop",
@@ -496,8 +498,8 @@ def test_limited_program_nloop_screen_rejects_self_and_mutual_cycles() -> None:
     with pytest.raises(
         NativeValidationError,
         match=(
-            r"loops\.aspf:2:1: function-dependency cycle rejected by the limited "
-            r"n-loop screen: f -> f"
+            r"loops\.aspf:2:1: historical n-loop rejected: positive dependency path "
+            r"f\(x\)#=_v -> _v#=f\(x\) shares simple term f\(x\)"
         ),
     ):
         NativeSolver().solve(NativeProgram(rules=(self_rule,)))
@@ -513,8 +515,164 @@ def test_limited_program_nloop_screen_rejects_self_and_mutual_cycles() -> None:
         AssignmentHead(_app("g"), NVariableExpression(variable)),
         definitions=(Definition(variable, AppExpression(_app("f"))),),
     )
-    with pytest.raises(NativeValidationError, match="limited n-loop screen"):
+    with pytest.raises(NativeValidationError, match="historical n-loop rejected"):
         NativeSolver().solve(NativeProgram(rules=(first, second)))
+
+
+def test_nloop_analysis_distinguishes_full_simple_terms_and_negative_edges() -> None:
+    f_a = Application("f", (Symbol("a"),))
+    f_b = Application("f", (Symbol("b"),))
+    distinct_key = NativeRule(
+        "distinct_key",
+        AssignmentHead(f_a, ConstantExpression(Integer(2))),
+        comparisons=(
+            Comparison(
+                AppExpression(f_b),
+                ComparisonOperator.NOT_EQUAL,
+                ConstantExpression(Integer(3)),
+            ),
+        ),
+    )
+    default_negated = NativeRule(
+        "negative_edge",
+        AssignmentHead(f_a, ConstantExpression(Integer(2))),
+        comparisons=(
+            Comparison(
+                AppExpression(f_a),
+                ComparisonOperator.NOT_EQUAL,
+                ConstantExpression(Integer(3)),
+                default_negated=True,
+            ),
+        ),
+    )
+
+    distinct_analysis = analyze_nloops(NativeProgram(rules=(distinct_key,)))
+    negative_analysis = analyze_nloops(NativeProgram(rules=(default_negated,)))
+
+    assert distinct_analysis.exact_for_ground_program
+    assert distinct_analysis.loop is None
+    assert negative_analysis.exact_for_ground_program
+    assert negative_analysis.loop is None
+
+
+def test_direct_nloop_reports_typed_positive_edge_and_source_provenance() -> None:
+    location = SourceLocation("direct-loop.aspf", 7, 3)
+    application = Application("f", (Symbol("a"),))
+    program = NativeProgram(
+        rules=(
+            NativeRule(
+                "direct",
+                AssignmentHead(application, ConstantExpression(Integer(2))),
+                comparisons=(
+                    Comparison(
+                        AppExpression(application),
+                        ComparisonOperator.NOT_EQUAL,
+                        ConstantExpression(Integer(3)),
+                    ),
+                ),
+                location=location,
+            ),
+        )
+    )
+
+    analysis = analyze_nloops(program)
+
+    assert analysis.exact_for_ground_program
+    assert analysis.loop is not None
+    assert analysis.loop.seed.location == location
+    assert analysis.loop.shared_terms == (application,)
+    assert [edge.kind for edge in analysis.loop.edges] == [DependencyEdgeKind.POSITIVE_BODY]
+    with pytest.raises(
+        NativeValidationError,
+        match=(
+            r"direct-loop\.aspf:7:3: historical n-loop rejected: positive dependency "
+            r"path f\(a\)#=2 -> f\(a\)#!=3 shares simple term f\(a\)"
+        ),
+    ):
+        NativeSolver().solve(program)
+
+
+def test_indirect_nloop_crosses_an_ordinary_positive_dependency() -> None:
+    application = Application("f", (Symbol("a"),))
+    p = Atom("p")
+    program = NativeProgram(
+        rules=(
+            NativeRule(
+                "assignment",
+                AssignmentHead(application, ConstantExpression(Integer(2))),
+                when=(p,),
+            ),
+            NativeRule(
+                "ordinary",
+                AtomHead(p),
+                comparisons=(
+                    Comparison(
+                        AppExpression(application),
+                        ComparisonOperator.NOT_EQUAL,
+                        ConstantExpression(Integer(3)),
+                    ),
+                ),
+            ),
+        )
+    )
+
+    analysis = analyze_nloops(program)
+
+    assert analysis.loop is not None
+    assert [node.label for node in analysis.loop.path] == [
+        "f(a)#=2",
+        "p",
+        "p",
+        "f(a)#!=3",
+    ]
+    assert [edge.kind for edge in analysis.loop.edges] == [
+        DependencyEdgeKind.POSITIVE_BODY,
+        DependencyEdgeKind.LITERAL_MATCH,
+        DependencyEdgeKind.POSITIVE_BODY,
+    ]
+
+
+def test_ordinary_asp_recursion_is_not_an_nloop() -> None:
+    p = Atom("p")
+    q = Atom("q")
+    program = NativeProgram(
+        rules=(
+            NativeRule("p_from_q", AtomHead(p), when=(q,)),
+            NativeRule("q_from_p", AtomHead(q), when=(p,)),
+        )
+    )
+
+    analysis = analyze_nloops(program)
+
+    assert analysis.exact_for_ground_program
+    assert analysis.loop is None
+
+
+def test_non_ground_nloop_analysis_is_explicitly_conservative() -> None:
+    variable = Variable("X")
+    item = Atom("item", (variable,))
+    application = Application("f", (variable,))
+    program = NativeProgram(
+        rules=(
+            NativeRule(
+                "potential_loop",
+                AssignmentHead(application, ConstantExpression(Integer(2))),
+                comparisons=(
+                    Comparison(
+                        AppExpression(Application("f", (Symbol("a"),))),
+                        ComparisonOperator.NOT_EQUAL,
+                        ConstantExpression(Integer(3)),
+                    ),
+                ),
+                when=(item,),
+            ),
+        )
+    )
+
+    analysis = analyze_nloops(program)
+
+    assert not analysis.exact_for_ground_program
+    assert analysis.loop is not None
 
 
 def test_multiple_nvariables_rules_and_readers_remain_independent() -> None:

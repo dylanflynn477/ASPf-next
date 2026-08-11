@@ -254,14 +254,19 @@ n-variables in its positive defining expressions. Missing definitions, self-cycl
 and mutual cycles are rejected before Clingo sees the program. Multiple definitions of
 one variable are retained rather than collapsed into ordinary unification.
 
-The program-level screen is narrower than the published n-loop definition. It rejects
-cycles in function-symbol dependencies between assignment heads and positive
-application reads, including direct and mutual cycles. It can over-reject distinct
-ground keys that share a function symbol, and it does not construct the complete
-ordinary/n-atom positive dependency paths described by B13. Therefore it is **not
-proved equivalent to historical n-loop detection**, and accepted programs are not
-advertised as the full historical n-loop-free class. This failed GO gate is one reason
-for the PARTIAL GO decision.
+The program-level analysis now constructs explicit typed literal occurrences,
+positive-body edges, occurrence-matching edges, full simple-term keys, and source
+provenance. It rejects direct paths and paths bridged by ordinary positive literals,
+does not treat default-negated comparisons as positive edges, distinguishes `f(a)`
+from `f(b)`, and does not confuse an ordinary ASP cycle with an n-loop. Deterministic
+tests cover each boundary and a rule that is n-stratified but still has an n-loop.
+
+The analysis is exact for the variable-free research subfragment with constant-valued
+assignment heads. Ordinary-variable patterns and dynamic n-variable assignment heads
+are checked conservatively by possible literal unification, so the wider accepted
+class is not advertised as exact historical n-loop detection. The full definition,
+examples, implementation contract, and primary sources are recorded in the focused
+[n-loop analysis note](n-loop-analysis.md).
 
 ## Grounding and performance results
 
