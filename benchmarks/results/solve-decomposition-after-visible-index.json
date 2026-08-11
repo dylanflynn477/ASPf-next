@@ -1,0 +1,3913 @@
+{
+  "schema_version": 1,
+  "family": "nvariable-copy-solve-output-decomposition",
+  "repeats": 7,
+  "warmups": 1,
+  "environment": {
+    "benchmark_date_utc": "2026-08-11",
+    "commit": "871d46c0dc2b09b1cb7b3b10fa0dc40386b4028a",
+    "python": "3.12.13",
+    "clingo": "5.8.1",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "architecture": "AMD64",
+    "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+    "cpu_count": 12
+  },
+  "cases": [
+    {
+      "domain_size": 10,
+      "modes": [
+        {
+          "mode": {
+            "name": "first-model",
+            "model_limit": 1,
+            "collect_visible": false
+          },
+          "reference": {
+            "model_count": 1,
+            "ground": {
+              "median_seconds": 0.00011579995043575764,
+              "iqr_seconds": 1.1899974197149277e-05,
+              "samples_seconds": [
+                0.00013689999468624592,
+                0.00012449990026652813,
+                0.00011459994129836559,
+                0.00011079991236329079,
+                0.00012480001896619797,
+                0.00011579995043575764,
+                0.00011090002954006195
+              ]
+            },
+            "solve": {
+              "median_seconds": 5.159992724657059e-05,
+              "iqr_seconds": 6.6999346017837524e-06,
+              "samples_seconds": [
+                6.309989839792252e-05,
+                5.6399963796138763e-05,
+                5.4999953135848045e-05,
+                4.900014027953148e-05,
+                5.159992724657059e-05,
+                4.8999907448887825e-05,
+                4.759989678859711e-05
+              ]
+            },
+            "total": {
+              "median_seconds": 0.00028300005942583084,
+              "iqr_seconds": 2.4699955247342587e-05,
+              "samples_seconds": [
+                0.00037230015732347965,
+                0.00031979987397789955,
+                0.0002872999757528305,
+                0.0002741999924182892,
+                0.00028300005942583084,
+                0.00028019980527460575,
+                0.00027750013396143913
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": null,
+            "native_reconstruction": null,
+            "native_work": null
+          },
+          "native": {
+            "model_count": 1,
+            "ground": {
+              "median_seconds": 0.00022259983234107494,
+              "iqr_seconds": 3.0499882996082306e-05,
+              "samples_seconds": [
+                0.0002617998979985714,
+                0.00022069993428885937,
+                0.00026810006238520145,
+                0.00023939996026456356,
+                0.00021159998141229153,
+                0.00021950015798211098,
+                0.00022259983234107494
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.00043460004962980747,
+              "iqr_seconds": 6.329989992082119e-05,
+              "samples_seconds": [
+                0.0005475999787449837,
+                0.00040449993684887886,
+                0.0005151999648660421,
+                0.00044739991426467896,
+                0.0004165000282227993,
+                0.00043460004962980747,
+                0.0004195000510662794
+              ]
+            },
+            "total": {
+              "median_seconds": 0.0016127999406307936,
+              "iqr_seconds": 0.0002835000632330775,
+              "samples_seconds": [
+                0.0018223000224679708,
+                0.0026906998828053474,
+                0.0019426001235842705,
+                0.0016127999406307936,
+                0.001576300011947751,
+                0.0015974999405443668,
+                0.0016004000790417194
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": {
+              "median_seconds": 0.0003353999927639961,
+              "iqr_seconds": 3.145006485283375e-05,
+              "samples_seconds": [
+                0.0004062000662088394,
+                0.00030700000934302807,
+                0.00036109983921051025,
+                0.00033599999733269215,
+                0.0003117998130619526,
+                0.0003353999927639961,
+                0.0003223998937755823
+              ]
+            },
+            "native_reconstruction": null,
+            "native_work": {
+              "theory_atoms": 11,
+              "seeds": 10,
+              "rules": 1,
+              "application_decode_requests": 12,
+              "decoded_applications": 2,
+              "application_cache_hits": 10,
+              "value_decode_requests": 10,
+              "decoded_values": 10,
+              "value_cache_hits": 0,
+              "watched_literals": 10,
+              "ordinary_atoms": 0,
+              "ordinary_watched_literals": 0,
+              "ordinary_activations": 0,
+              "ordinary_deactivations": 0,
+              "propagate_calls": 1,
+              "propagated_literals": 1,
+              "seed_activations": 1,
+              "seed_deactivations": 1,
+              "check_calls": 1,
+              "check_seed_probes": 0,
+              "rule_body_evaluations": 1,
+              "blocking_clauses": 0,
+              "snapshot_assignments": 0,
+              "undo_calls": 1,
+              "undone_literals": 1
+            }
+          },
+          "visible_models_equal": null
+        },
+        {
+          "mode": {
+            "name": "fixed-10",
+            "model_limit": 10,
+            "collect_visible": false
+          },
+          "reference": {
+            "model_count": 10,
+            "ground": {
+              "median_seconds": 0.00014819996431469917,
+              "iqr_seconds": 0.00011734990403056145,
+              "samples_seconds": [
+                0.00012320000678300858,
+                0.00010730000212788582,
+                0.00010689999908208847,
+                0.00026279990561306477,
+                0.00014819996431469917,
+                0.00020239991135895252,
+                0.0003184000961482525
+              ]
+            },
+            "solve": {
+              "median_seconds": 8.650007657706738e-05,
+              "iqr_seconds": 4.055001772940159e-05,
+              "samples_seconds": [
+                7.359986193478107e-05,
+                6.640003994107246e-05,
+                6.509991362690926e-05,
+                0.00022829999215900898,
+                8.650007657706738e-05,
+                0.00012749992311000824,
+                9.360001422464848e-05
+              ]
+            },
+            "total": {
+              "median_seconds": 0.00040520005859434605,
+              "iqr_seconds": 0.0002183998003602028,
+              "samples_seconds": [
+                0.00033410009928047657,
+                0.0002997000701725483,
+                0.0002761001233011484,
+                0.0005917998496443033,
+                0.00040520005859434605,
+                0.0004787999205291271,
+                0.0005987000185996294
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": null,
+            "native_reconstruction": null,
+            "native_work": null
+          },
+          "native": {
+            "model_count": 10,
+            "ground": {
+              "median_seconds": 0.00023539992980659008,
+              "iqr_seconds": 7.245002780109644e-05,
+              "samples_seconds": [
+                0.00021749990992248058,
+                0.00026059988886117935,
+                0.0003141001798212528,
+                0.0003923000767827034,
+                0.00023539992980659008,
+                0.0002123001031577587,
+                0.00019780010916292667
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.0005859998054802418,
+              "iqr_seconds": 9.840005077421665e-05,
+              "samples_seconds": [
+                0.0005667000077664852,
+                0.001150399912148714,
+                0.0006438000127673149,
+                0.0006850999779999256,
+                0.0005859998054802418,
+                0.000565399881452322,
+                0.00055089988745749
+              ]
+            },
+            "total": {
+              "median_seconds": 0.0020598999690264463,
+              "iqr_seconds": 0.0005078999092802405,
+              "samples_seconds": [
+                0.0022670000325888395,
+                0.002462300006300211,
+                0.0020598999690264463,
+                0.0022447998635470867,
+                0.001812000060454011,
+                0.0016840000171214342,
+                0.0016059000045061111
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": {
+              "median_seconds": 0.00033050007186830044,
+              "iqr_seconds": 5.659996531903744e-05,
+              "samples_seconds": [
+                0.0003261000383645296,
+                0.0007986000273376703,
+                0.0003666998818516731,
+                0.000395399983972311,
+                0.00033050007186830044,
+                0.00029879994690418243,
+                0.00032279989682137966
+              ]
+            },
+            "native_reconstruction": null,
+            "native_work": {
+              "theory_atoms": 11,
+              "seeds": 10,
+              "rules": 1,
+              "application_decode_requests": 12,
+              "decoded_applications": 2,
+              "application_cache_hits": 10,
+              "value_decode_requests": 10,
+              "decoded_values": 10,
+              "value_cache_hits": 0,
+              "watched_literals": 10,
+              "ordinary_atoms": 0,
+              "ordinary_watched_literals": 0,
+              "ordinary_activations": 0,
+              "ordinary_deactivations": 0,
+              "propagate_calls": 10,
+              "propagated_literals": 10,
+              "seed_activations": 10,
+              "seed_deactivations": 10,
+              "check_calls": 10,
+              "check_seed_probes": 0,
+              "rule_body_evaluations": 10,
+              "blocking_clauses": 0,
+              "snapshot_assignments": 0,
+              "undo_calls": 10,
+              "undone_literals": 10
+            }
+          },
+          "visible_models_equal": null
+        },
+        {
+          "mode": {
+            "name": "exhaustive-raw",
+            "model_limit": 0,
+            "collect_visible": false
+          },
+          "reference": {
+            "model_count": 10,
+            "ground": {
+              "median_seconds": 0.0001097000204026699,
+              "iqr_seconds": 7.3499977588653564e-06,
+              "samples_seconds": [
+                0.00011390005238354206,
+                0.00011099991388618946,
+                0.0001097000204026699,
+                0.00010029994882643223,
+                9.869993664324284e-05,
+                0.00010569998994469643,
+                0.0001097000204026699
+              ]
+            },
+            "solve": {
+              "median_seconds": 6.320001557469368e-05,
+              "iqr_seconds": 6.349990144371986e-06,
+              "samples_seconds": [
+                6.739981472492218e-05,
+                6.770016625523567e-05,
+                6.650015711784363e-05,
+                6.0900114476680756e-05,
+                5.819997750222683e-05,
+                6.029987707734108e-05,
+                6.320001557469368e-05
+              ]
+            },
+            "total": {
+              "median_seconds": 0.00027529988437891006,
+              "iqr_seconds": 2.5700079277157784e-05,
+              "samples_seconds": [
+                0.00030479999259114265,
+                0.000287800095975399,
+                0.0002856000792235136,
+                0.00026050000451505184,
+                0.00025400007143616676,
+                0.0002615000121295452,
+                0.00027529988437891006
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": null,
+            "native_reconstruction": null,
+            "native_work": null
+          },
+          "native": {
+            "model_count": 10,
+            "ground": {
+              "median_seconds": 0.0002680998295545578,
+              "iqr_seconds": 6.230012513697147e-05,
+              "samples_seconds": [
+                0.0008916999213397503,
+                0.0003059001173824072,
+                0.0002785001415759325,
+                0.0002680998295545578,
+                0.00022460008040070534,
+                0.0002351999282836914,
+                0.00021440000273287296
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.0005662001203745604,
+              "iqr_seconds": 7.349997758865356e-05,
+              "samples_seconds": [
+                0.0007226001471281052,
+                0.0006283000111579895,
+                0.0006260999944061041,
+                0.0005527001339942217,
+                0.0005546999163925648,
+                0.0005662001203745604,
+                0.0005326999817043543
+              ]
+            },
+            "total": {
+              "median_seconds": 0.0018289999570697546,
+              "iqr_seconds": 0.00021019985433667898,
+              "samples_seconds": [
+                0.0031290999613702297,
+                0.001986199989914894,
+                0.001956700114533305,
+                0.0018289999570697546,
+                0.0017533001955598593,
+                0.001769200200214982,
+                0.0016374997794628143
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": {
+              "median_seconds": 0.0003233000170439482,
+              "iqr_seconds": 3.294984344393015e-05,
+              "samples_seconds": [
+                0.0004149000160396099,
+                0.00035399990156292915,
+                0.00034719984978437424,
+                0.0003152000717818737,
+                0.0003200999926775694,
+                0.0003233000170439482,
+                0.00031240005046129227
+              ]
+            },
+            "native_reconstruction": null,
+            "native_work": {
+              "theory_atoms": 11,
+              "seeds": 10,
+              "rules": 1,
+              "application_decode_requests": 12,
+              "decoded_applications": 2,
+              "application_cache_hits": 10,
+              "value_decode_requests": 10,
+              "decoded_values": 10,
+              "value_cache_hits": 0,
+              "watched_literals": 10,
+              "ordinary_atoms": 0,
+              "ordinary_watched_literals": 0,
+              "ordinary_activations": 0,
+              "ordinary_deactivations": 0,
+              "propagate_calls": 10,
+              "propagated_literals": 10,
+              "seed_activations": 10,
+              "seed_deactivations": 10,
+              "check_calls": 10,
+              "check_seed_probes": 0,
+              "rule_body_evaluations": 10,
+              "blocking_clauses": 0,
+              "snapshot_assignments": 0,
+              "undo_calls": 10,
+              "undone_literals": 10
+            }
+          },
+          "visible_models_equal": null
+        },
+        {
+          "mode": {
+            "name": "exhaustive-visible",
+            "model_limit": 0,
+            "collect_visible": true
+          },
+          "reference": {
+            "model_count": 10,
+            "ground": {
+              "median_seconds": 0.0001555001363158226,
+              "iqr_seconds": 4.0050013922154903e-05,
+              "samples_seconds": [
+                0.00011879997327923775,
+                0.0001151000615209341,
+                0.00017090002074837685,
+                0.0001580000389367342,
+                0.00016000005416572094,
+                0.0001555001363158226,
+                0.00011910009197890759
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.0003505998756736517,
+              "iqr_seconds": 5.709996912628412e-05,
+              "samples_seconds": [
+                0.00032359990291297436,
+                0.0003052998799830675,
+                0.0007497998885810375,
+                0.0003505998756736517,
+                0.00042949989438056946,
+                0.0003527998924255371,
+                0.00034449994564056396
+              ]
+            },
+            "total": {
+              "median_seconds": 0.0006968001835048199,
+              "iqr_seconds": 0.00015719991642981768,
+              "samples_seconds": [
+                0.0005735999438911676,
+                0.000538799911737442,
+                0.001045699929818511,
+                0.0007252998184412718,
+                0.0007599999662488699,
+                0.0006968001835048199,
+                0.0005973000079393387
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.00025690020993351936,
+              "iqr_seconds": 3.610062412917614e-05,
+              "samples_seconds": [
+                0.00023879949003458023,
+                0.00023379968479275703,
+                0.0005855998024344444,
+                0.0002555998507887125,
+                0.0003055003471672535,
+                0.00025690020993351936,
+                0.0002611002419143915
+              ]
+            },
+            "normalized_digest": "8d35910421647391257c541224e8b00e5ec77b64264079db9c58bcd353a4cada",
+            "native_init": null,
+            "native_reconstruction": null,
+            "native_work": null
+          },
+          "native": {
+            "model_count": 10,
+            "ground": {
+              "median_seconds": 0.0002368998248130083,
+              "iqr_seconds": 2.8850045055150986e-05,
+              "samples_seconds": [
+                0.00024030008353292942,
+                0.00022460008040070534,
+                0.0002259998582303524,
+                0.00022040004841983318,
+                0.0002368998248130083,
+                0.0003284001722931862,
+                0.0002679999452084303
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.0007639001123607159,
+              "iqr_seconds": 6.384996231645346e-05,
+              "samples_seconds": [
+                0.0007639001123607159,
+                0.0007099001668393612,
+                0.0007716999389231205,
+                0.0007416000589728355,
+                0.0007299999706447124,
+                0.0016546000260859728,
+                0.0008276000153273344
+              ]
+            },
+            "total": {
+              "median_seconds": 0.0019550002180039883,
+              "iqr_seconds": 0.0001463999506086111,
+              "samples_seconds": [
+                0.001986699877306819,
+                0.0018938002176582813,
+                0.0019550002180039883,
+                0.001922599971294403,
+                0.001940400106832385,
+                0.0030400000978261232,
+                0.0021691001020371914
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 4.3300213292241096e-05,
+              "iqr_seconds": 1.550186425447464e-06,
+              "samples_seconds": [
+                4.259985871613026e-05,
+                4.12999652326107e-05,
+                4.359986633062363e-05,
+                4.219985567033291e-05,
+                4.4300220906734467e-05,
+                9.590014815330505e-05,
+                4.3300213292241096e-05
+              ]
+            },
+            "normalized_digest": "8d35910421647391257c541224e8b00e5ec77b64264079db9c58bcd353a4cada",
+            "native_init": {
+              "median_seconds": 0.00040520005859434605,
+              "iqr_seconds": 4.789989907294512e-05,
+              "samples_seconds": [
+                0.0004258998669683933,
+                0.0003806001041084528,
+                0.00039829988963901997,
+                0.00040520005859434605,
+                0.0003939000889658928,
+                0.0008145000319927931,
+                0.00046209990978240967
+              ]
+            },
+            "native_reconstruction": {
+              "snapshot_build": {
+                "median_seconds": 2.4699373170733452e-05,
+                "iqr_seconds": 4.0011946111917496e-07,
+                "samples_seconds": [
+                  2.4800188839435577e-05,
+                  2.4599721655249596e-05,
+                  2.4200184270739555e-05,
+                  2.4699373170733452e-05,
+                  2.4600187316536903e-05,
+                  5.4600415751338005e-05,
+                  2.519995905458927e-05
+                ]
+              },
+              "snapshot_lookup": {
+                "median_seconds": 1.109996810555458e-05,
+                "iqr_seconds": 8.50064679980278e-07,
+                "samples_seconds": [
+                  1.1600088328123093e-05,
+                  1.090019941329956e-05,
+                  1.0999618098139763e-05,
+                  1.0800780728459358e-05,
+                  1.1999858543276787e-05,
+                  3.199954517185688e-05,
+                  1.109996810555458e-05
+                ]
+              },
+              "symbol_extraction": {
+                "median_seconds": 7.003545761108398e-07,
+                "iqr_seconds": 1.00000761449337e-07,
+                "samples_seconds": [
+                  7.003545761108398e-07,
+                  5.993060767650604e-07,
+                  7.995404303073883e-07,
+                  7.00121745467186e-07,
+                  6.00004568696022e-07,
+                  1.000240445137024e-06,
+                  7.005874067544937e-07
+                ]
+              },
+              "ordinary_render": {
+                "median_seconds": 7.003545761108398e-07,
+                "iqr_seconds": 1.0023359209299088e-07,
+                "samples_seconds": [
+                  7.995404303073883e-07,
+                  6.007030606269836e-07,
+                  7.003545761108398e-07,
+                  7.00121745467186e-07,
+                  8.004717528820038e-07,
+                  1.1997763067483902e-06,
+                  6.994232535362244e-07
+                ]
+              },
+              "assignment_render": {
+                "median_seconds": 1.8200138583779335e-05,
+                "iqr_seconds": 4.997709766030312e-07,
+                "samples_seconds": [
+                  1.7800135537981987e-05,
+                  1.689954660832882e-05,
+                  1.859990879893303e-05,
+                  1.8199440091848373e-05,
+                  1.8399208784103394e-05,
+                  3.8300175219774246e-05,
+                  1.8200138583779335e-05
+                ]
+              },
+              "undefined_render": {
+                "median_seconds": 3.0999071896076202e-06,
+                "iqr_seconds": 3.501772880554199e-07,
+                "samples_seconds": [
+                  2.8999056667089462e-06,
+                  2.7997884899377823e-06,
+                  3.3997930586338043e-06,
+                  3.2999087125062943e-06,
+                  3.0994415283203125e-06,
+                  5.600042641162872e-06,
+                  3.0999071896076202e-06
+                ]
+              },
+              "model_storage": {
+                "median_seconds": 5.300156772136688e-06,
+                "iqr_seconds": 6.00120984017849e-07,
+                "samples_seconds": [
+                  5.9998128563165665e-06,
+                  5.300156772136688e-06,
+                  5.200039595365524e-06,
+                  4.899920895695686e-06,
+                  4.999805241823196e-06,
+                  1.1500203981995583e-05,
+                  5.400273948907852e-06
+                ]
+              },
+              "model_sort": {
+                "median_seconds": 4.09991480410099e-06,
+                "iqr_seconds": 7.00121745467186e-07,
+                "samples_seconds": [
+                  4.500150680541992e-06,
+                  3.899913281202316e-06,
+                  3.8000289350748062e-06,
+                  3.8000289350748062e-06,
+                  4.09991480410099e-06,
+                  4.600035026669502e-06,
+                  5.00003807246685e-06
+                ]
+              },
+              "normalized_digest": {
+                "median_seconds": 1.559988595545292e-05,
+                "iqr_seconds": 3.049965016543865e-06,
+                "samples_seconds": [
+                  1.6200123354792595e-05,
+                  1.4899997040629387e-05,
+                  1.4100223779678345e-05,
+                  1.4800112694501877e-05,
+                  1.559988595545292e-05,
+                  2.459995448589325e-05,
+                  1.95999164134264e-05
+                ]
+              }
+            },
+            "native_work": {
+              "theory_atoms": 11,
+              "seeds": 10,
+              "rules": 1,
+              "application_decode_requests": 12,
+              "decoded_applications": 2,
+              "application_cache_hits": 10,
+              "value_decode_requests": 10,
+              "decoded_values": 10,
+              "value_cache_hits": 0,
+              "watched_literals": 10,
+              "ordinary_atoms": 10,
+              "ordinary_watched_literals": 10,
+              "ordinary_activations": 10,
+              "ordinary_deactivations": 10,
+              "propagate_calls": 10,
+              "propagated_literals": 10,
+              "seed_activations": 10,
+              "seed_deactivations": 10,
+              "check_calls": 10,
+              "check_seed_probes": 0,
+              "rule_body_evaluations": 10,
+              "blocking_clauses": 0,
+              "snapshot_assignments": 20,
+              "undo_calls": 10,
+              "undone_literals": 10
+            }
+          },
+          "visible_models_equal": true
+        }
+      ]
+    },
+    {
+      "domain_size": 100,
+      "modes": [
+        {
+          "mode": {
+            "name": "first-model",
+            "model_limit": 1,
+            "collect_visible": false
+          },
+          "reference": {
+            "model_count": 1,
+            "ground": {
+              "median_seconds": 0.0004015001468360424,
+              "iqr_seconds": 9.099836461246014e-06,
+              "samples_seconds": [
+                0.000412199879065156,
+                0.000394199974834919,
+                0.00040799984708428383,
+                0.0004010000266134739,
+                0.00040539982728660107,
+                0.0004015001468360424,
+                0.0003798999823629856
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.00021860003471374512,
+              "iqr_seconds": 1.2400094419717789e-05,
+              "samples_seconds": [
+                0.00023470004089176655,
+                0.00038180011324584484,
+                0.0002234000712633133,
+                0.00021529989317059517,
+                0.00021769991144537926,
+                0.00021860003471374512,
+                0.000215600011870265
+              ]
+            },
+            "total": {
+              "median_seconds": 0.0007561999373137951,
+              "iqr_seconds": 5.034997593611479e-05,
+              "samples_seconds": [
+                0.0008276000153273344,
+                0.0009184000082314014,
+                0.000780999893322587,
+                0.0007561999373137951,
+                0.0007541000377386808,
+                0.000753799919039011,
+                0.0007431998383253813
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": null,
+            "native_reconstruction": null,
+            "native_work": null
+          },
+          "native": {
+            "model_count": 1,
+            "ground": {
+              "median_seconds": 0.0006403999868780375,
+              "iqr_seconds": 4.529999569058418e-05,
+              "samples_seconds": [
+                0.0005598999559879303,
+                0.0006321999244391918,
+                0.0006516999565064907,
+                0.0005853001493960619,
+                0.0007784001063555479,
+                0.0006564001087099314,
+                0.0006403999868780375
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.002600099891424179,
+              "iqr_seconds": 0.00018284993711858988,
+              "samples_seconds": [
+                0.0034045998472720385,
+                0.0025072998832911253,
+                0.0025128000415861607,
+                0.0026797999162226915,
+                0.002600099891424179,
+                0.0024033000227063894,
+                0.002705999882891774
+              ]
+            },
+            "total": {
+              "median_seconds": 0.004417599877342582,
+              "iqr_seconds": 0.00034220004454255104,
+              "samples_seconds": [
+                0.005128100048750639,
+                0.004417599877342582,
+                0.00430999998934567,
+                0.004398399963974953,
+                0.0047716000117361546,
+                0.004256999818608165,
+                0.00462120003066957
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": {
+              "median_seconds": 0.002239400055259466,
+              "iqr_seconds": 0.000191250117495656,
+              "samples_seconds": [
+                0.003074799897149205,
+                0.002172800013795495,
+                0.00220320001244545,
+                0.0023714001290500164,
+                0.002239400055259466,
+                0.0020830000285059214,
+                0.0023871001321822405
+              ]
+            },
+            "native_reconstruction": null,
+            "native_work": {
+              "theory_atoms": 101,
+              "seeds": 100,
+              "rules": 1,
+              "application_decode_requests": 102,
+              "decoded_applications": 2,
+              "application_cache_hits": 100,
+              "value_decode_requests": 100,
+              "decoded_values": 100,
+              "value_cache_hits": 0,
+              "watched_literals": 100,
+              "ordinary_atoms": 0,
+              "ordinary_watched_literals": 0,
+              "ordinary_activations": 0,
+              "ordinary_deactivations": 0,
+              "propagate_calls": 1,
+              "propagated_literals": 1,
+              "seed_activations": 1,
+              "seed_deactivations": 1,
+              "check_calls": 1,
+              "check_seed_probes": 0,
+              "rule_body_evaluations": 1,
+              "blocking_clauses": 0,
+              "snapshot_assignments": 0,
+              "undo_calls": 1,
+              "undone_literals": 1
+            }
+          },
+          "visible_models_equal": null
+        },
+        {
+          "mode": {
+            "name": "fixed-10",
+            "model_limit": 10,
+            "collect_visible": false
+          },
+          "reference": {
+            "model_count": 10,
+            "ground": {
+              "median_seconds": 0.0004358000587671995,
+              "iqr_seconds": 0.0002039998071268201,
+              "samples_seconds": [
+                0.0004358000587671995,
+                0.0004146001301705837,
+                0.0004103998653590679,
+                0.0008670000825077295,
+                0.0007911999709904194,
+                0.0004501999355852604,
+                0.0004188001621514559
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.0003521000035107136,
+              "iqr_seconds": 0.0002343000378459692,
+              "samples_seconds": [
+                0.0002655000425875187,
+                0.000256099971011281,
+                0.0006848000921308994,
+                0.0005619002040475607,
+                0.00047779991291463375,
+                0.00030559999868273735,
+                0.0003521000035107136
+              ]
+            },
+            "total": {
+              "median_seconds": 0.0010544001124799252,
+              "iqr_seconds": 0.0004933001473546028,
+              "samples_seconds": [
+                0.0008688999805599451,
+                0.0008125000167638063,
+                0.0012352000921964645,
+                0.0017802000511437654,
+                0.0015708999708294868,
+                0.0010544001124799252,
+                0.0009505997877568007
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": null,
+            "native_reconstruction": null,
+            "native_work": null
+          },
+          "native": {
+            "model_count": 10,
+            "ground": {
+              "median_seconds": 0.0006120000034570694,
+              "iqr_seconds": 4.5650056563317776e-05,
+              "samples_seconds": [
+                0.000547399977222085,
+                0.0005831997841596603,
+                0.000618599820882082,
+                0.0006120000034570694,
+                0.0005626999773085117,
+                0.0006500999443233013,
+                0.0006186000537127256
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.0025647999718785286,
+              "iqr_seconds": 0.00024640001356601715,
+              "samples_seconds": [
+                0.0024784000124782324,
+                0.0035239001736044884,
+                0.0025647999718785286,
+                0.0026444001123309135,
+                0.0024560000747442245,
+                0.0027828000020235777,
+                0.00244190008379519
+              ]
+            },
+            "total": {
+              "median_seconds": 0.004327599890530109,
+              "iqr_seconds": 0.00037875003181397915,
+              "samples_seconds": [
+                0.004087700042873621,
+                0.005318799987435341,
+                0.004327599890530109,
+                0.004306500079110265,
+                0.004421600140631199,
+                0.004779400071129203,
+                0.004137000069022179
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": {
+              "median_seconds": 0.002086400054395199,
+              "iqr_seconds": 0.0002362000523135066,
+              "samples_seconds": [
+                0.002024400047957897,
+                0.00303569994866848,
+                0.002086400054395199,
+                0.0022194001358002424,
+                0.0020166998729109764,
+                0.0022940998896956444,
+                0.0020077000372111797
+              ]
+            },
+            "native_reconstruction": null,
+            "native_work": {
+              "theory_atoms": 101,
+              "seeds": 100,
+              "rules": 1,
+              "application_decode_requests": 102,
+              "decoded_applications": 2,
+              "application_cache_hits": 100,
+              "value_decode_requests": 100,
+              "decoded_values": 100,
+              "value_cache_hits": 0,
+              "watched_literals": 100,
+              "ordinary_atoms": 0,
+              "ordinary_watched_literals": 0,
+              "ordinary_activations": 0,
+              "ordinary_deactivations": 0,
+              "propagate_calls": 10,
+              "propagated_literals": 10,
+              "seed_activations": 10,
+              "seed_deactivations": 10,
+              "check_calls": 10,
+              "check_seed_probes": 0,
+              "rule_body_evaluations": 10,
+              "blocking_clauses": 0,
+              "snapshot_assignments": 0,
+              "undo_calls": 10,
+              "undone_literals": 10
+            }
+          },
+          "visible_models_equal": null
+        },
+        {
+          "mode": {
+            "name": "exhaustive-raw",
+            "model_limit": 0,
+            "collect_visible": false
+          },
+          "reference": {
+            "model_count": 100,
+            "ground": {
+              "median_seconds": 0.00040440005250275135,
+              "iqr_seconds": 7.970002479851246e-05,
+              "samples_seconds": [
+                0.0003746000584214926,
+                0.0003745998255908489,
+                0.0003891999367624521,
+                0.0005015998613089323,
+                0.00040440005250275135,
+                0.0004216001834720373,
+                0.0005882999394088984
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.0004795000422745943,
+              "iqr_seconds": 5.7850033044815063e-05,
+              "samples_seconds": [
+                0.00046820007264614105,
+                0.0004634999204427004,
+                0.000506900018081069,
+                0.0004795000422745943,
+                0.0004588998854160309,
+                0.0005650999955832958,
+                0.0005405000410974026
+              ]
+            },
+            "total": {
+              "median_seconds": 0.0010389999952167273,
+              "iqr_seconds": 0.0001519499346613884,
+              "samples_seconds": [
+                0.0009894000831991434,
+                0.0009713000617921352,
+                0.0010389999952167273,
+                0.0011169998906552792,
+                0.0010112999007105827,
+                0.0011875999625772238,
+                0.001303499797359109
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": null,
+            "native_reconstruction": null,
+            "native_work": null
+          },
+          "native": {
+            "model_count": 100,
+            "ground": {
+              "median_seconds": 0.0006162000354379416,
+              "iqr_seconds": 0.00010289996862411499,
+              "samples_seconds": [
+                0.0006162000354379416,
+                0.0005435999482870102,
+                0.0007243000436574221,
+                0.0007728999480605125,
+                0.0005987000185996294,
+                0.0006321999244391918,
+                0.0005520000122487545
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.003767099929973483,
+              "iqr_seconds": 0.0005195500561967492,
+              "samples_seconds": [
+                0.00375879998318851,
+                0.005119699984788895,
+                0.003949000034481287,
+                0.003767099929973483,
+                0.004582800203934312,
+                0.0037339001428335905,
+                0.003733400022611022
+              ]
+            },
+            "total": {
+              "median_seconds": 0.005678100045770407,
+              "iqr_seconds": 0.0006173000438138843,
+              "samples_seconds": [
+                0.005492599913850427,
+                0.007607199950143695,
+                0.005901699885725975,
+                0.005678100045770407,
+                0.006410599919036031,
+                0.005585099803283811,
+                0.005375700071454048
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": {
+              "median_seconds": 0.002083800034597516,
+              "iqr_seconds": 8.374988101422787e-05,
+              "samples_seconds": [
+                0.0020880999509245157,
+                0.002062200102955103,
+                0.0022177998907864094,
+                0.0020761999767273664,
+                0.0027691000141203403,
+                0.002083800034597516,
+                0.0019887001253664494
+              ]
+            },
+            "native_reconstruction": null,
+            "native_work": {
+              "theory_atoms": 101,
+              "seeds": 100,
+              "rules": 1,
+              "application_decode_requests": 102,
+              "decoded_applications": 2,
+              "application_cache_hits": 100,
+              "value_decode_requests": 100,
+              "decoded_values": 100,
+              "value_cache_hits": 0,
+              "watched_literals": 100,
+              "ordinary_atoms": 0,
+              "ordinary_watched_literals": 0,
+              "ordinary_activations": 0,
+              "ordinary_deactivations": 0,
+              "propagate_calls": 100,
+              "propagated_literals": 100,
+              "seed_activations": 100,
+              "seed_deactivations": 100,
+              "check_calls": 100,
+              "check_seed_probes": 0,
+              "rule_body_evaluations": 100,
+              "blocking_clauses": 0,
+              "snapshot_assignments": 0,
+              "undo_calls": 100,
+              "undone_literals": 100
+            }
+          },
+          "visible_models_equal": null
+        },
+        {
+          "mode": {
+            "name": "exhaustive-visible",
+            "model_limit": 0,
+            "collect_visible": true
+          },
+          "reference": {
+            "model_count": 100,
+            "ground": {
+              "median_seconds": 0.00043530017137527466,
+              "iqr_seconds": 5.159992724657059e-05,
+              "samples_seconds": [
+                0.0004846998490393162,
+                0.00043530017137527466,
+                0.0004279001150280237,
+                0.0004734001122415066,
+                0.00047690002247691154,
+                0.00041920016519725323,
+                0.0004108001012355089
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.003080899827182293,
+              "iqr_seconds": 0.00027359998784959316,
+              "samples_seconds": [
+                0.0031443999614566565,
+                0.003034499939531088,
+                0.00346959987655282,
+                0.004151900066062808,
+                0.0030322999227792025,
+                0.003080899827182293,
+                0.0029099001549184322
+              ]
+            },
+            "total": {
+              "median_seconds": 0.003814700059592724,
+              "iqr_seconds": 0.00030105013865977526,
+              "samples_seconds": [
+                0.0039230999536812305,
+                0.0036799998488277197,
+                0.004091400187462568,
+                0.004900099942460656,
+                0.003814700059592724,
+                0.0037324000149965286,
+                0.0035131999757140875
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0025645995046943426,
+              "iqr_seconds": 0.00024604913778603077,
+              "samples_seconds": [
+                0.002571998629719019,
+                0.0025041999761015177,
+                0.002899299608543515,
+                0.003429500851780176,
+                0.002474999986588955,
+                0.0025645995046943426,
+                0.002407701453194022
+              ]
+            },
+            "normalized_digest": "9bf5f25ad939ac942b382480c795e0e991f3bc352984bcc6ac97108e550f5207",
+            "native_init": null,
+            "native_reconstruction": null,
+            "native_work": null
+          },
+          "native": {
+            "model_count": 100,
+            "ground": {
+              "median_seconds": 0.0006158000323921442,
+              "iqr_seconds": 3.885000478476286e-05,
+              "samples_seconds": [
+                0.0005963000003248453,
+                0.0006556999869644642,
+                0.0007732999511063099,
+                0.0006158000323921442,
+                0.0006105999927967787,
+                0.0006363000720739365,
+                0.0006037000566720963
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.005329399835318327,
+              "iqr_seconds": 0.0010055499151349068,
+              "samples_seconds": [
+                0.005104500101879239,
+                0.006084599997848272,
+                0.005329399835318327,
+                0.00815220014192164,
+                0.0053014000877738,
+                0.006506399950012565,
+                0.0052785000298172235
+              ]
+            },
+            "total": {
+              "median_seconds": 0.007393599953502417,
+              "iqr_seconds": 0.0010435499716550112,
+              "samples_seconds": [
+                0.007198599865660071,
+                0.008091300027444959,
+                0.007393599953502417,
+                0.010023699840530753,
+                0.007220900151878595,
+                0.00841529993340373,
+                0.007075200090184808
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.00040140002965927124,
+              "iqr_seconds": 2.060108818113804e-05,
+              "samples_seconds": [
+                0.0003574010916054249,
+                0.0004171021282672882,
+                0.0003812990617007017,
+                0.0007503004744648933,
+                0.0003967003431171179,
+                0.00040140002965927124,
+                0.00040209945291280746
+              ]
+            },
+            "normalized_digest": "9bf5f25ad939ac942b382480c795e0e991f3bc352984bcc6ac97108e550f5207",
+            "native_init": {
+              "median_seconds": 0.002670600078999996,
+              "iqr_seconds": 0.0004146001301705837,
+              "samples_seconds": [
+                0.0026008998975157738,
+                0.003273200010880828,
+                0.0027666001114994287,
+                0.002670600078999996,
+                0.0026096999645233154,
+                0.0035394998267292976,
+                0.0025220001116394997
+              ]
+            },
+            "native_reconstruction": {
+              "snapshot_build": {
+                "median_seconds": 0.00022079888731241226,
+                "iqr_seconds": 5.240016616880894e-05,
+                "samples_seconds": [
+                  0.00020530028268694878,
+                  0.00023259990848600864,
+                  0.00020720111206173897,
+                  0.000468601007014513,
+                  0.0002164989709854126,
+                  0.00022079888731241226,
+                  0.0002959005068987608
+                ]
+              },
+              "snapshot_lookup": {
+                "median_seconds": 0.00010070041753351688,
+                "iqr_seconds": 1.0600779205560684e-05,
+                "samples_seconds": [
+                  8.939928375184536e-05,
+                  0.00010949932038784027,
+                  9.009893983602524e-05,
+                  0.00022299913689494133,
+                  0.00010070041753351688,
+                  0.00010090111754834652,
+                  9.909993968904018e-05
+                ]
+              },
+              "symbol_extraction": {
+                "median_seconds": 5.499925464391708e-06,
+                "iqr_seconds": 7.004709914326668e-07,
+                "samples_seconds": [
+                  5.798414349555969e-06,
+                  5.902023985981941e-06,
+                  5.499925464391708e-06,
+                  7.201218977570534e-06,
+                  5.1995739340782166e-06,
+                  4.900852218270302e-06,
+                  5.09992241859436e-06
+                ]
+              },
+              "ordinary_render": {
+                "median_seconds": 6.200745701789856e-06,
+                "iqr_seconds": 6.991904228925705e-07,
+                "samples_seconds": [
+                  5.902023985981941e-06,
+                  5.998415872454643e-06,
+                  6.899703294038773e-06,
+                  8.49948264658451e-06,
+                  6.200745701789856e-06,
+                  5.898764356970787e-06,
+                  6.399117410182953e-06
+                ]
+              },
+              "assignment_render": {
+                "median_seconds": 0.00016930000856518745,
+                "iqr_seconds": 5.049398168921471e-06,
+                "samples_seconds": [
+                  0.00015299837104976177,
+                  0.00017469888553023338,
+                  0.00016930000856518745,
+                  0.0003197996411472559,
+                  0.00016739871352910995,
+                  0.00016810046508908272,
+                  0.00017089908942580223
+                ]
+              },
+              "undefined_render": {
+                "median_seconds": 3.0098017305135727e-05,
+                "iqr_seconds": 3.6496203392744064e-06,
+                "samples_seconds": [
+                  2.560112625360489e-05,
+                  3.0200695618987083e-05,
+                  2.590077929198742e-05,
+                  4.519987851381302e-05,
+                  2.7299392968416214e-05,
+                  3.0098017305135727e-05,
+                  3.0298717319965363e-05
+                ]
+              },
+              "model_storage": {
+                "median_seconds": 5.0400616601109505e-05,
+                "iqr_seconds": 3.7509016692638397e-06,
+                "samples_seconds": [
+                  4.419893957674503e-05,
+                  5.220109596848488e-05,
+                  4.749977961182594e-05,
+                  9.330082684755325e-05,
+                  4.949979484081268e-05,
+                  5.230028182268143e-05,
+                  5.0400616601109505e-05
+                ]
+              },
+              "model_sort": {
+                "median_seconds": 2.9100105166435242e-05,
+                "iqr_seconds": 2.750079147517681e-06,
+                "samples_seconds": [
+                  2.6999972760677338e-05,
+                  3.1599774956703186e-05,
+                  3.120000474154949e-05,
+                  2.8999987989664078e-05,
+                  3.0399998649954796e-05,
+                  2.7099857106804848e-05,
+                  2.9100105166435242e-05
+                ]
+              },
+              "normalized_digest": {
+                "median_seconds": 5.460018292069435e-05,
+                "iqr_seconds": 1.3649929314851761e-05,
+                "samples_seconds": [
+                  6.029987707734108e-05,
+                  6.29001297056675e-05,
+                  4.830001853406429e-05,
+                  6.429990753531456e-05,
+                  5.460018292069435e-05,
+                  4.760012961924076e-05,
+                  4.640012048184872e-05
+                ]
+              }
+            },
+            "native_work": {
+              "theory_atoms": 101,
+              "seeds": 100,
+              "rules": 1,
+              "application_decode_requests": 102,
+              "decoded_applications": 2,
+              "application_cache_hits": 100,
+              "value_decode_requests": 100,
+              "decoded_values": 100,
+              "value_cache_hits": 0,
+              "watched_literals": 100,
+              "ordinary_atoms": 100,
+              "ordinary_watched_literals": 100,
+              "ordinary_activations": 100,
+              "ordinary_deactivations": 100,
+              "propagate_calls": 100,
+              "propagated_literals": 100,
+              "seed_activations": 100,
+              "seed_deactivations": 100,
+              "check_calls": 100,
+              "check_seed_probes": 0,
+              "rule_body_evaluations": 100,
+              "blocking_clauses": 0,
+              "snapshot_assignments": 200,
+              "undo_calls": 100,
+              "undone_literals": 100
+            }
+          },
+          "visible_models_equal": true
+        }
+      ]
+    },
+    {
+      "domain_size": 1000,
+      "modes": [
+        {
+          "mode": {
+            "name": "first-model",
+            "model_limit": 1,
+            "collect_visible": false
+          },
+          "reference": {
+            "model_count": 1,
+            "ground": {
+              "median_seconds": 0.003467300208285451,
+              "iqr_seconds": 0.0005982499569654465,
+              "samples_seconds": [
+                0.0038608000613749027,
+                0.003348900005221367,
+                0.004172399872913957,
+                0.003467300208285451,
+                0.0032077000942081213,
+                0.004014599835500121,
+                0.003329999977722764
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.002306399866938591,
+              "iqr_seconds": 0.00026044982951134443,
+              "samples_seconds": [
+                0.002481999807059765,
+                0.002198300091549754,
+                0.0024522999301552773,
+                0.002215099986642599,
+                0.002956099808216095,
+                0.0021935999393463135,
+                0.002306399866938591
+              ]
+            },
+            "total": {
+              "median_seconds": 0.006733899936079979,
+              "iqr_seconds": 0.0004907498368993402,
+              "samples_seconds": [
+                0.007089699851348996,
+                0.006357799982652068,
+                0.0071737999096512794,
+                0.00662460015155375,
+                0.006733899936079979,
+                0.006874199956655502,
+                0.00622129999101162
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": null,
+            "native_reconstruction": null,
+            "native_work": null
+          },
+          "native": {
+            "model_count": 1,
+            "ground": {
+              "median_seconds": 0.0046144998632371426,
+              "iqr_seconds": 0.0006106998771429062,
+              "samples_seconds": [
+                0.0046144998632371426,
+                0.0047593999188393354,
+                0.003796899924054742,
+                0.00469670002348721,
+                0.004193400032818317,
+                0.004041300155222416,
+                0.004918700084090233
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.023781599942594767,
+              "iqr_seconds": 0.0012453998206183314,
+              "samples_seconds": [
+                0.023781599942594767,
+                0.022736699786037207,
+                0.025883600115776062,
+                0.023256200132891536,
+                0.024662999901920557,
+                0.023060400038957596,
+                0.024144399911165237
+              ]
+            },
+            "total": {
+              "median_seconds": 0.031234699999913573,
+              "iqr_seconds": 0.0011404998367652297,
+              "samples_seconds": [
+                0.030976700130850077,
+                0.03041890007443726,
+                0.03271079994738102,
+                0.030514700105413795,
+                0.03147860011085868,
+                0.031234699999913573,
+                0.03229379979893565
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": {
+              "median_seconds": 0.021728300023823977,
+              "iqr_seconds": 0.0010418500751256943,
+              "samples_seconds": [
+                0.021776899928227067,
+                0.020721300039440393,
+                0.023851800011470914,
+                0.021226499928161502,
+                0.022690200014039874,
+                0.02115689986385405,
+                0.021728300023823977
+              ]
+            },
+            "native_reconstruction": null,
+            "native_work": {
+              "theory_atoms": 1001,
+              "seeds": 1000,
+              "rules": 1,
+              "application_decode_requests": 1002,
+              "decoded_applications": 2,
+              "application_cache_hits": 1000,
+              "value_decode_requests": 1000,
+              "decoded_values": 1000,
+              "value_cache_hits": 0,
+              "watched_literals": 1000,
+              "ordinary_atoms": 0,
+              "ordinary_watched_literals": 0,
+              "ordinary_activations": 0,
+              "ordinary_deactivations": 0,
+              "propagate_calls": 1,
+              "propagated_literals": 1,
+              "seed_activations": 1,
+              "seed_deactivations": 1,
+              "check_calls": 1,
+              "check_seed_probes": 0,
+              "rule_body_evaluations": 1,
+              "blocking_clauses": 0,
+              "snapshot_assignments": 0,
+              "undo_calls": 1,
+              "undone_literals": 1
+            }
+          },
+          "visible_models_equal": null
+        },
+        {
+          "mode": {
+            "name": "fixed-10",
+            "model_limit": 10,
+            "collect_visible": false
+          },
+          "reference": {
+            "model_count": 10,
+            "ground": {
+              "median_seconds": 0.00338079989887774,
+              "iqr_seconds": 0.000658300006762147,
+              "samples_seconds": [
+                0.0032093001063913107,
+                0.004474099958315492,
+                0.00338079989887774,
+                0.003356599947437644,
+                0.003908300073817372,
+                0.0033146999776363373,
+                0.004079599864780903
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.0024421000853180885,
+              "iqr_seconds": 0.0002487999154254794,
+              "samples_seconds": [
+                0.002315100049600005,
+                0.0026483999099582434,
+                0.0024421000853180885,
+                0.002582599874585867,
+                0.002345999935641885,
+                0.0023874000180512667,
+                0.0027626000810414553
+              ]
+            },
+            "total": {
+              "median_seconds": 0.006615200079977512,
+              "iqr_seconds": 0.0007768998621031642,
+              "samples_seconds": [
+                0.006193300010636449,
+                0.007682600058615208,
+                0.006519000045955181,
+                0.006615200079977512,
+                0.006952999858185649,
+                0.00630310014821589,
+                0.0074229000601917505
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": null,
+            "native_reconstruction": null,
+            "native_work": null
+          },
+          "native": {
+            "model_count": 10,
+            "ground": {
+              "median_seconds": 0.0043166999239474535,
+              "iqr_seconds": 0.0002965000458061695,
+              "samples_seconds": [
+                0.003973499871790409,
+                0.004343200009316206,
+                0.004085100023075938,
+                0.004175799898803234,
+                0.005197899881750345,
+                0.004510700004175305,
+                0.0043166999239474535
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.02457029977813363,
+              "iqr_seconds": 0.000822650152258575,
+              "samples_seconds": [
+                0.02529080002568662,
+                0.02383770002052188,
+                0.02440899983048439,
+                0.023522600065916777,
+                0.024601200129836798,
+                0.02457029977813363,
+                0.025409300113096833
+              ]
+            },
+            "total": {
+              "median_seconds": 0.03197640017606318,
+              "iqr_seconds": 0.0006542499177157879,
+              "samples_seconds": [
+                0.03197640017606318,
+                0.03188750008121133,
+                0.030958000104874372,
+                0.033071599900722504,
+                0.03253460000269115,
+                0.031665500020608306,
+                0.03232689993456006
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": {
+              "median_seconds": 0.022128199925646186,
+              "iqr_seconds": 0.0009134000865742564,
+              "samples_seconds": [
+                0.02288790000602603,
+                0.021590299904346466,
+                0.022128199925646186,
+                0.02132029994390905,
+                0.02236960013397038,
+                0.02184040006250143,
+                0.02309509995393455
+              ]
+            },
+            "native_reconstruction": null,
+            "native_work": {
+              "theory_atoms": 1001,
+              "seeds": 1000,
+              "rules": 1,
+              "application_decode_requests": 1002,
+              "decoded_applications": 2,
+              "application_cache_hits": 1000,
+              "value_decode_requests": 1000,
+              "decoded_values": 1000,
+              "value_cache_hits": 0,
+              "watched_literals": 1000,
+              "ordinary_atoms": 0,
+              "ordinary_watched_literals": 0,
+              "ordinary_activations": 0,
+              "ordinary_deactivations": 0,
+              "propagate_calls": 10,
+              "propagated_literals": 10,
+              "seed_activations": 10,
+              "seed_deactivations": 10,
+              "check_calls": 10,
+              "check_seed_probes": 0,
+              "rule_body_evaluations": 10,
+              "blocking_clauses": 0,
+              "snapshot_assignments": 0,
+              "undo_calls": 10,
+              "undone_literals": 10
+            }
+          },
+          "visible_models_equal": null
+        },
+        {
+          "mode": {
+            "name": "exhaustive-raw",
+            "model_limit": 0,
+            "collect_visible": false
+          },
+          "reference": {
+            "model_count": 1000,
+            "ground": {
+              "median_seconds": 0.0037630998995155096,
+              "iqr_seconds": 0.00048174988478422165,
+              "samples_seconds": [
+                0.0036702000070363283,
+                0.0034183000680059195,
+                0.0038926999550312757,
+                0.0037630998995155096,
+                0.004652100149542093,
+                0.004159299889579415,
+                0.0033311001025140285
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.009565699845552444,
+              "iqr_seconds": 0.0006702999817207456,
+              "samples_seconds": [
+                0.009565699845552444,
+                0.009761099936440587,
+                0.008997499942779541,
+                0.008223799988627434,
+                0.00924209994263947,
+                0.010198900010436773,
+                0.009819099912419915
+              ]
+            },
+            "total": {
+              "median_seconds": 0.013982699951156974,
+              "iqr_seconds": 0.0005461500259116292,
+              "samples_seconds": [
+                0.013982699951156974,
+                0.01392850000411272,
+                0.013634300092235208,
+                0.013198599917814136,
+                0.01458530011586845,
+                0.015170600032433867,
+                0.014069800032302737
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": null,
+            "native_reconstruction": null,
+            "native_work": null
+          },
+          "native": {
+            "model_count": 1000,
+            "ground": {
+              "median_seconds": 0.004469800041988492,
+              "iqr_seconds": 0.0008584500756114721,
+              "samples_seconds": [
+                0.0047657000832259655,
+                0.005262600025162101,
+                0.004245799966156483,
+                0.004469800041988492,
+                0.003969499841332436,
+                0.004065599991008639,
+                0.005861399928107858
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.044830899918451905,
+              "iqr_seconds": 0.002427500090561807,
+              "samples_seconds": [
+                0.044519999995827675,
+                0.042767600156366825,
+                0.04308879980817437,
+                0.044830899918451905,
+                0.04847130016423762,
+                0.04754900000989437,
+                0.04491479997523129
+              ]
+            },
+            "total": {
+              "median_seconds": 0.052029999904334545,
+              "iqr_seconds": 0.002489750157110393,
+              "samples_seconds": [
+                0.0519792998675257,
+                0.05155669990926981,
+                0.05146710015833378,
+                0.052029999904334545,
+                0.054945799987763166,
+                0.054196199867874384,
+                0.05431930022314191
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": {
+              "median_seconds": 0.022253600182011724,
+              "iqr_seconds": 0.0015157000161707401,
+              "samples_seconds": [
+                0.022799000144004822,
+                0.02085219998843968,
+                0.022253600182011724,
+                0.021374299889430404,
+                0.02607170003466308,
+                0.022683599963784218,
+                0.021076900186017156
+              ]
+            },
+            "native_reconstruction": null,
+            "native_work": {
+              "theory_atoms": 1001,
+              "seeds": 1000,
+              "rules": 1,
+              "application_decode_requests": 1002,
+              "decoded_applications": 2,
+              "application_cache_hits": 1000,
+              "value_decode_requests": 1000,
+              "decoded_values": 1000,
+              "value_cache_hits": 0,
+              "watched_literals": 1000,
+              "ordinary_atoms": 0,
+              "ordinary_watched_literals": 0,
+              "ordinary_activations": 0,
+              "ordinary_deactivations": 0,
+              "propagate_calls": 1000,
+              "propagated_literals": 1000,
+              "seed_activations": 1000,
+              "seed_deactivations": 1000,
+              "check_calls": 1000,
+              "check_seed_probes": 0,
+              "rule_body_evaluations": 1000,
+              "blocking_clauses": 0,
+              "snapshot_assignments": 0,
+              "undo_calls": 1000,
+              "undone_literals": 1000
+            }
+          },
+          "visible_models_equal": null
+        },
+        {
+          "mode": {
+            "name": "exhaustive-visible",
+            "model_limit": 0,
+            "collect_visible": true
+          },
+          "reference": {
+            "model_count": 1000,
+            "ground": {
+              "median_seconds": 0.004459600197151303,
+              "iqr_seconds": 0.001014549983665347,
+              "samples_seconds": [
+                0.0038364999927580357,
+                0.005193199962377548,
+                0.003835399867966771,
+                0.004719200078397989,
+                0.004002799978479743,
+                0.004459600197151303,
+                0.005149199860170484
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.060419199988245964,
+              "iqr_seconds": 0.0009880501311272383,
+              "samples_seconds": [
+                0.05948159983381629,
+                0.060160499997437,
+                0.06071670004166663,
+                0.06090150005184114,
+                0.061468999832868576,
+                0.05940070003271103,
+                0.060419199988245964
+              ]
+            },
+            "total": {
+              "median_seconds": 0.06647809990681708,
+              "iqr_seconds": 0.0013079498894512653,
+              "samples_seconds": [
+                0.06433560000732541,
+                0.06648709997534752,
+                0.06569790001958609,
+                0.0666608999017626,
+                0.06660689995624125,
+                0.06478020013310015,
+                0.06647809990681708
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.050417894031852484,
+              "iqr_seconds": 0.0010433995630592108,
+              "samples_seconds": [
+                0.049390106461942196,
+                0.04949320526793599,
+                0.0506940062623471,
+                0.05056919832713902,
+                0.051131597720086575,
+                0.04968320019543171,
+                0.050417894031852484
+              ]
+            },
+            "normalized_digest": "215288b09e0a7af0f128acc1d02d3e689f8136e2118d1f6763c80b5d0ad25760",
+            "native_init": null,
+            "native_reconstruction": null,
+            "native_work": null
+          },
+          "native": {
+            "model_count": 1000,
+            "ground": {
+              "median_seconds": 0.0041871999856084585,
+              "iqr_seconds": 0.0003868502099066973,
+              "samples_seconds": [
+                0.0042305001989007,
+                0.0041871999856084585,
+                0.003795300144702196,
+                0.00417970004491508,
+                0.004640600178390741,
+                0.00508960010483861,
+                0.003917699912562966
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.06047249981202185,
+              "iqr_seconds": 0.001431700075045228,
+              "samples_seconds": [
+                0.06059150001965463,
+                0.06233240012079477,
+                0.06047249981202185,
+                0.06359160016290843,
+                0.06004030001349747,
+                0.05898869992233813,
+                0.06002019997686148
+              ]
+            },
+            "total": {
+              "median_seconds": 0.0679721999913454,
+              "iqr_seconds": 0.0011951500782743096,
+              "samples_seconds": [
+                0.06827879999764264,
+                0.06994010019116104,
+                0.06757459999062121,
+                0.07097689993679523,
+                0.0679721999913454,
+                0.06796819996088743,
+                0.06786040007136762
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.004276500316336751,
+              "iqr_seconds": 0.00015735079068690538,
+              "samples_seconds": [
+                0.004389201058074832,
+                0.004266501870006323,
+                0.004400500096380711,
+                0.004684302257373929,
+                0.004276500316336751,
+                0.004079899750649929,
+                0.004208497703075409
+              ]
+            },
+            "normalized_digest": "215288b09e0a7af0f128acc1d02d3e689f8136e2118d1f6763c80b5d0ad25760",
+            "native_init": {
+              "median_seconds": 0.02803490008227527,
+              "iqr_seconds": 0.000770249986089766,
+              "samples_seconds": [
+                0.027451999951153994,
+                0.027287400094792247,
+                0.02803490008227527,
+                0.02850909996777773,
+                0.028703900054097176,
+                0.02772690006531775,
+                0.028210300020873547
+              ]
+            },
+            "native_reconstruction": {
+              "snapshot_build": {
+                "median_seconds": 0.0023236973211169243,
+                "iqr_seconds": 0.00013545085676014423,
+                "samples_seconds": [
+                  0.002422601915895939,
+                  0.002312898635864258,
+                  0.0023236973211169243,
+                  0.0026849019341170788,
+                  0.002259601838886738,
+                  0.0023224016185849905,
+                  0.002483600052073598
+                ]
+              },
+              "snapshot_lookup": {
+                "median_seconds": 0.0011258029844611883,
+                "iqr_seconds": 0.00010700325947254896,
+                "samples_seconds": [
+                  0.0011571003124117851,
+                  0.0010849987156689167,
+                  0.0011783051304519176,
+                  0.0012790996115654707,
+                  0.0010364002082496881,
+                  0.001023399643599987,
+                  0.0011258029844611883
+                ]
+              },
+              "symbol_extraction": {
+                "median_seconds": 5.419692024588585e-05,
+                "iqr_seconds": 2.901884727180004e-06,
+                "samples_seconds": [
+                  5.419692024588585e-05,
+                  5.020014941692352e-05,
+                  4.939897917211056e-05,
+                  5.5994605645537376e-05,
+                  5.339435301721096e-05,
+                  5.459669046103954e-05,
+                  5.480158142745495e-05
+                ]
+              },
+              "ordinary_render": {
+                "median_seconds": 6.300280801951885e-05,
+                "iqr_seconds": 5.948939360678196e-06,
+                "samples_seconds": [
+                  6.0205115005373955e-05,
+                  7.979944348335266e-05,
+                  7.189740426838398e-05,
+                  6.31045550107956e-05,
+                  5.920673720538616e-05,
+                  6.300280801951885e-05,
+                  6.289896555244923e-05
+                ]
+              },
+              "assignment_render": {
+                "median_seconds": 0.0018739996012300253,
+                "iqr_seconds": 0.00010064593516290188,
+                "samples_seconds": [
+                  0.001878195907920599,
+                  0.001787899062037468,
+                  0.001876800088211894,
+                  0.0019272011704742908,
+                  0.0018739996012300253,
+                  0.0017467036377638578,
+                  0.0017658050637692213
+                ]
+              },
+              "undefined_render": {
+                "median_seconds": 0.00028710439801216125,
+                "iqr_seconds": 9.90286935120821e-06,
+                "samples_seconds": [
+                  0.0002805017866194248,
+                  0.0002888015005737543,
+                  0.0002849958837032318,
+                  0.0002996006514877081,
+                  0.00029650190845131874,
+                  0.00027870130725204945,
+                  0.00028710439801216125
+                ]
+              },
+              "model_storage": {
+                "median_seconds": 0.0005741994827985764,
+                "iqr_seconds": 2.409936860203743e-05,
+                "samples_seconds": [
+                  0.0005744004156440496,
+                  0.0005741994827985764,
+                  0.0005603996105492115,
+                  0.0005850959569215775,
+                  0.0005783988162875175,
+                  0.0005442008841782808,
+                  0.0005414003971964121
+                ]
+              },
+              "model_sort": {
+                "median_seconds": 0.0002812000457197428,
+                "iqr_seconds": 1.279998105019331e-05,
+                "samples_seconds": [
+                  0.0002794000320136547,
+                  0.0002999999560415745,
+                  0.0002812000457197428,
+                  0.0002592999953776598,
+                  0.00026459991931915283,
+                  0.00028300005942583084,
+                  0.0002865998540073633
+                ]
+              },
+              "normalized_digest": {
+                "median_seconds": 0.00035690004006028175,
+                "iqr_seconds": 5.204998888075352e-05,
+                "samples_seconds": [
+                  0.00034939986653625965,
+                  0.00035690004006028175,
+                  0.0003464999608695507,
+                  0.0003494000993669033,
+                  0.00036860001273453236,
+                  0.0006646998226642609,
+                  0.00043429993093013763
+                ]
+              }
+            },
+            "native_work": {
+              "theory_atoms": 1001,
+              "seeds": 1000,
+              "rules": 1,
+              "application_decode_requests": 1002,
+              "decoded_applications": 2,
+              "application_cache_hits": 1000,
+              "value_decode_requests": 1000,
+              "decoded_values": 1000,
+              "value_cache_hits": 0,
+              "watched_literals": 1000,
+              "ordinary_atoms": 1000,
+              "ordinary_watched_literals": 1000,
+              "ordinary_activations": 1000,
+              "ordinary_deactivations": 1000,
+              "propagate_calls": 1000,
+              "propagated_literals": 1000,
+              "seed_activations": 1000,
+              "seed_deactivations": 1000,
+              "check_calls": 1000,
+              "check_seed_probes": 0,
+              "rule_body_evaluations": 1000,
+              "blocking_clauses": 0,
+              "snapshot_assignments": 2000,
+              "undo_calls": 1000,
+              "undone_literals": 1000
+            }
+          },
+          "visible_models_equal": true
+        }
+      ]
+    },
+    {
+      "domain_size": 5000,
+      "modes": [
+        {
+          "mode": {
+            "name": "first-model",
+            "model_limit": 1,
+            "collect_visible": false
+          },
+          "reference": {
+            "model_count": 1,
+            "ground": {
+              "median_seconds": 0.019662300124764442,
+              "iqr_seconds": 0.0008931498741731048,
+              "samples_seconds": [
+                0.020319599891081452,
+                0.01932459999807179,
+                0.019302800064906478,
+                0.019662300124764442,
+                0.020094099920243025,
+                0.01899709994904697,
+                0.020389899844303727
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.014087199931964278,
+              "iqr_seconds": 0.0006029000505805016,
+              "samples_seconds": [
+                0.014087199931964278,
+                0.014912399929016829,
+                0.014109100215137005,
+                0.014584500109776855,
+                0.013410999905318022,
+                0.013847900088876486,
+                0.01363990013487637
+              ]
+            },
+            "total": {
+              "median_seconds": 0.03660460002720356,
+              "iqr_seconds": 0.0006856501568108797,
+              "samples_seconds": [
+                0.03899699985049665,
+                0.03660460002720356,
+                0.03602069988846779,
+                0.03639689995907247,
+                0.03686350001953542,
+                0.03521030000410974,
+                0.036925400141626596
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": null,
+            "native_reconstruction": null,
+            "native_work": null
+          },
+          "native": {
+            "model_count": 1,
+            "ground": {
+              "median_seconds": 0.058666300028562546,
+              "iqr_seconds": 0.007994549814611673,
+              "samples_seconds": [
+                0.06614279979839921,
+                0.06678610015660524,
+                0.06525769992731512,
+                0.05678440001793206,
+                0.05862700007855892,
+                0.05491369985975325,
+                0.058666300028562546
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.45305839995853603,
+              "iqr_seconds": 0.01632760011125356,
+              "samples_seconds": [
+                0.4370907999109477,
+                0.45516599994152784,
+                0.45305839995853603,
+                0.47684969985857606,
+                0.43949449993669987,
+                0.4540745001286268,
+                0.4230883000418544
+              ]
+            },
+            "total": {
+              "median_seconds": 0.5300942999310791,
+              "iqr_seconds": 0.01970110007096082,
+              "samples_seconds": [
+                0.5257113999687135,
+                0.5430922999512404,
+                0.5404272000305355,
+                0.5567731999326497,
+                0.5184058998711407,
+                0.5300942999310791,
+                0.501097499858588
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": {
+              "median_seconds": 0.4218522999435663,
+              "iqr_seconds": 0.013634750037454069,
+              "samples_seconds": [
+                0.4124793999362737,
+                0.42928180005401373,
+                0.42358850012533367,
+                0.4471710999496281,
+                0.41312140016816556,
+                0.4218522999435663,
+                0.39801130001433194
+              ]
+            },
+            "native_reconstruction": null,
+            "native_work": {
+              "theory_atoms": 5001,
+              "seeds": 5000,
+              "rules": 1,
+              "application_decode_requests": 5002,
+              "decoded_applications": 2,
+              "application_cache_hits": 5000,
+              "value_decode_requests": 5000,
+              "decoded_values": 5000,
+              "value_cache_hits": 0,
+              "watched_literals": 5000,
+              "ordinary_atoms": 0,
+              "ordinary_watched_literals": 0,
+              "ordinary_activations": 0,
+              "ordinary_deactivations": 0,
+              "propagate_calls": 1,
+              "propagated_literals": 1,
+              "seed_activations": 1,
+              "seed_deactivations": 1,
+              "check_calls": 1,
+              "check_seed_probes": 0,
+              "rule_body_evaluations": 1,
+              "blocking_clauses": 0,
+              "snapshot_assignments": 0,
+              "undo_calls": 1,
+              "undone_literals": 1
+            }
+          },
+          "visible_models_equal": null
+        },
+        {
+          "mode": {
+            "name": "fixed-10",
+            "model_limit": 10,
+            "collect_visible": false
+          },
+          "reference": {
+            "model_count": 10,
+            "ground": {
+              "median_seconds": 0.045309799956157804,
+              "iqr_seconds": 0.0026863999664783478,
+              "samples_seconds": [
+                0.04100670013576746,
+                0.04886320000514388,
+                0.04476399999111891,
+                0.05043080006726086,
+                0.0442631000187248,
+                0.045309799956157804,
+                0.04553669993765652
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.033840800169855356,
+              "iqr_seconds": 0.0012842499418184161,
+              "samples_seconds": [
+                0.03294100007042289,
+                0.0337185999378562,
+                0.033840800169855356,
+                0.03474629996344447,
+                0.034481799928471446,
+                0.028670999919995666,
+                0.03552180016413331
+              ]
+            },
+            "total": {
+              "median_seconds": 0.08475979999639094,
+              "iqr_seconds": 0.005335850059054792,
+              "samples_seconds": [
+                0.07923349994234741,
+                0.08723539998754859,
+                0.08475979999639094,
+                0.08946059993468225,
+                0.08345529995858669,
+                0.07831309991888702,
+                0.0861251000314951
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": null,
+            "native_reconstruction": null,
+            "native_work": null
+          },
+          "native": {
+            "model_count": 10,
+            "ground": {
+              "median_seconds": 0.05997300008311868,
+              "iqr_seconds": 0.0061683498788625,
+              "samples_seconds": [
+                0.04875229997560382,
+                0.06561430008150637,
+                0.05163270002231002,
+                0.06021379982121289,
+                0.05665540019981563,
+                0.05997300008311868,
+                0.06041100015863776
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.4445071001537144,
+              "iqr_seconds": 0.009807299938984215,
+              "samples_seconds": [
+                0.4479002000298351,
+                0.4405529999639839,
+                0.47448220010846853,
+                0.4393724000547081,
+                0.4445071001537144,
+                0.4384453999809921,
+                0.45163979986682534
+              ]
+            },
+            "total": {
+              "median_seconds": 0.5258862001355737,
+              "iqr_seconds": 0.008412699913606048,
+              "samples_seconds": [
+                0.5150077000726014,
+                0.5258862001355737,
+                0.5473895999602973,
+                0.518956399988383,
+                0.5221772999502718,
+                0.5260112998075783,
+                0.5319477999582887
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": {
+              "median_seconds": 0.41440490004606545,
+              "iqr_seconds": 0.010183450067415833,
+              "samples_seconds": [
+                0.4149317000992596,
+                0.4114042001310736,
+                0.44713640003465116,
+                0.4110967998858541,
+                0.41440490004606545,
+                0.40903800004161894,
+                0.42793620005249977
+              ]
+            },
+            "native_reconstruction": null,
+            "native_work": {
+              "theory_atoms": 5001,
+              "seeds": 5000,
+              "rules": 1,
+              "application_decode_requests": 5002,
+              "decoded_applications": 2,
+              "application_cache_hits": 5000,
+              "value_decode_requests": 5000,
+              "decoded_values": 5000,
+              "value_cache_hits": 0,
+              "watched_literals": 5000,
+              "ordinary_atoms": 0,
+              "ordinary_watched_literals": 0,
+              "ordinary_activations": 0,
+              "ordinary_deactivations": 0,
+              "propagate_calls": 10,
+              "propagated_literals": 10,
+              "seed_activations": 10,
+              "seed_deactivations": 10,
+              "check_calls": 10,
+              "check_seed_probes": 0,
+              "rule_body_evaluations": 10,
+              "blocking_clauses": 0,
+              "snapshot_assignments": 0,
+              "undo_calls": 10,
+              "undone_literals": 10
+            }
+          },
+          "visible_models_equal": null
+        },
+        {
+          "mode": {
+            "name": "exhaustive-raw",
+            "model_limit": 0,
+            "collect_visible": false
+          },
+          "reference": {
+            "model_count": 5000,
+            "ground": {
+              "median_seconds": 0.04753219988197088,
+              "iqr_seconds": 0.006853800034150481,
+              "samples_seconds": [
+                0.04753219988197088,
+                0.043720899848267436,
+                0.0526118001434952,
+                0.050629799952730536,
+                0.041574599919840693,
+                0.03943089977838099,
+                0.048373299883678555
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.7864280000794679,
+              "iqr_seconds": 0.022712800069712102,
+              "samples_seconds": [
+                0.8249806999228895,
+                0.7911928000394255,
+                0.7756348000839353,
+                0.7766009999904782,
+                0.8064686001744121,
+                0.7640895000658929,
+                0.7864280000794679
+              ]
+            },
+            "total": {
+              "median_seconds": 0.8395628000143915,
+              "iqr_seconds": 0.012785799917764962,
+              "samples_seconds": [
+                0.877578399842605,
+                0.8395628000143915,
+                0.8348783999681473,
+                0.8320209998637438,
+                0.8528949997853488,
+                0.8091307000722736,
+                0.8395759998820722
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": null,
+            "native_reconstruction": null,
+            "native_work": null
+          },
+          "native": {
+            "model_count": 5000,
+            "ground": {
+              "median_seconds": 0.052972499979659915,
+              "iqr_seconds": 0.006133550079539418,
+              "samples_seconds": [
+                0.052972499979659915,
+                0.05037489999085665,
+                0.05829680012539029,
+                0.05698080011643469,
+                0.05145199992693961,
+                0.0571131999604404,
+                0.04954330017790198
+              ]
+            },
+            "solve": {
+              "median_seconds": 1.4442080999724567,
+              "iqr_seconds": 0.015906549990177155,
+              "samples_seconds": [
+                1.4366105000954121,
+                1.4743141001090407,
+                1.4464992000721395,
+                1.4428471999708563,
+                1.4442080999724567,
+                1.4647715999744833,
+                1.3833416998386383
+              ]
+            },
+            "total": {
+              "median_seconds": 1.5206609999295324,
+              "iqr_seconds": 0.02475554996635765,
+              "samples_seconds": [
+                1.5064666999969631,
+                1.5412814000155777,
+                1.529296999797225,
+                1.5206609999295324,
+                1.5127995000220835,
+                1.539480300154537,
+                1.4487101000268012
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": {
+              "median_seconds": 0.3864879000466317,
+              "iqr_seconds": 0.03575435001403093,
+              "samples_seconds": [
+                0.3864879000466317,
+                0.42495120014064014,
+                0.36771220015361905,
+                0.37743490003049374,
+                0.4296012001577765,
+                0.4014739999547601,
+                0.3774816000368446
+              ]
+            },
+            "native_reconstruction": null,
+            "native_work": {
+              "theory_atoms": 5001,
+              "seeds": 5000,
+              "rules": 1,
+              "application_decode_requests": 5002,
+              "decoded_applications": 2,
+              "application_cache_hits": 5000,
+              "value_decode_requests": 5000,
+              "decoded_values": 5000,
+              "value_cache_hits": 0,
+              "watched_literals": 5000,
+              "ordinary_atoms": 0,
+              "ordinary_watched_literals": 0,
+              "ordinary_activations": 0,
+              "ordinary_deactivations": 0,
+              "propagate_calls": 5000,
+              "propagated_literals": 5000,
+              "seed_activations": 5000,
+              "seed_deactivations": 5000,
+              "check_calls": 5000,
+              "check_seed_probes": 0,
+              "rule_body_evaluations": 5000,
+              "blocking_clauses": 0,
+              "snapshot_assignments": 0,
+              "undo_calls": 5000,
+              "undone_literals": 5000
+            }
+          },
+          "visible_models_equal": null
+        },
+        {
+          "mode": {
+            "name": "exhaustive-visible",
+            "model_limit": 0,
+            "collect_visible": true
+          },
+          "reference": {
+            "model_count": 5000,
+            "ground": {
+              "median_seconds": 0.04427439998835325,
+              "iqr_seconds": 0.0038143000565469265,
+              "samples_seconds": [
+                0.0435778999235481,
+                0.05212849983945489,
+                0.04200359992682934,
+                0.04427439998835325,
+                0.044984000036492944,
+                0.036126899998635054,
+                0.04822609992697835
+              ]
+            },
+            "solve": {
+              "median_seconds": 3.3780092999804765,
+              "iqr_seconds": 0.0834393500117585,
+              "samples_seconds": [
+                3.4256074000149965,
+                3.3780092999804765,
+                3.4455393999814987,
+                3.292731999885291,
+                3.354182600043714,
+                3.3881858999375254,
+                3.288189500104636
+              ]
+            },
+            "total": {
+              "median_seconds": 3.431975700194016,
+              "iqr_seconds": 0.08162904996424913,
+              "samples_seconds": [
+                3.47611300018616,
+                3.4373722998425364,
+                3.4946362001355737,
+                3.3441777999978513,
+                3.406049400102347,
+                3.431975700194016,
+                3.3428495000116527
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 2.4732967065647244,
+              "iqr_seconds": 0.08978854981251061,
+              "samples_seconds": [
+                2.553425100632012,
+                2.4732967065647244,
+                2.558801000006497,
+                2.436463900608942,
+                2.460188806988299,
+                2.52280470659025,
+                2.4126046902965754
+              ]
+            },
+            "normalized_digest": "32fce6a1ab0073e51e702ab448afb38fcf25f51f5c448ea63d357ac7101f5e2d",
+            "native_init": null,
+            "native_reconstruction": null,
+            "native_work": null
+          },
+          "native": {
+            "model_count": 5000,
+            "ground": {
+              "median_seconds": 0.06099130003713071,
+              "iqr_seconds": 0.006080850027501583,
+              "samples_seconds": [
+                0.055072000017389655,
+                0.0625941997859627,
+                0.06099130003713071,
+                0.05662629986181855,
+                0.06126580014824867,
+                0.05399239994585514,
+                0.08644190011546016
+              ]
+            },
+            "solve": {
+              "median_seconds": 1.957836499903351,
+              "iqr_seconds": 0.2981537003070116,
+              "samples_seconds": [
+                1.7108636000193655,
+                1.8693420998752117,
+                2.0689653002191335,
+                1.957836499903351,
+                1.8360942997969687,
+                2.23277850006707,
+                2.2521956998389214
+              ]
+            },
+            "total": {
+              "median_seconds": 2.0560405999422073,
+              "iqr_seconds": 0.2928331500152126,
+              "samples_seconds": [
+                1.7950500999577343,
+                1.974940299987793,
+                2.162458300124854,
+                2.0560405999422073,
+                1.9295441000722349,
+                2.327692399965599,
+                2.3747653998434544
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.08034450095146894,
+              "iqr_seconds": 0.0064515541307628155,
+              "samples_seconds": [
+                0.07290860242210329,
+                0.0807652072981,
+                0.08530120365321636,
+                0.08034450095146894,
+                0.07486849441193044,
+                0.09409839776344597,
+                0.07829480827786028
+              ]
+            },
+            "normalized_digest": "32fce6a1ab0073e51e702ab448afb38fcf25f51f5c448ea63d357ac7101f5e2d",
+            "native_init": {
+              "median_seconds": 0.5827395000960678,
+              "iqr_seconds": 0.08143945003394037,
+              "samples_seconds": [
+                0.4983002000954002,
+                0.5434815001208335,
+                0.6389792000409216,
+                0.5827395000960678,
+                0.594561800127849,
+                0.5271805999800563,
+                0.8534560999833047
+              ]
+            },
+            "native_reconstruction": {
+              "snapshot_build": {
+                "median_seconds": 0.044634490041062236,
+                "iqr_seconds": 0.003875195747241378,
+                "samples_seconds": [
+                  0.040464101592078805,
+                  0.045050693210214376,
+                  0.04774200124666095,
+                  0.044634490041062236,
+                  0.041246899170801044,
+                  0.05215660482645035,
+                  0.043795403791591525
+                ]
+              },
+              "snapshot_lookup": {
+                "median_seconds": 0.027848503552377224,
+                "iqr_seconds": 0.0025862075854092836,
+                "samples_seconds": [
+                  0.02505861409008503,
+                  0.028244914254173636,
+                  0.029590600403025746,
+                  0.027848503552377224,
+                  0.025405596010386944,
+                  0.03325779805891216,
+                  0.02725750347599387
+                ]
+              },
+              "symbol_extraction": {
+                "median_seconds": 0.0008193072862923145,
+                "iqr_seconds": 9.325018618255854e-05,
+                "samples_seconds": [
+                  0.0007145958952605724,
+                  0.0008720946498215199,
+                  0.000834406353533268,
+                  0.0008193072862923145,
+                  0.0007201037369668484,
+                  0.0008847925346344709,
+                  0.0007998968940228224
+                ]
+              },
+              "ordinary_render": {
+                "median_seconds": 0.0008806034456938505,
+                "iqr_seconds": 6.51390291750431e-05,
+                "samples_seconds": [
+                  0.0008413936011493206,
+                  0.0008939951658248901,
+                  0.0009469937067478895,
+                  0.0008806034456938505,
+                  0.000841908622533083,
+                  0.0010610923636704683,
+                  0.0008688021916896105
+                ]
+              },
+              "assignment_render": {
+                "median_seconds": 0.03128309873864055,
+                "iqr_seconds": 0.0028894447023048997,
+                "samples_seconds": [
+                  0.028472397243604064,
+                  0.03128309873864055,
+                  0.033524683909490705,
+                  0.031636894680559635,
+                  0.0291350984480232,
+                  0.0358861000277102,
+                  0.03024759073741734
+                ]
+              },
+              "undefined_render": {
+                "median_seconds": 0.004192701540887356,
+                "iqr_seconds": 0.0003788449103012681,
+                "samples_seconds": [
+                  0.003984795184805989,
+                  0.004241693299263716,
+                  0.004736796487122774,
+                  0.004192701540887356,
+                  0.004042502958327532,
+                  0.005365299293771386,
+                  0.004178297007456422
+                ]
+              },
+              "model_storage": {
+                "median_seconds": 0.009804301895201206,
+                "iqr_seconds": 0.0004445051308721304,
+                "samples_seconds": [
+                  0.008968895766884089,
+                  0.009853100404143333,
+                  0.01014450821094215,
+                  0.009665307588875294,
+                  0.009443290764465928,
+                  0.011523596476763487,
+                  0.009804301895201206
+                ]
+              },
+              "model_sort": {
+                "median_seconds": 0.004084600135684013,
+                "iqr_seconds": 0.0026494499761611223,
+                "samples_seconds": [
+                  0.0034340000711381435,
+                  0.007653400069102645,
+                  0.00328469998203218,
+                  0.013958200113847852,
+                  0.0030753000173717737,
+                  0.004364199936389923,
+                  0.004084600135684013
+                ]
+              },
+              "normalized_digest": {
+                "median_seconds": 0.004837500164285302,
+                "iqr_seconds": 0.0012740999227389693,
+                "samples_seconds": [
+                  0.004328200127929449,
+                  0.007504799868911505,
+                  0.004288600059226155,
+                  0.004837500164285302,
+                  0.005555600160732865,
+                  0.005609399871900678,
+                  0.004251200007274747
+                ]
+              }
+            },
+            "native_work": {
+              "theory_atoms": 5001,
+              "seeds": 5000,
+              "rules": 1,
+              "application_decode_requests": 5002,
+              "decoded_applications": 2,
+              "application_cache_hits": 5000,
+              "value_decode_requests": 5000,
+              "decoded_values": 5000,
+              "value_cache_hits": 0,
+              "watched_literals": 5000,
+              "ordinary_atoms": 5000,
+              "ordinary_watched_literals": 5000,
+              "ordinary_activations": 5000,
+              "ordinary_deactivations": 5000,
+              "propagate_calls": 5000,
+              "propagated_literals": 5000,
+              "seed_activations": 5000,
+              "seed_deactivations": 5000,
+              "check_calls": 5000,
+              "check_seed_probes": 0,
+              "rule_body_evaluations": 5000,
+              "blocking_clauses": 0,
+              "snapshot_assignments": 10000,
+              "undo_calls": 5000,
+              "undone_literals": 5000
+            }
+          },
+          "visible_models_equal": true
+        }
+      ]
+    },
+    {
+      "domain_size": 10000,
+      "modes": [
+        {
+          "mode": {
+            "name": "first-model",
+            "model_limit": 1,
+            "collect_visible": false
+          },
+          "reference": {
+            "model_count": 1,
+            "ground": {
+              "median_seconds": 0.09805570007301867,
+              "iqr_seconds": 0.011729450197890401,
+              "samples_seconds": [
+                0.09935510018840432,
+                0.09805570007301867,
+                0.08846269990317523,
+                0.09305080003105104,
+                0.10652689984999597,
+                0.0832680999301374,
+                0.10561730014160275
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.03412159997969866,
+              "iqr_seconds": 0.0018557999283075333,
+              "samples_seconds": [
+                0.03412159997969866,
+                0.034792899852618575,
+                0.03154729981906712,
+                0.03511039982549846,
+                0.03388280002400279,
+                0.03230889979749918,
+                0.035628599813207984
+              ]
+            },
+            "total": {
+              "median_seconds": 0.14101210003718734,
+              "iqr_seconds": 0.014971500146202743,
+              "samples_seconds": [
+                0.1416460000909865,
+                0.14101210003718734,
+                0.12548009981401265,
+                0.13418829999864101,
+                0.14796540001407266,
+                0.12361269979737699,
+                0.14999460009858012
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": null,
+            "native_reconstruction": null,
+            "native_work": null
+          },
+          "native": {
+            "model_count": 1,
+            "ground": {
+              "median_seconds": 0.11885059997439384,
+              "iqr_seconds": 0.006022250046953559,
+              "samples_seconds": [
+                0.12307450012303889,
+                0.1223881000187248,
+                0.11885059997439384,
+                0.11965090013109148,
+                0.11434660013765097,
+                0.11564789991825819,
+                0.10714489989914
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.8144876000005752,
+              "iqr_seconds": 0.02768980013206601,
+              "samples_seconds": [
+                0.7880033000838012,
+                0.8321367001626641,
+                0.8144876000005752,
+                0.7894530000630766,
+                0.8601106000132859,
+                0.82623380003497,
+                0.8135378998704255
+              ]
+            },
+            "total": {
+              "median_seconds": 0.9718115001451224,
+              "iqr_seconds": 0.034037900040857494,
+              "samples_seconds": [
+                0.9450855001341552,
+                0.9939381999429315,
+                0.9718115001451224,
+                0.939865899970755,
+                1.0093201999552548,
+                0.9731915001757443,
+                0.9539683999028057
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": {
+              "median_seconds": 0.800164100015536,
+              "iqr_seconds": 0.025971949915401638,
+              "samples_seconds": [
+                0.7670207000337541,
+                0.8123345000203699,
+                0.793181800050661,
+                0.771451200125739,
+                0.8410710000898689,
+                0.8042423999868333,
+                0.800164100015536
+              ]
+            },
+            "native_reconstruction": null,
+            "native_work": {
+              "theory_atoms": 10001,
+              "seeds": 10000,
+              "rules": 1,
+              "application_decode_requests": 10002,
+              "decoded_applications": 2,
+              "application_cache_hits": 10000,
+              "value_decode_requests": 10000,
+              "decoded_values": 10000,
+              "value_cache_hits": 0,
+              "watched_literals": 10000,
+              "ordinary_atoms": 0,
+              "ordinary_watched_literals": 0,
+              "ordinary_activations": 0,
+              "ordinary_deactivations": 0,
+              "propagate_calls": 1,
+              "propagated_literals": 1,
+              "seed_activations": 1,
+              "seed_deactivations": 1,
+              "check_calls": 1,
+              "check_seed_probes": 0,
+              "rule_body_evaluations": 1,
+              "blocking_clauses": 0,
+              "snapshot_assignments": 0,
+              "undo_calls": 1,
+              "undone_literals": 1
+            }
+          },
+          "visible_models_equal": null
+        },
+        {
+          "mode": {
+            "name": "fixed-10",
+            "model_limit": 10,
+            "collect_visible": false
+          },
+          "reference": {
+            "model_count": 10,
+            "ground": {
+              "median_seconds": 0.09749650000594556,
+              "iqr_seconds": 0.005301249912008643,
+              "samples_seconds": [
+                0.10075829993002117,
+                0.10028099990449846,
+                0.09872429980896413,
+                0.09591579996049404,
+                0.09749650000594556,
+                0.09087269986048341,
+                0.09248699992895126
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.03402520017698407,
+              "iqr_seconds": 0.0027568999212235212,
+              "samples_seconds": [
+                0.03402520017698407,
+                0.03721030009910464,
+                0.03557360009290278,
+                0.03568560001440346,
+                0.03257640008814633,
+                0.03316900017671287,
+                0.026135799940675497
+              ]
+            },
+            "total": {
+              "median_seconds": 0.14042280009016395,
+              "iqr_seconds": 0.008204250130802393,
+              "samples_seconds": [
+                0.14169590012170374,
+                0.14605399989522994,
+                0.14042280009016395,
+                0.14047220000065863,
+                0.13643259997479618,
+                0.1293269998859614,
+                0.12493170006200671
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": null,
+            "native_reconstruction": null,
+            "native_work": null
+          },
+          "native": {
+            "model_count": 10,
+            "ground": {
+              "median_seconds": 0.11708519980311394,
+              "iqr_seconds": 0.002829600009135902,
+              "samples_seconds": [
+                0.12006539991125464,
+                0.11708519980311394,
+                0.11714349989779294,
+                0.11665729992091656,
+                0.11797020002268255,
+                0.11279719998128712,
+                0.10984829999506474
+              ]
+            },
+            "solve": {
+              "median_seconds": 0.8396408001426607,
+              "iqr_seconds": 0.02633605001028627,
+              "samples_seconds": [
+                0.8264476999174803,
+                0.8510469000320882,
+                0.8567632001359016,
+                0.8396408001426607,
+                0.8136533000506461,
+                0.8209556001238525,
+                0.8490285000298172
+              ]
+            },
+            "total": {
+              "median_seconds": 0.9897215999662876,
+              "iqr_seconds": 0.020313949906267226,
+              "samples_seconds": [
+                0.9813677000347525,
+                0.9980607000179589,
+                1.0099208999890834,
+                0.9897215999662876,
+                0.9602580000646412,
+                0.9711482001002878,
+                0.9950830999296159
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": {
+              "median_seconds": 0.8178206998854876,
+              "iqr_seconds": 0.022951149963773787,
+              "samples_seconds": [
+                0.8084829999133945,
+                0.8310185000300407,
+                0.8357628001831472,
+                0.8178206998854876,
+                0.7936555999331176,
+                0.8039394000079483,
+                0.8273061998188496
+              ]
+            },
+            "native_reconstruction": null,
+            "native_work": {
+              "theory_atoms": 10001,
+              "seeds": 10000,
+              "rules": 1,
+              "application_decode_requests": 10002,
+              "decoded_applications": 2,
+              "application_cache_hits": 10000,
+              "value_decode_requests": 10000,
+              "decoded_values": 10000,
+              "value_cache_hits": 0,
+              "watched_literals": 10000,
+              "ordinary_atoms": 0,
+              "ordinary_watched_literals": 0,
+              "ordinary_activations": 0,
+              "ordinary_deactivations": 0,
+              "propagate_calls": 10,
+              "propagated_literals": 10,
+              "seed_activations": 10,
+              "seed_deactivations": 10,
+              "check_calls": 10,
+              "check_seed_probes": 0,
+              "rule_body_evaluations": 10,
+              "blocking_clauses": 0,
+              "snapshot_assignments": 0,
+              "undo_calls": 10,
+              "undone_literals": 10
+            }
+          },
+          "visible_models_equal": null
+        },
+        {
+          "mode": {
+            "name": "exhaustive-raw",
+            "model_limit": 0,
+            "collect_visible": false
+          },
+          "reference": {
+            "model_count": 10000,
+            "ground": {
+              "median_seconds": 0.101247200043872,
+              "iqr_seconds": 0.006109250010922551,
+              "samples_seconds": [
+                0.101247200043872,
+                0.095194699941203,
+                0.10184769984334707,
+                0.1047340000513941,
+                0.1025772001594305,
+                0.09701170003972948,
+                0.09163430007174611
+              ]
+            },
+            "solve": {
+              "median_seconds": 1.7740859999321401,
+              "iqr_seconds": 0.00953055010177195,
+              "samples_seconds": [
+                1.7804644999559969,
+                1.8020256999880075,
+                1.76629629987292,
+                1.7349235001020133,
+                1.77418650011532,
+                1.7740859999321401,
+                1.7692935999948531
+              ]
+            },
+            "total": {
+              "median_seconds": 1.8837129999883473,
+              "iqr_seconds": 0.014941949979402125,
+              "samples_seconds": [
+                1.8909054999239743,
+                1.9049243000335991,
+                1.8756881000008434,
+                1.846457599895075,
+                1.8837303000036627,
+                1.8837129999883473,
+                1.8690637999679893
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": null,
+            "native_reconstruction": null,
+            "native_work": null
+          },
+          "native": {
+            "model_count": 10000,
+            "ground": {
+              "median_seconds": 0.11572339991107583,
+              "iqr_seconds": 0.005952099920250475,
+              "samples_seconds": [
+                0.11959579982794821,
+                0.1116132999304682,
+                0.10268240002915263,
+                0.12009310000576079,
+                0.11572339991107583,
+                0.11888640001416206,
+                0.11496470007114112
+              ]
+            },
+            "solve": {
+              "median_seconds": 2.9910018001683056,
+              "iqr_seconds": 0.10068795003462583,
+              "samples_seconds": [
+                2.9910018001683056,
+                2.957553599961102,
+                3.1024677001405507,
+                3.1195319001562893,
+                2.987641300074756,
+                3.044103099964559,
+                2.942897900007665
+              ]
+            },
+            "total": {
+              "median_seconds": 3.1449589000549167,
+              "iqr_seconds": 0.09592574986163527,
+              "samples_seconds": [
+                3.1449589000549167,
+                3.0999004000332206,
+                3.238169299904257,
+                3.272828900022432,
+                3.1434059001039714,
+                3.1969884999562055,
+                3.0872944998554885
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.0,
+              "iqr_seconds": 0.0,
+              "samples_seconds": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "normalized_digest": null,
+            "native_init": {
+              "median_seconds": 0.7989644000772387,
+              "iqr_seconds": 0.02737720008008182,
+              "samples_seconds": [
+                0.8101776998955756,
+                0.7843484999611974,
+                0.8131510999519378,
+                0.8004765000659972,
+                0.7715512998402119,
+                0.7989644000772387,
+                0.7615935001522303
+              ]
+            },
+            "native_reconstruction": null,
+            "native_work": {
+              "theory_atoms": 10001,
+              "seeds": 10000,
+              "rules": 1,
+              "application_decode_requests": 10002,
+              "decoded_applications": 2,
+              "application_cache_hits": 10000,
+              "value_decode_requests": 10000,
+              "decoded_values": 10000,
+              "value_cache_hits": 0,
+              "watched_literals": 10000,
+              "ordinary_atoms": 0,
+              "ordinary_watched_literals": 0,
+              "ordinary_activations": 0,
+              "ordinary_deactivations": 0,
+              "propagate_calls": 10000,
+              "propagated_literals": 10000,
+              "seed_activations": 10000,
+              "seed_deactivations": 10000,
+              "check_calls": 10000,
+              "check_seed_probes": 0,
+              "rule_body_evaluations": 10000,
+              "blocking_clauses": 0,
+              "snapshot_assignments": 0,
+              "undo_calls": 10000,
+              "undone_literals": 10000
+            }
+          },
+          "visible_models_equal": null
+        },
+        {
+          "mode": {
+            "name": "exhaustive-visible",
+            "model_limit": 0,
+            "collect_visible": true
+          },
+          "reference": {
+            "model_count": 10000,
+            "ground": {
+              "median_seconds": 0.09639699989929795,
+              "iqr_seconds": 0.008394850185140967,
+              "samples_seconds": [
+                0.10702509991824627,
+                0.09196630003862083,
+                0.10599660011939704,
+                0.09491139999590814,
+                0.0997358001768589,
+                0.09639699989929795,
+                0.09403129993006587
+              ]
+            },
+            "solve": {
+              "median_seconds": 12.343009100062773,
+              "iqr_seconds": 0.11801515019033104,
+              "samples_seconds": [
+                12.343009100062773,
+                11.927767400164157,
+                12.24940299987793,
+                12.363525800174102,
+                12.238947100006044,
+                12.360854600090533,
+                12.776790799805894
+              ]
+            },
+            "total": {
+              "median_seconds": 12.461673400131986,
+              "iqr_seconds": 0.11099095002282411,
+              "samples_seconds": [
+                12.461673400131986,
+                12.031913000158966,
+                12.36617000005208,
+                12.469812100054696,
+                12.350327299907804,
+                12.468667099950835,
+                12.882357500027865
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 10.214616802055389,
+              "iqr_seconds": 0.1078566478099674,
+              "samples_seconds": [
+                10.230282896431163,
+                9.843184108380228,
+                10.149307504296303,
+                10.245339802000672,
+                10.110601898515597,
+                10.214616802055389,
+                10.564953704597428
+              ]
+            },
+            "normalized_digest": "7116ab0518c86a39935e32bd7bed83f77fe663eab7201f7299e5cf038ebab5fc",
+            "native_init": null,
+            "native_reconstruction": null,
+            "native_work": null
+          },
+          "native": {
+            "model_count": 10000,
+            "ground": {
+              "median_seconds": 0.11846329993568361,
+              "iqr_seconds": 0.008963799919001758,
+              "samples_seconds": [
+                0.11583559983409941,
+                0.11557580018416047,
+                0.12491109990514815,
+                0.11846329993568361,
+                0.1116478000767529,
+                0.12442789995111525,
+                0.12577209994196892
+              ]
+            },
+            "solve": {
+              "median_seconds": 3.631945500150323,
+              "iqr_seconds": 0.06839260016568005,
+              "samples_seconds": [
+                3.631945500150323,
+                3.7151348998304456,
+                3.6125142998062074,
+                3.5287051999475807,
+                3.6818113999906927,
+                3.685913700144738,
+                3.618425599997863
+              ]
+            },
+            "total": {
+              "median_seconds": 3.800145900109783,
+              "iqr_seconds": 0.05586810002569109,
+              "samples_seconds": [
+                3.800145900109783,
+                3.8766697000246495,
+                3.792526900069788,
+                3.705641199834645,
+                3.844707800075412,
+                3.859213500050828,
+                3.7996582000050694
+              ]
+            },
+            "visible_reconstruction": {
+              "median_seconds": 0.14030219451524317,
+              "iqr_seconds": 0.002584856585599482,
+              "samples_seconds": [
+                0.14030219451524317,
+                0.14217911520972848,
+                0.13971009477972984,
+                0.13666690257377923,
+                0.14276709780097008,
+                0.14296101103536785,
+                0.14006640505976975
+              ]
+            },
+            "normalized_digest": "7116ab0518c86a39935e32bd7bed83f77fe663eab7201f7299e5cf038ebab5fc",
+            "native_init": {
+              "median_seconds": 1.072389000095427,
+              "iqr_seconds": 0.04616209992673248,
+              "samples_seconds": [
+                1.072389000095427,
+                1.115078500006348,
+                1.0511237001046538,
+                1.0328669999726117,
+                1.1074667000211775,
+                1.0465500000864267,
+                1.082531200023368
+              ]
+            },
+            "native_reconstruction": {
+              "snapshot_build": {
+                "median_seconds": 0.07758309948258102,
+                "iqr_seconds": 0.0021295581245794892,
+                "samples_seconds": [
+                  0.07650589756667614,
+                  0.07869590353220701,
+                  0.07671789336018264,
+                  0.07583459815941751,
+                  0.07878700364381075,
+                  0.07936428906396031,
+                  0.07758309948258102
+                ]
+              },
+              "snapshot_lookup": {
+                "median_seconds": 0.04804569319821894,
+                "iqr_seconds": 0.000790651305578649,
+                "samples_seconds": [
+                  0.047994903987273574,
+                  0.04804569319821894,
+                  0.04707219288684428,
+                  0.046291590202599764,
+                  0.04825240094214678,
+                  0.04839599854312837,
+                  0.04870259645394981
+                ]
+              },
+              "symbol_extraction": {
+                "median_seconds": 0.0014112081844359636,
+                "iqr_seconds": 7.289240602403879e-05,
+                "samples_seconds": [
+                  0.0013908022083342075,
+                  0.0014525055885314941,
+                  0.001487216679379344,
+                  0.001330298138782382,
+                  0.001369706355035305,
+                  0.0014112081844359636,
+                  0.001453787786886096
+                ]
+              },
+              "ordinary_render": {
+                "median_seconds": 0.0015866993926465511,
+                "iqr_seconds": 3.2812124118208885e-05,
+                "samples_seconds": [
+                  0.0015866993926465511,
+                  0.001594705507159233,
+                  0.00157148577272892,
+                  0.0015260926447808743,
+                  0.00162260583601892,
+                  0.0018490992952138186,
+                  0.0015802013222128153
+                ]
+              },
+              "assignment_render": {
+                "median_seconds": 0.05568950646556914,
+                "iqr_seconds": 0.0016435334691777825,
+                "samples_seconds": [
+                  0.05512178991921246,
+                  0.05661097471602261,
+                  0.05568950646556914,
+                  0.05441370350308716,
+                  0.056625395780429244,
+                  0.056521792663261294,
+                  0.05472391052171588
+                ]
+              },
+              "undefined_render": {
+                "median_seconds": 0.007705913623794913,
+                "iqr_seconds": 0.00030516309197992086,
+                "samples_seconds": [
+                  0.007511290721595287,
+                  0.007770506665110588,
+                  0.007705913623794913,
+                  0.007429285207763314,
+                  0.007780395448207855,
+                  0.007819394115358591,
+                  0.00737198512069881
+                ]
+              },
+              "model_storage": {
+                "median_seconds": 0.01715750526636839,
+                "iqr_seconds": 0.0006308014271780849,
+                "samples_seconds": [
+                  0.017208890058100224,
+                  0.01715750526636839,
+                  0.016671601217240095,
+                  0.016447495901957154,
+                  0.017501499503850937,
+                  0.017305808374658227,
+                  0.016581494361162186
+                ]
+              },
+              "model_sort": {
+                "median_seconds": 0.006664900109171867,
+                "iqr_seconds": 0.001442599925212562,
+                "samples_seconds": [
+                  0.006664900109171867,
+                  0.007546900073066354,
+                  0.006262800190597773,
+                  0.005627400008961558,
+                  0.007868799846619368,
+                  0.0051108000334352255,
+                  0.007228499976918101
+                ]
+              },
+              "normalized_digest": {
+                "median_seconds": 0.009157000109553337,
+                "iqr_seconds": 0.0021591000258922577,
+                "samples_seconds": [
+                  0.010648299939930439,
+                  0.007233500014990568,
+                  0.008696299977600574,
+                  0.019821600057184696,
+                  0.008177600102499127,
+                  0.009157000109553337,
+                  0.010543800191953778
+                ]
+              }
+            },
+            "native_work": {
+              "theory_atoms": 10001,
+              "seeds": 10000,
+              "rules": 1,
+              "application_decode_requests": 10002,
+              "decoded_applications": 2,
+              "application_cache_hits": 10000,
+              "value_decode_requests": 10000,
+              "decoded_values": 10000,
+              "value_cache_hits": 0,
+              "watched_literals": 10000,
+              "ordinary_atoms": 10000,
+              "ordinary_watched_literals": 10000,
+              "ordinary_activations": 10000,
+              "ordinary_deactivations": 10000,
+              "propagate_calls": 10000,
+              "propagated_literals": 10000,
+              "seed_activations": 10000,
+              "seed_deactivations": 10000,
+              "check_calls": 10000,
+              "check_seed_probes": 0,
+              "rule_body_evaluations": 10000,
+              "blocking_clauses": 0,
+              "snapshot_assignments": 20000,
+              "undo_calls": 10000,
+              "undone_literals": 10000
+            }
+          },
+          "visible_models_equal": true
+        }
+      ]
+    }
+  ]
+}
