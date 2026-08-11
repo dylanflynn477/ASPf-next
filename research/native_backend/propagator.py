@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 import time
+from collections import deque
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from enum import Enum, StrEnum
+from heapq import heapify, heappop, heappush
 from typing import TypeAlias
 
 import clingo
@@ -480,6 +482,51 @@ def _rule_body(
     return True, nvariables
 
 
+def _rule_applications(rule: GroundRule) -> set[GroundApplication]:
+    """Return application keys whose values can affect a decoded rule."""
+
+    expressions: list[GroundExpression] = [definition.expression for definition in rule.definitions]
+    for comparison in rule.comparisons:
+        expressions.extend((comparison.left, comparison.right))
+    if isinstance(rule.head, GroundAssignmentHead):
+        expressions.append(rule.head.expression)
+    return {
+        expression.application
+        for expression in expressions
+        if isinstance(expression, ApplicationGroundExpression)
+    }
+
+
+def _rule_dependency_order(rules: tuple[GroundRule, ...]) -> tuple[int, ...]:
+    """Order providers before rules that read their derived applications."""
+
+    providers: dict[GroundApplication, list[int]] = {}
+    for index, rule in enumerate(rules):
+        if isinstance(rule.head, GroundAssignmentHead):
+            providers.setdefault(rule.head.application, []).append(index)
+    successors = [set[int]() for _rule in rules]
+    indegrees = [0 for _rule in rules]
+    for consumer, rule in enumerate(rules):
+        for application in _rule_applications(rule):
+            for provider in providers.get(application, ()):
+                if consumer not in successors[provider]:
+                    successors[provider].add(consumer)
+                    indegrees[consumer] += 1
+    ready = [index for index, indegree in enumerate(indegrees) if indegree == 0]
+    heapify(ready)
+    ordered: list[int] = []
+    while ready:
+        provider = heappop(ready)
+        ordered.append(provider)
+        for consumer in sorted(successors[provider]):
+            indegrees[consumer] -= 1
+            if indegrees[consumer] == 0:
+                heappush(ready, consumer)
+    if len(ordered) != len(rules):
+        ordered.extend(index for index in range(len(rules)) if index not in ordered)
+    return tuple(ordered)
+
+
 class NativePropagator(clingo.Propagator):
     """Maintain seed state incrementally and constrain rule guards at total models."""
 
@@ -489,6 +536,8 @@ class NativePropagator(clingo.Propagator):
         self._native_literals: tuple[int, ...] = ()
         self._constant_seeds: tuple[GroundSeed, ...] = ()
         self._seeds_by_literal: dict[int, tuple[GroundSeed, ...]] = {}
+        self._rules_by_application: dict[GroundApplication, tuple[int, ...]] = {}
+        self._rule_order: tuple[int, ...] = ()
         self._states: dict[int, _ThreadState] = {}
         self._snapshots: dict[int, NativeSnapshot] = {}
         self._theory_atom_count = 0
@@ -548,6 +597,14 @@ class NativePropagator(clingo.Propagator):
         self._rules = tuple(
             replace(rule, guard_literal=guards.get(key)) for key, rule in sorted(rules.items())
         )
+        grouped_rules: dict[GroundApplication, list[int]] = {}
+        for index, rule in enumerate(self._rules):
+            for application in _rule_applications(rule):
+                grouped_rules.setdefault(application, []).append(index)
+        self._rules_by_application = {
+            application: tuple(indexes) for application, indexes in grouped_rules.items()
+        }
+        self._rule_order = _rule_dependency_order(self._rules)
         self._native_literals = tuple(sorted(native_literals))
         self._constant_seeds = tuple(seed for seed in self._seeds if seed.literal == 1)
         grouped_seeds: dict[int, list[GroundSeed]] = {}
@@ -638,46 +695,47 @@ class NativePropagator(clingo.Propagator):
             self._block_current_native_assignment(control, state)
             return
 
-        undefined: set[tuple[RuleKey, str]] = set()
-        for _iteration in range(len(self._rules) + 1):
-            changed = False
-            for rule in self._rules:
-                if not self._true(state, rule.active_literal):
-                    continue
-                self.rule_body_evaluation_count += 1
-                satisfied, nvariables = _rule_body(rule, applications)
-                undefined.update(
-                    (rule.key, name)
-                    for name, state in nvariables.items()
-                    if state.kind is StateKind.UNDEFINED
-                )
-                if not satisfied or not isinstance(rule.head, GroundAssignmentHead):
-                    continue
-                value = _evaluate_expression(rule.head.expression, applications, nvariables)
-                if value.kind is not StateKind.DEFINED or value.value is None:
-                    continue
-                candidates = applications.setdefault(rule.head.application, set())
-                old_size = len(candidates)
-                candidates.add(value.value)
-                changed = changed or len(candidates) != old_size
-            if not changed:
-                break
+        active = tuple(self._true(state, rule.active_literal) for rule in self._rules)
+        pending = deque(index for index in self._rule_order if active[index])
+        scheduled = set(pending)
+        rule_states: dict[int, dict[str, ValueState]] = {}
+        rule_satisfaction: dict[int, bool] = {}
+        while pending:
+            index = pending.popleft()
+            scheduled.remove(index)
+            rule = self._rules[index]
+            self.rule_body_evaluation_count += 1
+            satisfied, nvariables = _rule_body(rule, applications)
+            rule_states[index] = nvariables
+            rule_satisfaction[index] = satisfied
+            if not satisfied or not isinstance(rule.head, GroundAssignmentHead):
+                continue
+            value = _evaluate_expression(rule.head.expression, applications, nvariables)
+            if value.kind is not StateKind.DEFINED or value.value is None:
+                continue
+            candidates = applications.setdefault(rule.head.application, set())
+            old_size = len(candidates)
+            candidates.add(value.value)
+            if len(candidates) == old_size:
+                continue
+            for dependent in self._rules_by_application.get(rule.head.application, ()):
+                if active[dependent] and dependent not in scheduled:
+                    pending.append(dependent)
+                    scheduled.add(dependent)
         if any(len(values) > 1 for values in applications.values()):
             self._block_current_native_assignment(control, state)
             return
 
-        for rule in self._rules:
+        undefined = {
+            (self._rules[index].key, name)
+            for index, nvariables in rule_states.items()
+            for name, value_state in nvariables.items()
+            if value_state.kind is StateKind.UNDEFINED
+        }
+        for index, rule in enumerate(self._rules):
             if rule.guard_literal is None:
                 continue
-            expected = False
-            if self._true(state, rule.active_literal):
-                self.rule_body_evaluation_count += 1
-                expected, nvariables = _rule_body(rule, applications)
-                undefined.update(
-                    (rule.key, name)
-                    for name, state in nvariables.items()
-                    if state.kind is StateKind.UNDEFINED
-                )
+            expected = rule_satisfaction.get(index, False)
             actual = self._true(state, rule.guard_literal)
             if expected != actual:
                 self._block_current_native_assignment(control, state)

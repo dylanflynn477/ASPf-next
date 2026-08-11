@@ -154,6 +154,21 @@ def test_constant_seed_needs_no_watch_or_check_time_probe() -> None:
     assert result.work_metrics.check_seed_probes == 0
 
 
+def test_dependency_queue_orders_a_reversed_assignment_chain_once() -> None:
+    program = NativeProgram(
+        seeds=(Seed(_app("f"), Integer(5)),),
+        rules=(
+            _copy_rule(identifier="a_consumer", source=_app("g"), target=_app("h")),
+            _copy_rule(identifier="z_provider", source=_app("f"), target=_app("g")),
+        ),
+    )
+
+    result = NativeSolver().solve(program)
+
+    assert result.models[0].assignments == ("f(x)#=5", "g(x)#=5", "h(x)#=5")
+    assert result.work_metrics.rule_body_evaluations == 2
+
+
 def test_functionality_rejects_conflicting_application_values() -> None:
     program = NativeProgram(
         seeds=(Seed(_app("f"), Integer(1)), Seed(_app("f"), Integer(2))),
