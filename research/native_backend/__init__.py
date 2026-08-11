@@ -24,7 +24,12 @@ from research.native_backend.ir import (
     Variable,
 )
 from research.native_backend.propagator import NativeWorkMetrics
-from research.native_backend.solver import NativeModel, NativeSolver, NativeSolveResult
+from research.native_backend.solver import (
+    NativeModel,
+    NativeReconstructionProfile,
+    NativeSolver,
+    NativeSolveResult,
+)
 
 __all__ = [
     "AppExpression",
@@ -42,6 +47,7 @@ __all__ = [
     "NVariableExpression",
     "NativeModel",
     "NativeProgram",
+    "NativeReconstructionProfile",
     "NativeRule",
     "NativeSolveResult",
     "NativeSolver",

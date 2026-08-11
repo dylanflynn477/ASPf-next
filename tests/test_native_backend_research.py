@@ -102,6 +102,47 @@ def test_backtracking_models_do_not_leak_values_between_branches() -> None:
     assert result.undo_count >= 1
 
 
+def test_model_collection_can_be_disabled_without_changing_enumeration() -> None:
+    value = Variable("V")
+    program = NativeProgram(
+        choices=(Choice("choose", value, 1, 3),),
+        seeds=(Seed(_app("f"), value, (Atom("choose", (value,)),)),),
+        rules=(_copy_rule(),),
+    )
+
+    result = NativeSolver().solve(program, collect_models=False)
+
+    assert result.satisfiable
+    assert result.model_count == 3
+    assert result.models == ()
+    assert not result.models_collected
+    assert result.model_reconstruction_seconds == 0
+    assert result.snapshot_build_seconds == 0
+    assert result.work_metrics.snapshot_assignments == 0
+
+
+def test_model_limit_and_detailed_reconstruction_profile_are_explicit() -> None:
+    value = Variable("V")
+    program = NativeProgram(
+        choices=(Choice("choose", value, 1, 3),),
+        seeds=(Seed(_app("f"), value, (Atom("choose", (value,)),)),),
+        rules=(_copy_rule(),),
+    )
+
+    result = NativeSolver().solve(program, model_limit=1, profile_reconstruction=True)
+
+    assert result.model_count == 1
+    assert len(result.models) == 1
+    assert result.models_collected
+    assert result.reconstruction_profile is not None
+    assert result.reconstruction_profile.symbol_extraction_seconds >= 0
+    assert result.reconstruction_profile.assignment_render_seconds >= 0
+    assert result.reconstruction_profile.model_sort_seconds >= 0
+
+    with pytest.raises(ValueError, match="model limit must not be negative"):
+        NativeSolver().solve(program, model_limit=-1)
+
+
 def test_incremental_seed_index_does_not_rescan_the_candidate_domain() -> None:
     value = Variable("V")
     size = 40

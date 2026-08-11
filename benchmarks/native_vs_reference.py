@@ -149,7 +149,7 @@ def _measure_native(
             statistics_atoms=result.statistics_atoms,
             statistics_bodies=result.statistics_bodies,
         )
-        model_count = len(result.models)
+        model_count = result.model_count
         if expected_structure is None:
             expected_structure = structure
             expected_models = model_count

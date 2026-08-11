@@ -571,7 +571,8 @@ def _rule_dependency_order(rules: tuple[GroundRule, ...]) -> tuple[int, ...]:
 class NativePropagator(clingo.Propagator):
     """Maintain seed state incrementally and constrain rule guards at total models."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, record_snapshots: bool = True) -> None:
+        self._record_snapshots = record_snapshots
         self._seeds: tuple[GroundSeed, ...] = ()
         self._rules: tuple[GroundRule, ...] = ()
         self._native_literals: tuple[int, ...] = ()
@@ -599,6 +600,7 @@ class NativePropagator(clingo.Propagator):
         self.rule_body_evaluation_count = 0
         self.blocking_clause_count = 0
         self.snapshot_assignment_count = 0
+        self.snapshot_build_seconds = 0.0
         self.undone_literal_count = 0
 
     def init(self, init: clingo.PropagateInit) -> None:
@@ -625,6 +627,7 @@ class NativePropagator(clingo.Propagator):
         self.rule_body_evaluation_count = 0
         self.blocking_clause_count = 0
         self.snapshot_assignment_count = 0
+        self.snapshot_build_seconds = 0.0
         self.undone_literal_count = 0
 
         for atom in init.theory_atoms:
@@ -796,6 +799,9 @@ class NativePropagator(clingo.Propagator):
                 self._block_current_native_assignment(control, state)
                 return
 
+        if not self._record_snapshots:
+            return
+        snapshot_started = time.perf_counter()
         assignments = tuple(
             sorted(
                 (application, next(iter(values)))
@@ -808,6 +814,7 @@ class NativePropagator(clingo.Propagator):
             undefined_nvariables=tuple(sorted(undefined)),
         )
         self.snapshot_assignment_count += len(assignments)
+        self.snapshot_build_seconds += time.perf_counter() - snapshot_started
 
     def undo(
         self,

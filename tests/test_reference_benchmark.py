@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from benchmarks.native_vs_reference import run_comparison
 from benchmarks.reference_scaling import reference_source, run_reference
+from benchmarks.solve_decomposition import run_decomposition
 
 
 def test_reference_copy_has_linear_structural_overhead() -> None:
@@ -57,3 +58,17 @@ def test_native_copy_overhead_is_constant_and_models_match() -> None:
         and case.native_copy.model_reconstruction.median_seconds >= 0
         for case in result.cases
     )
+
+
+def test_solve_decomposition_preserves_modes_and_visible_equivalence() -> None:
+    result = run_decomposition((2,), repeats=1, warmups=0)
+    modes = {comparison.mode.name: comparison for comparison in result.cases[0].modes}
+
+    assert modes["first-model"].native.model_count == 1
+    assert modes["fixed-10"].native.model_count == 2
+    assert modes["exhaustive-raw"].native.model_count == 2
+    assert modes["exhaustive-visible"].native.model_count == 2
+    assert modes["exhaustive-visible"].visible_models_equal
+    assert modes["exhaustive-raw"].native.native_work is not None
+    assert modes["exhaustive-raw"].native.native_work.snapshot_assignments == 0
+    assert modes["exhaustive-visible"].native.native_reconstruction is not None
