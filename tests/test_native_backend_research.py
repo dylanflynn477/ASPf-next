@@ -102,6 +102,58 @@ def test_backtracking_models_do_not_leak_values_between_branches() -> None:
     assert result.undo_count >= 1
 
 
+def test_incremental_seed_index_does_not_rescan_the_candidate_domain() -> None:
+    value = Variable("V")
+    size = 40
+    program = NativeProgram(
+        choices=(Choice("choose", value, 1, size),),
+        seeds=(Seed(_app("f"), value, (Atom("choose", (value,)),)),),
+        rules=(_copy_rule(),),
+    )
+
+    result = NativeSolver().solve(program)
+    work = result.work_metrics
+
+    assert len(result.models) == size
+    assert work.seeds == size
+    assert work.check_calls == size
+    assert work.check_seed_probes == 0
+    assert work.propagated_literals == size
+    assert work.seed_activations == size
+    assert work.seed_deactivations == size
+
+
+def test_incremental_state_survives_a_blocked_conflict_branch() -> None:
+    value = Variable("V")
+    choose_value = Atom("choose", (value,))
+    choose_one = Atom("choose", (Integer(1),))
+    program = NativeProgram(
+        choices=(Choice("choose", value, 1, 2),),
+        seeds=(
+            Seed(_app("f"), value, (choose_value,)),
+            Seed(_app("f"), Integer(99), (choose_one,)),
+        ),
+        rules=(_copy_rule(),),
+    )
+
+    result = NativeSolver().solve(program)
+
+    assert [model.visible for model in result.models] == [("choose(2)", "f(x)#=2", "h(x)#=2")]
+    assert result.work_metrics.blocking_clauses >= 1
+    assert result.work_metrics.check_seed_probes == 0
+
+
+def test_constant_seed_needs_no_watch_or_check_time_probe() -> None:
+    result = NativeSolver().solve(
+        NativeProgram(seeds=(Seed(_app("f"), Integer(5)),), rules=(_copy_rule(),))
+    )
+
+    assert result.models[0].assignments == ("f(x)#=5", "h(x)#=5")
+    assert result.work_metrics.watched_literals == 0
+    assert result.work_metrics.propagated_literals == 0
+    assert result.work_metrics.check_seed_probes == 0
+
+
 def test_functionality_rejects_conflicting_application_values() -> None:
     program = NativeProgram(
         seeds=(Seed(_app("f"), Integer(1)), Seed(_app("f"), Integer(2))),

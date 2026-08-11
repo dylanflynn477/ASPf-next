@@ -23,6 +23,7 @@ from research.native_backend.ir import (
     Symbol,
     Variable,
 )
+from research.native_backend.propagator import NativeWorkMetrics
 from research.native_backend.solver import NativeModel, NativeSolver, NativeSolveResult
 
 __all__ = [
@@ -45,6 +46,7 @@ __all__ = [
     "NativeSolveResult",
     "NativeSolver",
     "NativeValidationError",
+    "NativeWorkMetrics",
     "Seed",
     "SourceLocation",
     "String",

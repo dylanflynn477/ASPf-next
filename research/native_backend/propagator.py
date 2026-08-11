@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from enum import Enum, StrEnum
@@ -149,6 +150,35 @@ class NativeSnapshot:
 
     assignments: tuple[tuple[GroundApplication, GroundValue], ...]
     undefined_nvariables: tuple[tuple[RuleKey, str], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class NativeWorkMetrics:
+    """Deterministic counters for profiling propagator work."""
+
+    theory_atoms: int
+    seeds: int
+    rules: int
+    watched_literals: int
+    propagate_calls: int
+    propagated_literals: int
+    seed_activations: int
+    seed_deactivations: int
+    check_calls: int
+    check_seed_probes: int
+    rule_body_evaluations: int
+    blocking_clauses: int
+    snapshot_assignments: int
+    undo_calls: int
+    undone_literals: int
+
+
+@dataclass(slots=True)
+class _ThreadState:
+    """Assignment-dependent state owned by one Clingo solving thread."""
+
+    true_literals: set[int]
+    seed_supports: dict[GroundApplication, dict[GroundValue, int]]
 
 
 def _expect_function(term: clingo.TheoryTerm, name: str, arity: int | None = None) -> None:
@@ -451,17 +481,32 @@ def _rule_body(
 
 
 class NativePropagator(clingo.Propagator):
-    """Recompute deterministic n-state at total assignments and constrain guards."""
+    """Maintain seed state incrementally and constrain rule guards at total models."""
 
     def __init__(self) -> None:
         self._seeds: tuple[GroundSeed, ...] = ()
         self._rules: tuple[GroundRule, ...] = ()
         self._native_literals: tuple[int, ...] = ()
+        self._constant_seeds: tuple[GroundSeed, ...] = ()
+        self._seeds_by_literal: dict[int, tuple[GroundSeed, ...]] = {}
+        self._states: dict[int, _ThreadState] = {}
         self._snapshots: dict[int, NativeSnapshot] = {}
+        self._theory_atom_count = 0
+        self.init_seconds = 0.0
         self.check_count = 0
         self.undo_count = 0
+        self.propagate_count = 0
+        self.propagated_literal_count = 0
+        self.seed_activation_count = 0
+        self.seed_deactivation_count = 0
+        self.check_seed_probe_count = 0
+        self.rule_body_evaluation_count = 0
+        self.blocking_clause_count = 0
+        self.snapshot_assignment_count = 0
+        self.undone_literal_count = 0
 
     def init(self, init: clingo.PropagateInit) -> None:
+        started = time.perf_counter()
         if init.number_of_threads != 1:
             raise RuntimeError("native feasibility prototype requires exactly one solver thread")
         init.check_mode = clingo.PropagatorCheckMode.Total
@@ -470,9 +515,23 @@ class NativePropagator(clingo.Propagator):
         rules: dict[RuleKey, GroundRule] = {}
         guards: dict[RuleKey, int] = {}
         native_literals: set[int] = set()
+        self._theory_atom_count = 0
+        self._states.clear()
         self._snapshots.clear()
+        self.check_count = 0
+        self.undo_count = 0
+        self.propagate_count = 0
+        self.propagated_literal_count = 0
+        self.seed_activation_count = 0
+        self.seed_deactivation_count = 0
+        self.check_seed_probe_count = 0
+        self.rule_body_evaluation_count = 0
+        self.blocking_clause_count = 0
+        self.snapshot_assignment_count = 0
+        self.undone_literal_count = 0
 
         for atom in init.theory_atoms:
+            self._theory_atom_count += 1
             name = atom.term.name
             literal = init.solver_literal(atom.literal)
             native_literals.add(literal)
@@ -490,40 +549,102 @@ class NativePropagator(clingo.Propagator):
             replace(rule, guard_literal=guards.get(key)) for key, rule in sorted(rules.items())
         )
         self._native_literals = tuple(sorted(native_literals))
+        self._constant_seeds = tuple(seed for seed in self._seeds if seed.literal == 1)
+        grouped_seeds: dict[int, list[GroundSeed]] = {}
+        for seed in self._seeds:
+            if abs(seed.literal) > 1:
+                grouped_seeds.setdefault(seed.literal, []).append(seed)
+        self._seeds_by_literal = {
+            literal: tuple(grouped) for literal, grouped in grouped_seeds.items()
+        }
         for literal in self._native_literals:
             if abs(literal) > 1:
                 init.add_watch(literal)
-                init.add_watch(-literal)
+        self.init_seconds = time.perf_counter() - started
 
-    def _true(self, assignment: clingo.Assignment, literal: int) -> bool:
-        return assignment.value(literal) is True
+    @staticmethod
+    def _add_seed(
+        supports: dict[GroundApplication, dict[GroundValue, int]],
+        seed: GroundSeed,
+    ) -> None:
+        values = supports.setdefault(seed.application, {})
+        values[seed.value] = values.get(seed.value, 0) + 1
 
-    def _block_current_native_assignment(self, control: clingo.PropagateControl) -> None:
-        clause: list[int] = []
-        for literal in self._native_literals:
-            value = control.assignment.value(literal)
-            if value is True:
-                clause.append(-literal)
-            elif value is False:
-                clause.append(literal)
-        control.add_clause(clause)
+    @staticmethod
+    def _remove_seed(
+        supports: dict[GroundApplication, dict[GroundValue, int]],
+        seed: GroundSeed,
+    ) -> None:
+        values = supports[seed.application]
+        remaining = values[seed.value] - 1
+        if remaining:
+            values[seed.value] = remaining
+        else:
+            del values[seed.value]
+        if not values:
+            del supports[seed.application]
+
+    def _state(self, thread_id: int) -> _ThreadState:
+        state = self._states.get(thread_id)
+        if state is not None:
+            return state
+        state = _ThreadState(set(), {})
+        for seed in self._constant_seeds:
+            self._add_seed(state.seed_supports, seed)
+        self._states[thread_id] = state
+        return state
+
+    @staticmethod
+    def _true(state: _ThreadState, literal: int) -> bool:
+        if literal == 1:
+            return True
+        if literal == -1:
+            return False
+        return literal in state.true_literals
+
+    def _block_current_native_assignment(
+        self,
+        control: clingo.PropagateControl,
+        state: _ThreadState,
+    ) -> None:
+        clause = {
+            -literal if self._true(state, literal) else literal
+            for literal in self._native_literals
+            if abs(literal) > 1
+        }
+        self.blocking_clause_count += 1
+        control.add_clause(sorted(clause))
+
+    def propagate(self, control: clingo.PropagateControl, changes: Sequence[int]) -> None:
+        """Index newly true native literals without scanning unrelated seeds."""
+
+        self.propagate_count += 1
+        self.propagated_literal_count += len(changes)
+        state = self._state(control.thread_id)
+        for literal in changes:
+            state.true_literals.add(literal)
+            for seed in self._seeds_by_literal.get(literal, ()):
+                self._add_seed(state.seed_supports, seed)
+                self.seed_activation_count += 1
 
     def check(self, control: clingo.PropagateControl) -> None:
         self.check_count += 1
-        applications: dict[GroundApplication, set[GroundValue]] = {}
-        for seed in self._seeds:
-            if self._true(control.assignment, seed.literal):
-                applications.setdefault(seed.application, set()).add(seed.value)
+        self._snapshots.pop(control.thread_id, None)
+        state = self._state(control.thread_id)
+        applications = {
+            application: set(values) for application, values in state.seed_supports.items()
+        }
         if any(len(values) > 1 for values in applications.values()):
-            self._block_current_native_assignment(control)
+            self._block_current_native_assignment(control, state)
             return
 
         undefined: set[tuple[RuleKey, str]] = set()
         for _iteration in range(len(self._rules) + 1):
             changed = False
             for rule in self._rules:
-                if not self._true(control.assignment, rule.active_literal):
+                if not self._true(state, rule.active_literal):
                     continue
+                self.rule_body_evaluation_count += 1
                 satisfied, nvariables = _rule_body(rule, applications)
                 undefined.update(
                     (rule.key, name)
@@ -542,23 +663,24 @@ class NativePropagator(clingo.Propagator):
             if not changed:
                 break
         if any(len(values) > 1 for values in applications.values()):
-            self._block_current_native_assignment(control)
+            self._block_current_native_assignment(control, state)
             return
 
         for rule in self._rules:
             if rule.guard_literal is None:
                 continue
             expected = False
-            if self._true(control.assignment, rule.active_literal):
+            if self._true(state, rule.active_literal):
+                self.rule_body_evaluation_count += 1
                 expected, nvariables = _rule_body(rule, applications)
                 undefined.update(
                     (rule.key, name)
                     for name, state in nvariables.items()
                     if state.kind is StateKind.UNDEFINED
                 )
-            actual = self._true(control.assignment, rule.guard_literal)
+            actual = self._true(state, rule.guard_literal)
             if expected != actual:
-                self._block_current_native_assignment(control)
+                self._block_current_native_assignment(control, state)
                 return
 
         assignments = tuple(
@@ -572,6 +694,7 @@ class NativePropagator(clingo.Propagator):
             assignments=assignments,
             undefined_nvariables=tuple(sorted(undefined)),
         )
+        self.snapshot_assignment_count += len(assignments)
 
     def undo(
         self,
@@ -579,8 +702,15 @@ class NativePropagator(clingo.Propagator):
         assignment: clingo.Assignment,
         changes: Sequence[int],
     ) -> None:
-        del assignment, changes
+        del assignment
         self.undo_count += 1
+        self.undone_literal_count += len(changes)
+        state = self._state(thread_id)
+        for literal in changes:
+            state.true_literals.remove(literal)
+            for seed in self._seeds_by_literal.get(literal, ()):
+                self._remove_seed(state.seed_supports, seed)
+                self.seed_deactivation_count += 1
         self._snapshots.pop(thread_id, None)
 
     def snapshot(self, thread_id: int) -> NativeSnapshot:
@@ -590,3 +720,24 @@ class NativePropagator(clingo.Propagator):
             return self._snapshots[thread_id]
         except KeyError as error:
             raise RuntimeError("native snapshot is unavailable for this model") from error
+
+    def metrics(self) -> NativeWorkMetrics:
+        """Return deterministic work counters for tests and benchmark evidence."""
+
+        return NativeWorkMetrics(
+            theory_atoms=self._theory_atom_count,
+            seeds=len(self._seeds),
+            rules=len(self._rules),
+            watched_literals=sum(abs(literal) > 1 for literal in self._native_literals),
+            propagate_calls=self.propagate_count,
+            propagated_literals=self.propagated_literal_count,
+            seed_activations=self.seed_activation_count,
+            seed_deactivations=self.seed_deactivation_count,
+            check_calls=self.check_count,
+            check_seed_probes=self.check_seed_probe_count,
+            rule_body_evaluations=self.rule_body_evaluation_count,
+            blocking_clauses=self.blocking_clause_count,
+            snapshot_assignments=self.snapshot_assignment_count,
+            undo_calls=self.undo_count,
+            undone_literals=self.undone_literal_count,
+        )

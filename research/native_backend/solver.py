@@ -9,7 +9,7 @@ import clingo
 
 from research.native_backend.compiler import compile_program
 from research.native_backend.ir import NativeProgram
-from research.native_backend.propagator import NativePropagator, RuleKey
+from research.native_backend.propagator import NativePropagator, NativeWorkMetrics, RuleKey
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,8 +39,11 @@ class NativeSolveResult:
     statistics_bodies: int
     ground_seconds: float
     solve_seconds: float
+    propagator_init_seconds: float
+    model_reconstruction_seconds: float
     check_count: int
     undo_count: int
+    work_metrics: NativeWorkMetrics
 
 
 def _render_undefined(key: RuleKey, name: str) -> str:
@@ -77,9 +80,11 @@ class NativeSolver:
         symbolic_atom_count = len(list(control.symbolic_atoms))
 
         models: list[NativeModel] = []
+        model_reconstruction_seconds = 0.0
         solve_started = time.perf_counter()
         with control.solve(yield_=True) as handle:
             for model in handle:
+                reconstruction_started = time.perf_counter()
                 snapshot = propagator.snapshot(model.thread_id)
                 ordinary = tuple(
                     sorted(
@@ -94,6 +99,7 @@ class NativeSolver:
                     _render_undefined(key, name) for key, name in snapshot.undefined_nvariables
                 )
                 models.append(NativeModel(ordinary, assignments, undefined))
+                model_reconstruction_seconds += time.perf_counter() - reconstruction_started
         solve_seconds = time.perf_counter() - solve_started
 
         lp_statistics = control.statistics["problem"]["lp"]
@@ -108,6 +114,9 @@ class NativeSolver:
             statistics_bodies=round(lp_statistics["bodies"]),
             ground_seconds=ground_seconds,
             solve_seconds=solve_seconds,
+            propagator_init_seconds=propagator.init_seconds,
+            model_reconstruction_seconds=model_reconstruction_seconds,
             check_count=propagator.check_count,
             undo_count=propagator.undo_count,
+            work_metrics=propagator.metrics(),
         )

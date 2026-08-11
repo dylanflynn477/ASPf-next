@@ -14,6 +14,7 @@ from benchmarks.common import (
     GroundObserver,
     Measurement,
     StructuralMetrics,
+    TimingSummary,
     environment,
     project_root,
     summarize,
@@ -29,6 +30,7 @@ from research.native_backend import (
     NativeProgram,
     NativeRule,
     NativeSolver,
+    NativeWorkMetrics,
     NVariable,
     NVariableExpression,
     Seed,
@@ -49,14 +51,28 @@ class ModelEquivalence:
 
 
 @dataclass(frozen=True, slots=True)
+class NativeMeasurement:
+    """Native structure, timings, and deterministic callback-work counters."""
+
+    structure: StructuralMetrics
+    ground: TimingSummary
+    solve: TimingSummary
+    total: TimingSummary
+    propagator_init: TimingSummary
+    model_reconstruction: TimingSummary
+    model_count: int
+    work: NativeWorkMetrics
+
+
+@dataclass(frozen=True, slots=True)
 class ComparisonCase:
     """Reference/native baseline and copy results for one value domain."""
 
     domain_size: int
     reference_baseline: Measurement
     reference_copy: Measurement
-    native_baseline: Measurement
-    native_copy: Measurement
+    native_baseline: NativeMeasurement
+    native_copy: NativeMeasurement
     model_equivalence: ModelEquivalence
 
 
@@ -107,12 +123,15 @@ def _measure_native(
     include_copy: bool,
     repeats: int,
     warmups: int,
-) -> Measurement:
+) -> NativeMeasurement:
     ground_samples: list[float] = []
     solve_samples: list[float] = []
     total_samples: list[float] = []
+    init_samples: list[float] = []
+    reconstruction_samples: list[float] = []
     expected_structure: StructuralMetrics | None = None
     expected_models: int | None = None
+    expected_work: NativeWorkMetrics | None = None
     for index in range(warmups + repeats):
         observer = GroundObserver()
         started = time.perf_counter()
@@ -134,20 +153,30 @@ def _measure_native(
         if expected_structure is None:
             expected_structure = structure
             expected_models = model_count
-        elif structure != expected_structure or model_count != expected_models:
+            expected_work = result.work_metrics
+        elif (
+            structure != expected_structure
+            or model_count != expected_models
+            or result.work_metrics != expected_work
+        ):
             raise RuntimeError("native benchmark changed between repeated runs")
         if index >= warmups:
             ground_samples.append(result.ground_seconds)
             solve_samples.append(result.solve_seconds)
             total_samples.append(total)
-    if expected_structure is None or expected_models is None:
+            init_samples.append(result.propagator_init_seconds)
+            reconstruction_samples.append(result.model_reconstruction_seconds)
+    if expected_structure is None or expected_models is None or expected_work is None:
         raise RuntimeError("native benchmark produced no observations")
-    return Measurement(
+    return NativeMeasurement(
         structure=expected_structure,
         ground=summarize(ground_samples),
         solve=summarize(solve_samples),
         total=summarize(total_samples),
+        propagator_init=summarize(init_samples),
+        model_reconstruction=summarize(reconstruction_samples),
         model_count=expected_models,
+        work=expected_work,
     )
 
 
@@ -205,7 +234,7 @@ def run_comparison(
         for size, reference_case in zip(sizes, reference.cases, strict=True)
     )
     return ComparisonRun(
-        schema_version=1,
+        schema_version=2,
         family="nvariable-copy-native-vs-reference",
         repeats=repeats,
         warmups=warmups,

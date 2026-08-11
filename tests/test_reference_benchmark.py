@@ -45,3 +45,11 @@ def test_native_copy_overhead_is_constant_and_models_match() -> None:
         for case in result.cases
     ] == [1, 1]
     assert all(case.model_equivalence.equivalent for case in result.cases)
+    assert [case.native_copy.work.check_seed_probes for case in result.cases] == [0, 0]
+    assert [case.native_copy.work.seed_activations for case in result.cases] == [2, 4]
+    assert [case.native_copy.work.check_calls for case in result.cases] == [2, 4]
+    assert all(
+        case.native_copy.propagator_init.median_seconds >= 0
+        and case.native_copy.model_reconstruction.median_seconds >= 0
+        for case in result.cases
+    )
