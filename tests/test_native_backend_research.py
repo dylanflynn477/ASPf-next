@@ -186,6 +186,9 @@ def test_incremental_state_survives_a_blocked_conflict_branch() -> None:
 
     assert [model.visible for model in result.models] == [("choose(2)", "f(x)#=2", "h(x)#=2")]
     assert result.work_metrics.blocking_clauses >= 1
+    assert result.work_metrics.functionality_clauses >= 1
+    assert result.work_metrics.broad_blocking_clauses == 0
+    assert result.work_metrics.maximum_clause_width <= 2
     assert result.work_metrics.check_seed_probes == 0
 
 
@@ -229,6 +232,13 @@ def test_functionality_rejects_conflicting_application_values() -> None:
 
     assert comparison.equivalent
     assert comparison.native == ()
+
+    native = NativeSolver().solve(program)
+    assert not native.satisfiable
+    assert native.work_metrics.functionality_clauses == 1
+    assert native.work_metrics.broad_blocking_clauses == 0
+    assert native.work_metrics.clause_literals == 0
+    assert native.work_metrics.maximum_clause_width == 0
 
 
 def test_partial_source_leaves_nvariable_and_target_undefined() -> None:
@@ -302,6 +312,48 @@ def test_conflicting_or_undefined_definition_makes_nvariable_undefined(
 
     assert all(not assignment.startswith("h(") for assignment in result.models[0].assignments)
     assert result.models[0].undefined_nvariables == ("undefined_definition:_v",)
+    assert result.work_metrics.blocking_clauses == 0
+
+
+def test_derived_functionality_conflict_is_still_a_broad_total_assignment_clause() -> None:
+    program = NativeProgram(
+        seeds=(Seed(_app("f"), Integer(1)), Seed(_app("g"), Integer(2))),
+        rules=(
+            _copy_rule(identifier="from_f", source=_app("f"), target=_app("h")),
+            _copy_rule(identifier="from_g", source=_app("g"), target=_app("h")),
+        ),
+    )
+
+    result = NativeSolver().solve(program)
+
+    assert not result.satisfiable
+    assert result.work_metrics.functionality_clauses == 0
+    assert result.work_metrics.broad_blocking_clauses == 1
+
+
+def test_failed_required_equality_uses_a_total_assignment_filter() -> None:
+    program = NativeProgram(
+        seeds=(Seed(_app("f"), Integer(1)),),
+        rules=(
+            NativeRule(
+                "required_equality",
+                AtomHead(Atom("equal")),
+                comparisons=(
+                    Comparison(
+                        AppExpression(_app("f")),
+                        ComparisonOperator.EQUAL,
+                        ConstantExpression(Integer(2)),
+                    ),
+                ),
+            ),
+        ),
+    )
+
+    result = NativeSolver().solve(program)
+
+    assert result.models[0].visible == ("f(x)#=1",)
+    assert result.work_metrics.functionality_clauses == 0
+    assert result.work_metrics.broad_blocking_clauses == 1
 
 
 def test_multiple_level_nvariable_definitions_are_evaluated_in_order() -> None:
@@ -698,6 +750,49 @@ def test_multiple_nvariables_rules_and_readers_remain_independent() -> None:
     assert result.models[0].assignments == ("f(x)#=3", "h(x)#=3", "k(x)#=3")
 
 
+def test_dependency_diamond_with_two_nvariables_backtracks_without_stale_values() -> None:
+    value = Variable("V")
+    choose = Atom("choose", (value,))
+    left = NVariable("_left")
+    right = NVariable("_right")
+    program = NativeProgram(
+        choices=(Choice("choose", value, 1, 6),),
+        seeds=(Seed(_app("f"), value, (choose,)),),
+        rules=(
+            _copy_rule(identifier="left_arm", source=_app("f"), target=_app("g")),
+            _copy_rule(identifier="right_arm", source=_app("f"), target=_app("h")),
+            NativeRule(
+                "join",
+                AssignmentHead(_app("k"), NVariableExpression(left)),
+                definitions=(
+                    Definition(left, AppExpression(_app("g"))),
+                    Definition(right, AppExpression(_app("h"))),
+                ),
+                comparisons=(
+                    Comparison(
+                        NVariableExpression(left),
+                        ComparisonOperator.EQUAL,
+                        NVariableExpression(right),
+                    ),
+                ),
+            ),
+        ),
+    )
+
+    result = NativeSolver().solve(program)
+
+    assert result.model_count == 6
+    for expected, model in enumerate(result.models, start=1):
+        assert model.assignments == (
+            f"f(x)#={expected}",
+            f"g(x)#={expected}",
+            f"h(x)#={expected}",
+            f"k(x)#={expected}",
+        )
+    assert result.work_metrics.seed_activations == result.work_metrics.seed_deactivations
+    assert result.work_metrics.check_seed_probes == 0
+
+
 def test_repeated_solves_and_independent_solver_instances_are_deterministic() -> None:
     value = Variable("V")
     program = NativeProgram(
@@ -716,6 +811,44 @@ def test_repeated_solves_and_independent_solver_instances_are_deterministic() ->
         model.visible for model in independent.models
     ]
     assert first.undo_count > 0 and second.undo_count > 0 and independent.undo_count > 0
+
+
+def test_two_thread_copy_enumeration_matches_single_thread_and_restores_state() -> None:
+    value = Variable("V")
+    choose = Atom("choose", (value,))
+    program = NativeProgram(
+        choices=(Choice("choose", value, 1, 20),),
+        seeds=(
+            Seed(_app("f"), value, (choose,)),
+            Seed(_app("g"), value, (choose,)),
+        ),
+        rules=(
+            _copy_rule(identifier="copy_f", source=_app("f"), target=_app("h")),
+            _copy_rule(identifier="copy_g", source=_app("g"), target=_app("k")),
+        ),
+    )
+
+    single = NativeSolver().solve(program, threads=1)
+    parallel = NativeSolver().solve(program, threads=2)
+    repeated = NativeSolver().solve(program, threads=2)
+
+    assert parallel.solver_threads == 2
+    assert parallel.model_count == 20
+    assert [model.visible for model in parallel.models] == [
+        model.visible for model in single.models
+    ]
+    assert [model.visible for model in repeated.models] == [
+        model.visible for model in single.models
+    ]
+    assert parallel.work_metrics.seed_activations == parallel.work_metrics.seed_deactivations
+    assert repeated.work_metrics.seed_activations == repeated.work_metrics.seed_deactivations
+
+
+def test_thread_count_is_bounded_to_the_evaluated_research_modes() -> None:
+    with pytest.raises(ValueError, match="thread count must be 1 or 2"):
+        NativeSolver().solve(NativeProgram(), threads=0)
+    with pytest.raises(ValueError, match="thread count must be 1 or 2"):
+        NativeSolver().solve(NativeProgram(), threads=3)
 
 
 def test_unrelated_constants_do_not_become_candidate_values_or_leak_private_atoms() -> None:

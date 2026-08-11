@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from benchmarks.multi_application_workload import run_workload
 from benchmarks.native_vs_reference import run_comparison
 from benchmarks.reference_scaling import reference_source, run_reference
 from benchmarks.solve_decomposition import run_decomposition
@@ -72,3 +73,15 @@ def test_solve_decomposition_preserves_modes_and_visible_equivalence() -> None:
     assert modes["exhaustive-raw"].native.native_work is not None
     assert modes["exhaustive-raw"].native.native_work.snapshot_assignments == 0
     assert modes["exhaustive-visible"].native.native_reconstruction is not None
+
+
+def test_multi_application_workload_smoke_preserves_partial_models() -> None:
+    result = run_workload((3,), repeats=1, warmups=0)
+    case = result.cases[0]
+
+    assert case.reference.model_count == 3
+    assert case.native.model_count == 3
+    assert case.visible_models_equal
+    assert case.reference_sha256 == case.native_sha256
+    assert case.native.structure.theory_atoms == 21
+    assert case.native.work.check_seed_probes == 0

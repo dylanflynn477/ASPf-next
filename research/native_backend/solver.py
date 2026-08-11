@@ -46,6 +46,7 @@ class NativeSolveResult:
     models: tuple[NativeModel, ...]
     model_count: int
     models_collected: bool
+    solver_threads: int
     internal_source: str
     symbolic_atoms: int
     theory_atoms: int
@@ -80,11 +81,14 @@ class NativeSolver:
         model_limit: int = 0,
         collect_models: bool = True,
         profile_reconstruction: bool = False,
+        threads: int = 1,
     ) -> NativeSolveResult:
         if model_limit < 0:
             raise ValueError("model limit must not be negative")
+        if threads not in (1, 2):
+            raise ValueError("research solver thread count must be 1 or 2")
         source = compile_program(program)
-        control = clingo.Control([str(model_limit), "--stats=2", "-t1"])
+        control = clingo.Control([str(model_limit), "--stats=2", f"-t{threads}"])
         propagator = NativePropagator(record_snapshots=collect_models)
         control.register_propagator(propagator)
         if observer is not None:
@@ -164,6 +168,7 @@ class NativeSolver:
             models=sorted_models,
             model_count=model_count,
             models_collected=collect_models,
+            solver_threads=threads,
             internal_source=source,
             symbolic_atoms=symbolic_atom_count,
             theory_atoms=theory_atom_count,

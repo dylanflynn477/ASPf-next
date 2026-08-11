@@ -181,6 +181,10 @@ class NativeWorkMetrics:
     check_seed_probes: int
     rule_body_evaluations: int
     blocking_clauses: int
+    functionality_clauses: int
+    broad_blocking_clauses: int
+    clause_literals: int
+    maximum_clause_width: int
     snapshot_assignments: int
     undo_calls: int
     undone_literals: int
@@ -398,15 +402,19 @@ def _decode_rule(atom: clingo.TheoryAtom, literal: int, decoder: _TheoryDecoder)
     terms = _element_terms(atom)
     if len(terms) < 2:
         raise RuntimeError(f"native rule lacks metadata or head: {atom}")
+    metadata = tuple(term for term in terms if term.name == "meta")
+    heads = tuple(term for term in terms if term.name in {"head_assignment", "head_atom"})
+    if len(metadata) != 1 or len(heads) != 1:
+        raise RuntimeError(f"native rule has ambiguous metadata or head: {atom}")
     definitions = tuple(
-        _decode_definition(term, decoder) for term in terms[2:] if term.name == "define"
+        _decode_definition(term, decoder) for term in terms if term.name == "define"
     )
     comparisons = tuple(
-        _decode_comparison(term, decoder) for term in terms[2:] if term.name == "compare"
+        _decode_comparison(term, decoder) for term in terms if term.name == "compare"
     )
     return GroundRule(
-        key=_decode_meta(terms[0]),
-        head=_decode_head(terms[1], decoder),
+        key=_decode_meta(metadata[0]),
+        head=_decode_head(heads[0], decoder),
         definitions=definitions,
         comparisons=comparisons,
         active_literal=literal,
@@ -584,6 +592,9 @@ class NativePropagator(clingo.Propagator):
         self._native_literals: tuple[int, ...] = ()
         self._constant_seeds: tuple[GroundSeed, ...] = ()
         self._seeds_by_literal: dict[int, tuple[GroundSeed, ...]] = {}
+        self._seeds_by_value: dict[
+            tuple[GroundApplication, GroundValue], tuple[GroundSeed, ...]
+        ] = {}
         self._rules_by_application: dict[GroundApplication, tuple[int, ...]] = {}
         self._rule_order: tuple[int, ...] = ()
         self._ordinary_by_literal: dict[int, tuple[str, ...]] = {}
@@ -609,14 +620,18 @@ class NativePropagator(clingo.Propagator):
         self.check_seed_probe_count = 0
         self.rule_body_evaluation_count = 0
         self.blocking_clause_count = 0
+        self.functionality_clause_count = 0
+        self.broad_blocking_clause_count = 0
+        self.clause_literal_count = 0
+        self.maximum_clause_width = 0
         self.snapshot_assignment_count = 0
         self.snapshot_build_seconds = 0.0
         self.undone_literal_count = 0
 
     def init(self, init: clingo.PropagateInit) -> None:
         started = time.perf_counter()
-        if init.number_of_threads != 1:
-            raise RuntimeError("native feasibility prototype requires exactly one solver thread")
+        if not 1 <= init.number_of_threads <= 2:
+            raise RuntimeError("native feasibility prototype is evaluated for at most two threads")
         init.check_mode = clingo.PropagatorCheckMode.Total
         init.undo_mode = clingo.PropagatorUndoMode.Always
         seeds: list[GroundSeed] = []
@@ -638,6 +653,10 @@ class NativePropagator(clingo.Propagator):
         self.check_seed_probe_count = 0
         self.rule_body_evaluation_count = 0
         self.blocking_clause_count = 0
+        self.functionality_clause_count = 0
+        self.broad_blocking_clause_count = 0
+        self.clause_literal_count = 0
+        self.maximum_clause_width = 0
         self.snapshot_assignment_count = 0
         self.snapshot_build_seconds = 0.0
         self.undone_literal_count = 0
@@ -695,11 +714,17 @@ class NativePropagator(clingo.Propagator):
         self._constant_ordinary = tuple(sorted(constant_ordinary))
         self._constant_seeds = tuple(seed for seed in self._seeds if seed.literal == 1)
         grouped_seeds: dict[int, list[GroundSeed]] = {}
+        grouped_values: dict[tuple[GroundApplication, GroundValue], list[GroundSeed]] = {}
         for seed in self._seeds:
+            grouped_values.setdefault((seed.application, seed.value), []).append(seed)
             if abs(seed.literal) > 1:
                 grouped_seeds.setdefault(seed.literal, []).append(seed)
         self._seeds_by_literal = {
             literal: tuple(grouped) for literal, grouped in grouped_seeds.items()
+        }
+        self._seeds_by_value = {
+            key: tuple(sorted(grouped, key=lambda seed: seed.literal))
+            for key, grouped in grouped_values.items()
         }
         watched_literals = {literal for literal in self._native_literals if abs(literal) > 1}
         watched_literals.update(self._ordinary_by_literal)
@@ -760,8 +785,43 @@ class NativePropagator(clingo.Propagator):
             for literal in self._native_literals
             if abs(literal) > 1
         }
+        rendered = sorted(clause)
+        self._record_clause(len(rendered), broad=True)
+        control.add_clause(rendered)
+
+    def _record_clause(self, width: int, *, broad: bool = False) -> None:
         self.blocking_clause_count += 1
-        control.add_clause(sorted(clause))
+        self.clause_literal_count += width
+        self.maximum_clause_width = max(self.maximum_clause_width, width)
+        if broad:
+            self.broad_blocking_clause_count += 1
+        else:
+            self.functionality_clause_count += 1
+
+    def _seed_conflict_literals(self, state: _ThreadState) -> tuple[int, int] | None:
+        for application, supports in sorted(state.seed_supports.items()):
+            values = sorted(supports)
+            if len(values) < 2:
+                continue
+            literals: list[int] = []
+            for value in values[:2]:
+                active = (
+                    seed.literal
+                    for seed in self._seeds_by_value[(application, value)]
+                    if self._true(state, seed.literal)
+                )
+                literals.append(next(active))
+            return literals[0], literals[1]
+        return None
+
+    def _block_seed_conflict(
+        self,
+        control: clingo.PropagateControl,
+        literals: tuple[int, int],
+    ) -> None:
+        clause = sorted({-literal for literal in literals if literal != 1})
+        self._record_clause(len(clause))
+        control.add_clause(clause, lock=True)
 
     def propagate(self, control: clingo.PropagateControl, changes: Sequence[int]) -> None:
         """Index newly true native literals without scanning unrelated seeds."""
@@ -777,17 +837,21 @@ class NativePropagator(clingo.Propagator):
             for atom in self._ordinary_by_literal.get(literal, ()):
                 state.ordinary_supports[atom] = state.ordinary_supports.get(atom, 0) + 1
                 self.ordinary_activation_count += 1
+        conflict = self._seed_conflict_literals(state)
+        if conflict is not None:
+            self._block_seed_conflict(control, conflict)
 
     def check(self, control: clingo.PropagateControl) -> None:
         self.check_count += 1
         self._snapshots.pop(control.thread_id, None)
         state = self._state(control.thread_id)
+        conflict = self._seed_conflict_literals(state)
+        if conflict is not None:
+            self._block_seed_conflict(control, conflict)
+            return
         applications = {
             application: set(values) for application, values in state.seed_supports.items()
         }
-        if any(len(values) > 1 for values in applications.values()):
-            self._block_current_native_assignment(control, state)
-            return
 
         active = tuple(self._true(state, rule.active_literal) for rule in self._rules)
         pending = deque(index for index in self._rule_order if active[index])
@@ -912,6 +976,10 @@ class NativePropagator(clingo.Propagator):
             check_seed_probes=self.check_seed_probe_count,
             rule_body_evaluations=self.rule_body_evaluation_count,
             blocking_clauses=self.blocking_clause_count,
+            functionality_clauses=self.functionality_clause_count,
+            broad_blocking_clauses=self.broad_blocking_clause_count,
+            clause_literals=self.clause_literal_count,
+            maximum_clause_width=self.maximum_clause_width,
             snapshot_assignments=self.snapshot_assignment_count,
             undo_calls=self.undo_count,
             undone_literals=self.undone_literal_count,
