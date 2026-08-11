@@ -19,8 +19,9 @@ theory metadata and registers a Python propagator. N-variable identity is encode
 lowercase ground term associated with a grounded rule instance. Ordinary variables are
 still grounded normally. The propagator maintains explicit application/n-variable
 states, evaluates definitions and comparisons, enforces functionality, and reconstructs
-visible assignments from a thread-scoped model snapshot. It requires one solver thread
-and removes snapshots on undo.
+visible assignments from a thread-scoped model snapshot. Literal-to-seed and
+application-to-rule indexes update only affected per-thread supports, and undo removes
+exactly the reverted supports. It requires one solver thread.
 
 The released frontend, backend, CLI, and package API do not invoke the prototype.
 
@@ -37,11 +38,18 @@ For candidate domains 10 through 10,000, relational copy overhead grows from 10 
 10,000 grounded rules and atoms. Native copy overhead remains one grounded rule and one
 theory atom. Complete normalized copy model sets are equal at all five sizes.
 
-The current solver algorithm is not performant. At 1,000 candidates, median exhaustive
-solve time is approximately 1.19 seconds for native versus 0.0073 seconds for the
-relation case on the recorded machine. The native implementation rescans all candidate
-seed literals at every total assignment. The favorable grounding result therefore is
-not an end-to-end speed result.
+Profiling confirmed that the initial solver rescanned every candidate seed at every
+model: N=1,000 caused one million seed probes and 1,002,000 calls to
+`Assignment.value`. Incremental watched-literal state removes all check-time seed
+probes. At N=1,000, median exhaustive native solve time falls from 1.193 seconds to
+0.156 seconds (7.67×), with 1,000 seed activations, 1,000 matching undo removals, and
+1,000 rule evaluations. The full seven-sample experiment now completes at N=5,000 and
+N=10,000; the latter has a 4.189-second native median and exact model equality.
+
+The native implementation is still slower than the relation case (0.0076 seconds at
+N=1,000 and 1.301 seconds at N=10,000). At N=10,000, eager reconstruction of all
+visible models takes a 2.004-second median and is the largest measured component.
+This is a solve-scaling improvement, not an end-to-end speed or production claim.
 
 ## Decision
 
@@ -56,14 +64,14 @@ historical-source adapter connects the prototype to the released IR.
 
 ## Remaining questions
 
-1. Can incremental watched support sets and undo trails remove total-state rescanning
-   while retaining deterministic semantics?
+1. Can a streaming or digest-only research solve path separate search cost from eager
+   materialization of every visible model without weakening semantic comparisons?
 2. What minimal clauses explain application functionality and comparison guards?
 3. How should the exact positive dependency/n-loop definition be represented after
    ordinary grounding?
 4. Can multi-thread state be proven safe without serializing callbacks?
-5. Does Python callback overhead remain acceptable after an incremental design, or is a
-   native Clingo theory propagator required?
+5. Do remaining theory-value decoding, model-symbol extraction, and Python callback
+   costs justify a native Clingo theory propagator on representative workloads?
 6. What production IR identity should distinguish the same textual n-variable across
    grounded rule instances?
 

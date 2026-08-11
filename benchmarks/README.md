@@ -37,21 +37,25 @@ After the research prototype is available, run the paired experiment:
 
 ```console
 python -m benchmarks.native_vs_reference \
-  --sizes 10 100 1000 \
+  --sizes 10 100 1000 5000 10000 \
   --warmups 1 \
   --repeats 7 \
-  --output benchmarks/results/native-vs-reference.json
+  --output benchmarks/results/native-vs-reference-incremental.json
 ```
 
 The native baseline has the same exactly-one candidate choices and source assignments.
 Its copy variant adds one typed n-variable rule represented by theory metadata. The
 runner compares each encoding to its own no-copy baseline and exhaustively compares
 normalized visible copy models. SHA-256 digests make the compared model sets auditable
-without duplicating every model in the result file.
+without duplicating every model in the result file. Native measurements also record
+separate propagator-initialization and model-reconstruction timings plus deterministic
+counts for decode-cache activity, watched literal changes, seed support updates, total
+checks, rule evaluations, blocking clauses, snapshots, and undo work.
 
-The repeated exhaustive solve run is intentionally bounded at the largest practical
-size for the prototype. Grounding-only structure and one untimed exhaustive semantic
-comparison cover the larger sizes separately:
+The original total-rescan result remains in `native-vs-reference.json` and is limited
+to sizes through 1,000. The incremental result covers all five sizes with the same
+repeat policy. Grounding-only structure and the original untimed large equivalence
+record remain independently reproducible:
 
 ```console
 python -m benchmarks.structural_scaling \
@@ -65,5 +69,5 @@ python -m benchmarks.equivalence_scaling \
 
 The structural runner does not solve or report a model count. The equivalence runner
 does not report timing: it performs one exact comparison of complete normalized model
-sets. Keeping these questions separate avoids presenting an aborted large timing run
-as data.
+sets. Keeping these questions separate preserves the original preregistered evidence
+while the optimized paired runner now measures the large cases directly.
