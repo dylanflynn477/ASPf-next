@@ -56,11 +56,18 @@ def _private(symbol: clingo.Symbol) -> bool:
 class NativeSolver:
     """Research-only solver; each call owns independent Clingo and propagator state."""
 
-    def solve(self, program: NativeProgram) -> NativeSolveResult:
+    def solve(
+        self,
+        program: NativeProgram,
+        *,
+        observer: clingo.Observer | None = None,
+    ) -> NativeSolveResult:
         source = compile_program(program)
         control = clingo.Control(["0", "--stats=2", "-t1"])
         propagator = NativePropagator()
         control.register_propagator(propagator)
+        if observer is not None:
+            control.register_observer(observer)
         control.add("base", [], source)
 
         ground_started = time.perf_counter()

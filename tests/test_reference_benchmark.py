@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from benchmarks.native_vs_reference import run_comparison
 from benchmarks.reference_scaling import reference_source, run_reference
 
 
@@ -24,3 +25,23 @@ def test_reference_generator_rejects_nonpositive_domain() -> None:
         assert str(error) == "domain size must be positive"
     else:
         raise AssertionError("a nonpositive domain was accepted")
+
+
+def test_native_copy_overhead_is_constant_and_models_match() -> None:
+    result = run_comparison((2, 4), repeats=1, warmups=0)
+
+    assert [
+        case.reference_copy.structure.statistics_rules
+        - case.reference_baseline.structure.statistics_rules
+        for case in result.cases
+    ] == [2, 4]
+    assert [
+        case.native_copy.structure.statistics_rules
+        - case.native_baseline.structure.statistics_rules
+        for case in result.cases
+    ] == [1, 1]
+    assert [
+        case.native_copy.structure.theory_atoms - case.native_baseline.structure.theory_atoms
+        for case in result.cases
+    ] == [1, 1]
+    assert all(case.model_equivalence.equivalent for case in result.cases)

@@ -32,3 +32,19 @@ use an ordinary variable for the copy.
 Peak process memory is deliberately omitted: the Python standard library does not
 provide a portable, comparable peak measurement across the project's supported
 platforms. Timing results should not be used as hard test thresholds.
+
+After the research prototype is available, run the paired experiment:
+
+```console
+python -m benchmarks.native_vs_reference \
+  --sizes 10 100 1000 5000 10000 \
+  --warmups 1 \
+  --repeats 7 \
+  --output benchmarks/results/native-vs-reference.json
+```
+
+The native baseline has the same exactly-one candidate choices and source assignments.
+Its copy variant adds one typed n-variable rule represented by theory metadata. The
+runner compares each encoding to its own no-copy baseline and exhaustively compares
+normalized visible copy models. SHA-256 digests make the compared model sets auditable
+without duplicating every model in the result file.
