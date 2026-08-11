@@ -69,10 +69,6 @@ def _render_undefined(key: RuleKey, name: str) -> str:
     return f"{key.identifier}{suffix}:_{name}"
 
 
-def _private(symbol: clingo.Symbol) -> bool:
-    return symbol.type is clingo.SymbolType.Function and symbol.name.startswith("__aspf_")
-
-
 class NativeSolver:
     """Research-only solver; each call owns independent Clingo and propagator state."""
 
@@ -122,11 +118,10 @@ class NativeSolver:
                 if profile_reconstruction:
                     snapshot_lookup_seconds += time.perf_counter() - component_started
                     component_started = time.perf_counter()
-                symbols = model.symbols(shown=True)
                 if profile_reconstruction:
                     symbol_extraction_seconds += time.perf_counter() - component_started
                     component_started = time.perf_counter()
-                ordinary = tuple(sorted(str(symbol) for symbol in symbols if not _private(symbol)))
+                ordinary = snapshot.ordinary_atoms
                 if profile_reconstruction:
                     ordinary_render_seconds += time.perf_counter() - component_started
                     component_started = time.perf_counter()

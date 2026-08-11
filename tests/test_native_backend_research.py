@@ -119,6 +119,7 @@ def test_model_collection_can_be_disabled_without_changing_enumeration() -> None
     assert result.model_reconstruction_seconds == 0
     assert result.snapshot_build_seconds == 0
     assert result.work_metrics.snapshot_assignments == 0
+    assert result.work_metrics.ordinary_atoms == 0
 
 
 def test_model_limit_and_detailed_reconstruction_profile_are_explicit() -> None:
@@ -138,6 +139,8 @@ def test_model_limit_and_detailed_reconstruction_profile_are_explicit() -> None:
     assert result.reconstruction_profile.symbol_extraction_seconds >= 0
     assert result.reconstruction_profile.assignment_render_seconds >= 0
     assert result.reconstruction_profile.model_sort_seconds >= 0
+    assert result.work_metrics.ordinary_atoms == 3
+    assert result.work_metrics.ordinary_activations == 1
 
     with pytest.raises(ValueError, match="model limit must not be negative"):
         NativeSolver().solve(program, model_limit=-1)

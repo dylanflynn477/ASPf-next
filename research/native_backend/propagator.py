@@ -150,6 +150,7 @@ UNDEFINED = ValueState(StateKind.UNDEFINED)
 class NativeSnapshot:
     """Valid native state associated with one Clingo solving thread."""
 
+    ordinary_atoms: tuple[str, ...]
     assignments: tuple[tuple[GroundApplication, GroundValue], ...]
     undefined_nvariables: tuple[tuple[RuleKey, str], ...]
 
@@ -168,6 +169,10 @@ class NativeWorkMetrics:
     decoded_values: int
     value_cache_hits: int
     watched_literals: int
+    ordinary_atoms: int
+    ordinary_watched_literals: int
+    ordinary_activations: int
+    ordinary_deactivations: int
     propagate_calls: int
     propagated_literals: int
     seed_activations: int
@@ -187,6 +192,7 @@ class _ThreadState:
 
     true_literals: set[int]
     seed_supports: dict[GroundApplication, dict[GroundValue, int]]
+    ordinary_supports: dict[str, int]
 
 
 def _expect_function(term: clingo.TheoryTerm, name: str, arity: int | None = None) -> None:
@@ -580,6 +586,8 @@ class NativePropagator(clingo.Propagator):
         self._seeds_by_literal: dict[int, tuple[GroundSeed, ...]] = {}
         self._rules_by_application: dict[GroundApplication, tuple[int, ...]] = {}
         self._rule_order: tuple[int, ...] = ()
+        self._ordinary_by_literal: dict[int, tuple[str, ...]] = {}
+        self._constant_ordinary: tuple[str, ...] = ()
         self._states: dict[int, _ThreadState] = {}
         self._snapshots: dict[int, NativeSnapshot] = {}
         self._theory_atom_count = 0
@@ -596,6 +604,8 @@ class NativePropagator(clingo.Propagator):
         self.propagated_literal_count = 0
         self.seed_activation_count = 0
         self.seed_deactivation_count = 0
+        self.ordinary_activation_count = 0
+        self.ordinary_deactivation_count = 0
         self.check_seed_probe_count = 0
         self.rule_body_evaluation_count = 0
         self.blocking_clause_count = 0
@@ -623,6 +633,8 @@ class NativePropagator(clingo.Propagator):
         self.propagated_literal_count = 0
         self.seed_activation_count = 0
         self.seed_deactivation_count = 0
+        self.ordinary_activation_count = 0
+        self.ordinary_deactivation_count = 0
         self.check_seed_probe_count = 0
         self.rule_body_evaluation_count = 0
         self.blocking_clause_count = 0
@@ -664,6 +676,23 @@ class NativePropagator(clingo.Propagator):
         }
         self._rule_order = _rule_dependency_order(self._rules)
         self._native_literals = tuple(sorted(native_literals))
+        ordinary_by_literal: dict[int, list[str]] = {}
+        constant_ordinary: list[str] = []
+        if self._record_snapshots:
+            for symbolic_atom in init.symbolic_atoms:
+                symbol = symbolic_atom.symbol
+                if symbol.type is clingo.SymbolType.Function and symbol.name.startswith("__aspf_"):
+                    continue
+                literal = init.solver_literal(symbolic_atom.literal)
+                rendered = str(symbol)
+                if literal == 1:
+                    constant_ordinary.append(rendered)
+                elif literal != -1:
+                    ordinary_by_literal.setdefault(literal, []).append(rendered)
+        self._ordinary_by_literal = {
+            literal: tuple(sorted(rendered)) for literal, rendered in ordinary_by_literal.items()
+        }
+        self._constant_ordinary = tuple(sorted(constant_ordinary))
         self._constant_seeds = tuple(seed for seed in self._seeds if seed.literal == 1)
         grouped_seeds: dict[int, list[GroundSeed]] = {}
         for seed in self._seeds:
@@ -672,7 +701,9 @@ class NativePropagator(clingo.Propagator):
         self._seeds_by_literal = {
             literal: tuple(grouped) for literal, grouped in grouped_seeds.items()
         }
-        for literal in self._native_literals:
+        watched_literals = {literal for literal in self._native_literals if abs(literal) > 1}
+        watched_literals.update(self._ordinary_by_literal)
+        for literal in sorted(watched_literals):
             if abs(literal) > 1:
                 init.add_watch(literal)
         self.init_seconds = time.perf_counter() - started
@@ -703,9 +734,11 @@ class NativePropagator(clingo.Propagator):
         state = self._states.get(thread_id)
         if state is not None:
             return state
-        state = _ThreadState(set(), {})
+        state = _ThreadState(set(), {}, {})
         for seed in self._constant_seeds:
             self._add_seed(state.seed_supports, seed)
+        for atom in self._constant_ordinary:
+            state.ordinary_supports[atom] = state.ordinary_supports.get(atom, 0) + 1
         self._states[thread_id] = state
         return state
 
@@ -741,6 +774,9 @@ class NativePropagator(clingo.Propagator):
             for seed in self._seeds_by_literal.get(literal, ()):
                 self._add_seed(state.seed_supports, seed)
                 self.seed_activation_count += 1
+            for atom in self._ordinary_by_literal.get(literal, ()):
+                state.ordinary_supports[atom] = state.ordinary_supports.get(atom, 0) + 1
+                self.ordinary_activation_count += 1
 
     def check(self, control: clingo.PropagateControl) -> None:
         self.check_count += 1
@@ -810,6 +846,7 @@ class NativePropagator(clingo.Propagator):
             )
         )
         self._snapshots[control.thread_id] = NativeSnapshot(
+            ordinary_atoms=tuple(sorted(state.ordinary_supports)),
             assignments=assignments,
             undefined_nvariables=tuple(sorted(undefined)),
         )
@@ -831,6 +868,13 @@ class NativePropagator(clingo.Propagator):
             for seed in self._seeds_by_literal.get(literal, ()):
                 self._remove_seed(state.seed_supports, seed)
                 self.seed_deactivation_count += 1
+            for atom in self._ordinary_by_literal.get(literal, ()):
+                remaining = state.ordinary_supports[atom] - 1
+                if remaining:
+                    state.ordinary_supports[atom] = remaining
+                else:
+                    del state.ordinary_supports[atom]
+                self.ordinary_deactivation_count += 1
         self._snapshots.pop(thread_id, None)
 
     def snapshot(self, thread_id: int) -> NativeSnapshot:
@@ -855,6 +899,11 @@ class NativePropagator(clingo.Propagator):
             decoded_values=self._decoded_values,
             value_cache_hits=self._value_cache_hits,
             watched_literals=sum(abs(literal) > 1 for literal in self._native_literals),
+            ordinary_atoms=len(self._constant_ordinary)
+            + sum(len(atoms) for atoms in self._ordinary_by_literal.values()),
+            ordinary_watched_literals=len(self._ordinary_by_literal),
+            ordinary_activations=self.ordinary_activation_count,
+            ordinary_deactivations=self.ordinary_deactivation_count,
             propagate_calls=self.propagate_count,
             propagated_literals=self.propagated_literal_count,
             seed_activations=self.seed_activation_count,
