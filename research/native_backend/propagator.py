@@ -5,13 +5,13 @@ from __future__ import annotations
 import json
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import TypeAlias
 
 import clingo
 
 
-class ValueKind(Enum):
+class ValueKind(StrEnum):
     """Kinds retained when reconstructing ASP{f} values."""
 
     INTEGER = "integer"
@@ -126,7 +126,7 @@ class GroundSeed:
     literal: int
 
 
-class StateKind(Enum):
+class StateKind(StrEnum):
     """Explicit state; undefinedness is not represented as a source value."""
 
     UNDEFINED = "undefined"
