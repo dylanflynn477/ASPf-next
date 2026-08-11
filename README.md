@@ -147,7 +147,15 @@ integer values and never coerce strings or symbols.
 This is a correctness-oriented reference translation, not a native theory-atom
 backend and not a claim to the grounding-efficiency behavior of historical
 Clingo{f}. The [architecture document](docs/architecture.md) explains the
-component boundaries and the separately planned native-propagator research.
+component boundaries.
+
+A separate theory-atom/Python-propagator feasibility study reached **PARTIAL GO for
+further research and NO-GO for production integration**. It demonstrated constant
+copy-rule grounding overhead and matching tested models, but its solver algorithm is
+not performant and exact historical n-loop coverage is incomplete. The prototype stays
+under `research/`; `_v` remains unsupported by the released frontend and no CLI backend
+flag was added. See the [research result](docs/research/native-backend-feasibility.md)
+and [benchmark report](docs/benchmarks/native-vs-reference.md).
 
 Useful CLI forms:
 
@@ -228,6 +236,8 @@ affiliated with Potassco.
 - [ordered-comparison development notes](docs/releases/ordered-comparisons-development.md)
 - [domain-safe variable development notes](docs/releases/domain-safe-variables-development.md)
 - [non-Herbrand variable research](docs/design/non-herbrand-variables.md)
+- [native-backend feasibility result](docs/research/native-backend-feasibility.md)
+- [native-versus-reference benchmark](docs/benchmarks/native-vs-reference.md)
 
 ## Status and development
 

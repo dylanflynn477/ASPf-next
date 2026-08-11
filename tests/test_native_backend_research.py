@@ -374,7 +374,7 @@ def test_nvariables_are_rejected_in_application_and_ordinary_atom_arguments() ->
         Atom("p", (forbidden,), location)
 
 
-def test_conservative_program_nloop_check_rejects_self_and_mutual_cycles() -> None:
+def test_limited_program_nloop_screen_rejects_self_and_mutual_cycles() -> None:
     variable = NVariable("_v")
     self_rule = NativeRule(
         "self_loop",
@@ -384,7 +384,10 @@ def test_conservative_program_nloop_check_rejects_self_and_mutual_cycles() -> No
     )
     with pytest.raises(
         NativeValidationError,
-        match=r"loops\.aspf:2:1: conservative program-level n-loop rejection: f -> f",
+        match=(
+            r"loops\.aspf:2:1: function-dependency cycle rejected by the limited "
+            r"n-loop screen: f -> f"
+        ),
     ):
         NativeSolver().solve(NativeProgram(rules=(self_rule,)))
 
@@ -399,7 +402,7 @@ def test_conservative_program_nloop_check_rejects_self_and_mutual_cycles() -> No
         AssignmentHead(_app("g"), NVariableExpression(variable)),
         definitions=(Definition(variable, AppExpression(_app("f"))),),
     )
-    with pytest.raises(NativeValidationError, match="conservative program-level n-loop"):
+    with pytest.raises(NativeValidationError, match="limited n-loop screen"):
         NativeSolver().solve(NativeProgram(rules=(first, second)))
 
 

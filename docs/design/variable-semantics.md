@@ -240,9 +240,9 @@ the key term during grounding.
 B12’s abstract account permits substitution by constants and terms, while B13’s later account
 speaks in terms of constants of suitable sorts. Historical Clingo{f} also permits a traditional
 variable to stand for a reified term outside an n-atom; B13 §3, p. 552 uses `is_weight(F),
-F #< 0`. ASPf-next intentionally rejects declared non-Herbrand symbols outside supported
-n-atom keys, so this reification pattern is not currently compatible and is not part of the
-recommended milestone.
+F #< 0`. ASPf-next preserves ordinary occurrences outside n-atoms as ordinary Herbrand
+syntax. That pass-through does not reify or inspect a non-Herbrand value, so the broader
+historical integration represented by this pattern is not part of the implemented contract.
 
 N-variables are different: the grounder does not substitute them. The solver-side Clingo{f}
 machinery assigns their values from positive defining equality n-atoms after grounding. That
@@ -529,7 +529,7 @@ purpose. It also ignores defining equalities and n-stratification.
 | seed equality safety | may provide safe variable occurrences | positive scalar `#=` supplies rule-local safety |
 | dependent comparison safety | variables must be safe elsewhere | enforced before lowering through the narrower ordinary-domain rule |
 | n-variables | grounder-inert, equality-defined, n-stratified | no representation or backend mechanism |
-| declared names outside n-atoms | treated as ordinary Herbrand terms in Clingo{f} | rejected to prevent semantic leakage |
+| declared names outside n-atoms | treated as ordinary Herbrand terms in Clingo{f} | passed through with ordinary Herbrand meaning; no n-value interpretation |
 | application-to-application comparison | supported broadly | all six operators in positive bodies, with two defined values and integer-only order |
 | arithmetic/aggregates | supported in broader language | rejected |
 | partiality | explicit semantic undefinedness | absence of a private value atom |

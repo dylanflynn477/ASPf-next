@@ -140,7 +140,7 @@ def _application_dependencies(rule: NativeRule) -> set[str]:
 
 
 def validate(program: NativeProgram) -> None:
-    """Enforce safety, n-stratification, and a conservative n-loop boundary."""
+    """Enforce safety, n-stratification, and a limited function-cycle screen."""
 
     for fact in program.facts:
         variables = variables_in_atom(fact)
@@ -169,7 +169,7 @@ def validate(program: NativeProgram) -> None:
         rule = locations[function]
         rendered = " -> ".join(found_cycle)
         raise_at(
-            "conservative program-level n-loop rejection: " + rendered,
+            "function-dependency cycle rejected by the limited n-loop screen: " + rendered,
             rule.location,
         )
 
