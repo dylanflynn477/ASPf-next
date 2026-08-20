@@ -20,10 +20,11 @@ coverage, and accurate compatibility classification.
    scope, visibility, and private-namespace isolation without expanding the
    language by accident.
 3. Preserve the native-backend feasibility result as a PARTIAL GO research
-   boundary. Further work must address provenance-aware explanations for derived
-   values, comparisons, guards, and undefinedness; narrower clauses and earlier
-   propagation; and broader grounded-exact n-loop analysis before a fresh
-   production-integration review.
+   boundary. Defined-value derivations, comparisons, and guards now retain narrow
+   support explanations and propagate early in the research prototype. Further work
+   must address compositional explanations for dynamic undefinedness and wider
+   derivations, remaining Python callback/evaluation costs, and broader grounded-exact
+   n-loop analysis before a fresh production-integration review.
 4. Consider each remaining historical construct separately, beginning with a
    primary-source semantic contract and a GO/NO-GO review.
 

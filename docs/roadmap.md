@@ -34,19 +34,24 @@ out of ordinary grounding, preserves the tested copy/undefinedness/backtracking 
 and holds copy-rule grounding overhead to one rule/theory atom through 10,000 candidate
 values. Incremental watched support eliminates check-time full seed rescans, and the
 visible-atom index eliminates per-model full symbolic-atom rescans. The realistic
-multi-application workload instead exposes broad explanation clauses as the dominant
-solver-performance problem; non-ground n-loop detection remains conservative, and
-two-thread support has only bounded feasibility evidence.
+multi-application workload originally exposed broad explanation clauses as the
+dominant solver-performance problem. Post-study hardening now retains support sets for
+derived values and comparisons, propagates narrow guard clauses earlier, and eliminates
+broad clauses on that workload. Native solving remains substantially slower than the
+reference, dynamic undefinedness does not yet have a general narrow explanation,
+non-ground n-loop detection remains conservative, and two-thread support has only
+bounded evidence.
 
 The code remains under `research/`; the released syntax, reference backend, and CLI are
 unchanged. The [feasibility report](research/native-backend-feasibility.md) and
 [benchmark report](benchmarks/native-vs-reference.md) record the preregistered gates,
 raw evidence, and limitations.
 
-The next native research milestone, if pursued, is provenance-aware explanations for
-derived values, comparisons, guards, and undefinedness; narrower conflict clauses and
-earlier propagation; and broader grounded-exact n-loop analysis. A fresh
-production-integration review should occur only if those gates succeed.
+The next native research milestone, if pursued, is extending the current support-set
+provenance into a compositional explanation design for dynamic undefinedness and wider
+derivations, reducing remaining Python callback/evaluation cost, and broadening
+grounded-exact n-loop analysis. A fresh production-integration review should occur
+only if those gates succeed.
 
 ## Deferred compatibility candidates
 

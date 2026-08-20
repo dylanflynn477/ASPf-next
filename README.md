@@ -151,11 +151,13 @@ component boundaries.
 
 A separate theory-atom/Python-propagator feasibility study reached **PARTIAL GO for
 further research and NO-GO for production integration**. It demonstrated constant
-copy-rule grounding overhead and matching tested models, but its solver algorithm is
-not performant and exact historical n-loop coverage is incomplete. The prototype stays
-under `research/`; `_v` remains unsupported by the released frontend and no CLI backend
-flag was added. See the [research result](docs/research/native-backend-feasibility.md)
-and [benchmark report](docs/benchmarks/native-vs-reference.md).
+copy-rule grounding overhead and matching tested models. Subsequent research hardening
+added support-set provenance, narrow derived/guard clauses, and earlier propagation,
+but native solving remains substantially slower than the reference and exact historical
+n-loop coverage is incomplete. The prototype stays under `research/`; `_v` remains
+unsupported by the released frontend and no CLI backend flag was added. See the
+[research result](docs/research/native-backend-feasibility.md) and
+[benchmark report](docs/benchmarks/native-vs-reference.md).
 
 Useful CLI forms:
 

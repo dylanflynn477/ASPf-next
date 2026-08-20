@@ -5,7 +5,16 @@ package versions use the same PEP 440 spelling.
 
 ## Unreleased
 
-No changes yet.
+### Research
+
+- Retained solver-literal support provenance for native research values, n-variable
+  definitions, comparisons, and guards; derived functionality conflicts and guard
+  mismatches can now receive narrow clauses.
+- Added early research-propagator evaluation, static undefinedness proofs, thread-local
+  learned-clause caches, explanation diagnostics, and deterministic work counters.
+- Preserved exact reference/native models while eliminating broad clauses from the
+  recorded multi-application workload. The native backend remains research-only and
+  is still substantially slower than the reference backend.
 
 ## 0.2.0a1 - 2026-08-08
 

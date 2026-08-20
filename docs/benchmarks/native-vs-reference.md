@@ -175,6 +175,26 @@ exhaustive-raw, and exhaustive-visible native medians are 705.793, 2,657.385, an
 and 10,602.728 ms. The reference visible figure also contains Python symbol extraction
 and is not a search-speed comparison.
 
+## Post-feasibility provenance workload
+
+The original multi-application workload isolated broad guard clauses as the dominant
+remaining solver cost. A follow-up at commit
+`1b8dd4f5076fefff76f7b086d63fbc6b227761fb` uses the same generated programs, one
+warm-up, seven samples, and one solver thread after support-set provenance and early
+propagation were added. It ran on the recorded Windows/Intel environment above with
+Python 3.12.13 and Clingo 5.8.2 on 2026-08-20.
+
+| Values | Reference solve | Native solve | Checks | Clauses | Broad | Clause literals | Max width | Equal models |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | :---: |
+| 10 | 0.092 ms | 4.768 ms | 13 | 21 | 0 | 41 | 2 | yes |
+| 100 | 0.622 ms | 35.392 ms | 103 | 201 | 0 | 401 | 2 | yes |
+| 1,000 | 9.012 ms | 373.820 ms | 1,003 | 2,001 | 0 | 4,001 | 2 | yes |
+
+The deterministic work counters demonstrate that the broad-clause pathology is gone
+for this workload. Timing is not a controlled claim against the older Clingo 5.8.1
+artifact, and the current native median remains about 41 times the current reference
+median at N=1,000.
+
 ## Commands
 
 Run from the repository root with the environment's Python:
@@ -201,7 +221,7 @@ python -m benchmarks.solve_decomposition \
 
 python -m benchmarks.multi_application_workload \
   --sizes 10 100 1000 --warmups 1 --repeats 7 \
-  --output benchmarks/results/multi-application-workload.json
+  --output benchmarks/results/multi-application-provenance.json
 ```
 
 Raw result files:
@@ -214,20 +234,27 @@ Raw result files:
 - [`benchmarks/results/solve-decomposition-after-visible-index.json`](../../benchmarks/results/solve-decomposition-after-visible-index.json)
 - [`benchmarks/results/solve-decomposition-final.json`](../../benchmarks/results/solve-decomposition-final.json)
 - [`benchmarks/results/multi-application-workload.json`](../../benchmarks/results/multi-application-workload.json)
+- [`benchmarks/results/multi-application-provenance.json`](../../benchmarks/results/multi-application-provenance.json)
 
 ## Interpretation and limitations
 
 The theory/propagator representation materially improves copy-rule grounding growth,
 preserves the tested visible models, and no longer performs candidate-domain rescans
 at every model. It remains slower for first-model and raw exhaustive solving. The
-largest avoidable visible-output scan has been removed; a multi-application workload
-instead exposes broad guard clauses as the dominant solver problem. This is evidence
-that grounder-inert metadata is possible through the Python API, not evidence that this
-implementation is production-ready or faster than the mature relational reference.
+largest avoidable visible-output scan has been removed. The original multi-application
+result then exposed broad guard clauses; provenance-aware support sets and early
+propagation remove that pathology in the follow-up run. This is evidence that
+grounder-inert metadata and narrow positive-support explanations are possible through
+the Python API, not evidence that this implementation is production-ready or faster
+than the mature relational reference.
 
 The copy family isolates one important historical motivation. The additional
 three-device workload exercises several applications, ordinary variables, partial
 undefinedness, a copy, two n-variable definitions, and several rules; at N=1,000 it
 grounds 2,032 native versus 8,012 reference rules with exact models, but solves in
 4,526.886 versus 9.552 ms because it generates 7,482 broad clauses. The research
+artifact is retained as the pre-provenance baseline. The follow-up run preserves exact
+models and grounding structure while reducing the native result to 2,001 narrow
+clauses, zero broad clauses, 4,001 clause literals, maximum width two, and a 373.820 ms
+solve median. The 9.012 ms reference median remains about 41 times faster. The research
 report documents the semantic, explanation, threading, and n-loop boundaries.

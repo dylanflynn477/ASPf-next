@@ -202,15 +202,22 @@ one or two threads because that is the evaluated boundary. A propagation callbac
 only the seeds associated with newly true watched literals; undo removes exactly those
 supports.
 
-At each total assignment, the prototype copies the usually small active support map,
-evaluates active rules through an application-dependency work queue, rejects
-functionality conflicts or mismatched ordinary-head guards with a clause, and records
-only a valid immutable snapshot for model reconstruction. Direct conflicts between two
-seed values are detected during propagation and explained by just those two support
-literals. Derived-value conflicts and guard mismatches still use broad total-assignment
-clauses. Provider rules are ordered before consumers, and a rule is reconsidered only
-when an application it reads gains a value. Total checks no longer scan the grounded
-candidate-seed domain.
+The prototype evaluates active rules through an application-dependency work queue and
+retains deterministic positive solver-literal support sets for seeds, derived values,
+n-variable definitions, comparisons, and guards. Direct and derived functionality
+conflicts and explained guard mismatches receive clauses containing only their actual
+supports. Guarded or multi-provider families are evaluated on relevant watched changes
+so those clauses can propagate before a total check. Total checks remain the validation
+and snapshot boundary; they copy the usually small active support map and use a broad
+completion clause only when no justified support explanation is available. Provider
+rules are ordered before consumers, and a rule is reconsidered only when an application
+it reads gains a value. Total checks do not scan the grounded candidate-seed domain.
+
+A grounded potential-application fixed point soundly proves unconditional
+undefinedness where no seed or viable provider path exists. It deliberately
+over-approximates potential derivations. Dynamic absence caused by inactive supports is
+not treated as proof of falsehood because Clingo total checks may still contain
+don't-care solver literals; those cases retain an explicit explanation gap.
 
 Dynamic application values are not Clingo symbolic atoms: the public API can create
 volatile solver literals during solving, but it cannot add a new grounded symbolic
@@ -220,7 +227,7 @@ The incremental design is still a research propagator, not a production backend.
 
 ## Semantic results
 
-Forty-three focused research tests exercise the prototype and differential harness.
+Forty-six focused research tests exercise the prototype and differential harness.
 Every implemented semantic case passes:
 
 | Property | Result | Evidence boundary |
@@ -231,7 +238,9 @@ Every implemented semantic case passes:
 | defined zero | pass | distinguished from undefined |
 | application functionality | pass | conflicting active values make the model impossible |
 | direct functionality explanation | pass | two relevant seed supports; width at most two |
-| derived functionality explanation | partial | correct broad total-assignment clause |
+| derived functionality explanation | pass | actual transitive positive supports; unit or empty reasons tested |
+| guard explanation | pass | comparison truth/failure clauses retain actual supports; width at most two in workload |
+| undefinedness explanation | partial | exact static no-provider proof; dynamic absence remains unexplained |
 | one / agreeing definitions | pass | one derived value |
 | conflicting definitions | pass | n-variable becomes undefined; no target value |
 | undefined defining expression | pass | n-variable becomes undefined; no target value |
@@ -297,7 +306,9 @@ The reproducible raw data is in:
   exhaustive-raw, and exhaustive-visible seven-repeat comparisons;
 - `benchmarks/results/multi-application-workload.json` — a three-device workload with
   multiple applications, ordinary variables, n-variable binding, two definitions in
-  one rule, and one intentionally undefined source; and
+  one rule, and one intentionally undefined source before provenance hardening;
+- `benchmarks/results/multi-application-provenance.json` — the same workload after
+  provenance-aware explanations and early propagation; and
 - `benchmarks/results/large-model-equivalence.json` — one untimed exhaustive visible
   model comparison at sizes 5,000 and 10,000.
 
@@ -394,24 +405,41 @@ quadratic grounding artifact while preserving the exact model set.
 | 100 | 812 | 232 | 1.306 ms | 1.547 ms | 0.622 ms | 74.496 ms | yes |
 | 1,000 | 8,012 | 2,032 | 12.534 ms | 30.642 ms | 9.552 ms | 4,526.886 ms | yes |
 
-The structural advantage survives: the native program still grounds the actual
-alternative seed assignments, but the dependent copy/rules add fixed theory metadata
-per device instead of one relational rule per candidate value. Absolute native solve
-performance is poor. At N=1,000 the prototype performs 8,482 total checks and emits
+The original result establishes that the structural advantage survives: the native
+program still grounds the actual alternative seed assignments, but the dependent
+copy/rules add fixed theory metadata per device instead of one relational rule per
+candidate value. Absolute native solve performance is poor. At N=1,000 the prototype
+performs 8,482 total checks and emits
 7,482 broad clauses containing 7,504,446 literals, with maximum width 1,003. Visible
 reconstruction is only 22.276 ms. This workload identifies broad guard explanations,
 not model output or grounding, as the dominant accidental cost.
 
+The post-hardening run uses the same workload and seven-sample protocol:
+
+| Candidate values | Reference solve | Native solve | Total checks | Clauses | Broad clauses | Clause literals | Maximum width | Models equal |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | :---: |
+| 10 | 0.092 ms | 4.768 ms | 13 | 21 | 0 | 41 | 2 | yes |
+| 100 | 0.622 ms | 35.392 ms | 103 | 201 | 0 | 401 | 2 | yes |
+| 1,000 | 9.012 ms | 373.820 ms | 1,003 | 2,001 | 0 | 4,001 | 2 | yes |
+
+These measurements remove the identified broad-clause pathology and reduce checks to
+approximately one per model, while preserving exact normalized model digests. They do
+not establish performance parity: at N=1,000 the native solve median remains about
+41 times the relational reference median. The prior artifact used Clingo 5.8.1 and the
+follow-up uses 5.8.2, so cross-artifact timing changes are informational; deterministic
+clause counts and widths carry the optimization claim.
+
 ### Conflict and thread audit
 
-Direct seed functionality conflicts are now detected incrementally and receive a
-clause derived from the two incompatible support literals. Tests cover width two,
-unit, and empty conflicts. Conflicting n-variable definitions intentionally make that
-rule-local n-variable undefined; they are not themselves solver conflicts. A derived
-functionality conflict and an unsatisfied ordinary-head equality remain correct but
-use broad total-assignment clauses because the evaluator does not retain a provenance
-DAG for derived values or undefinedness. The Python API can accept narrower clauses;
-the missing component is reason tracking in this prototype.
+Direct seed functionality conflicts are detected incrementally and receive a clause
+derived from the two incompatible support literals. Tests cover width two, unit, and
+empty conflicts. Transitive support sets now give derived functionality conflicts and
+comparison guards narrow explanations as well. Conflicting n-variable definitions
+intentionally make that rule-local n-variable undefined; they are not themselves solver
+conflicts. Static no-provider undefinedness has an empty proof, while dynamic absence
+still has no general reason. The Python API accepts the resulting narrower clauses;
+the remaining research problem is a compositional explanation design for absence and
+wider derivation shapes rather than broadening clauses by assumption.
 
 Clingo documents that one propagator instance can receive callbacks from different
 solver threads. The experiment now shares only immutable decoded indexes and keeps
@@ -432,8 +460,10 @@ The final measurements record:
 - benchmark date (UTC): 2026-08-11;
 - final decomposition input commit: `d5d78a710505bc6f51ea9aaf1339499ffd046723`;
 - multi-application input commit: `cd31d6885ec90a346d4fc794252957b13f7fc9b9`;
+- provenance-hardening input commit: `1b8dd4f5076fefff76f7b086d63fbc6b227761fb`;
 - Python: 3.12.13;
-- Clingo: 5.8.1;
+- Clingo: 5.8.1 for the completed feasibility measurements and 5.8.2 for the
+  provenance-hardening workload;
 - platform: Windows 11 (`10.0.26200`, AMD64);
 - CPU: Intel64 Family 6 Model 186 Stepping 3, GenuineIntel; and
 - logical CPU count: 12.
@@ -459,8 +489,8 @@ It does not satisfy every GO gate:
    conservative for non-ground or dynamic-head programs;
 3. two-thread behavior has bounded tests but not production-grade concurrency proof;
 4. cross-type historical ordering semantics are not established;
-5. derived assignments, failed comparisons, and undefinedness lack reason provenance,
-   leaving broad total-assignment clauses; and
+5. derived values, comparisons, and guards have positive-support reasons, but dynamic
+   undefinedness and wider derivations lack a general compositional provenance model;
 6. native first-model and exhaustive solving remain slower than the relational
    reference even after reconstruction overhead was substantially reduced.
 
@@ -472,11 +502,12 @@ language contract are unchanged.
 
 Before reconsidering integration:
 
-1. retain a provenance DAG for derived values, comparisons, and undefinedness so guard
-   clauses contain actual supports rather than the full native assignment;
+1. extend the current support-set explanations into a compositional provenance design
+   for dynamic undefinedness and wider derivations;
 2. move exact n-loop analysis to grounded typed metadata while mapping witnesses back
    to source locations;
-3. profile and reduce Python propagator initialization and raw enumeration overhead;
+3. profile and reduce Python evaluation, callback, initialization, and raw enumeration
+   overhead;
 4. stress the bounded two-thread design under substantially larger and conflicting
    workloads, or return to an explicit one-thread production boundary;
 5. define how a production typed frontend represents rule-local n-variable identities
@@ -518,14 +549,15 @@ not an ordinary relational fallback disguised as native support.
     The typed analysis and focused note cover direct/indirect paths, ordinary cycles,
     default-negated edges, full simple-term keys, and the conservative non-ground
     boundary.
-11. **Are conflicts explained from relevant literals?** Direct seed functionality is;
-    derived functionality and guard mismatches are explicitly not yet.
+11. **Are conflicts explained from relevant literals?** Direct and derived
+    functionality plus defined comparison guards are; static no-provider
+    undefinedness is exact, while dynamic absence remains an explicit gap.
 12. **Is thread safety accurately stated?** Yes. One and two threads are accepted,
     timing remains one-thread, and the two-thread result is bounded evidence rather
     than a production proof.
 13. **Are limitations disclosed?** Yes: research-only typed input, conservative wider
-    n-loop coverage, broad derived clauses, bounded threading, unproved cross-type
-    order, and slower absolute solving are explicit.
+    n-loop coverage, incomplete dynamic-undefinedness provenance, bounded threading,
+    unproved cross-type order, and slower absolute solving are explicit.
 14. **Is model reconstruction counted honestly?** Yes. Raw enumeration, native visible
     reconstruction, stable sorting, and benchmark digest work have separate timers;
     normal visible semantics still take the deterministic path.

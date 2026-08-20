@@ -92,7 +92,7 @@ The less synthetic observation-pipeline workload is reproducible with:
 ```console
 python -m benchmarks.multi_application_workload \
   --sizes 10 100 1000 --warmups 1 --repeats 7 \
-  --output benchmarks/results/multi-application-workload.json
+  --output benchmarks/results/multi-application-provenance.json
 ```
 
 It uses three ordinary-grounded devices, multiple non-Herbrand applications, an
@@ -101,3 +101,10 @@ comparison. The paired reference and native programs have exact normalized model
 digests. Its exactly-one choice makes application conflicts impossible, so the
 reference source deliberately omits a redundant functionality constraint that would
 otherwise introduce an unrelated quadratic grounding artifact.
+
+`multi-application-workload.json` preserves the result before provenance-aware guard
+explanations. `multi-application-provenance.json` records the same protocol after
+support-set provenance and early propagation. The latter adds deterministic counts for
+derived-functionality and guard clauses, narrow versus broad clauses, attributed broad
+fallbacks, duplicate clauses, solver propagation outcomes, and early explanations.
+Timing remains secondary to exact model digests and these structural work counters.
