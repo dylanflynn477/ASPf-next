@@ -39,6 +39,7 @@ dominant solver-performance problem. Post-study hardening now retains support se
 derived values and comparisons, propagates narrow guard clauses earlier, and eliminates
 broad clauses on that workload. Native solving remains substantially slower than the
 reference, dynamic undefinedness does not yet have a general narrow explanation,
+thread-local caching avoids repeating an unchanged early evaluation at total checks,
 non-ground n-loop detection remains conservative, and two-thread support has only
 bounded evidence.
 
@@ -49,9 +50,10 @@ raw evidence, and limitations.
 
 The next native research milestone, if pursued, is extending the current support-set
 provenance into a compositional explanation design for dynamic undefinedness and wider
-derivations, reducing remaining Python callback/evaluation cost, and broadening
-grounded-exact n-loop analysis. A fresh production-integration review should occur
-only if those gates succeed.
+derivations, incrementally updating affected closure state rather than reevaluating the
+rule family, reducing remaining Python callback cost, and broadening grounded-exact
+n-loop analysis. A fresh production-integration review should occur only if those gates
+succeed.
 
 ## Deferred compatibility candidates
 

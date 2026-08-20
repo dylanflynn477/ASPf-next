@@ -308,7 +308,9 @@ The reproducible raw data is in:
   multiple applications, ordinary variables, n-variable binding, two definitions in
   one rule, and one intentionally undefined source before provenance hardening;
 - `benchmarks/results/multi-application-provenance.json` — the same workload after
-  provenance-aware explanations and early propagation; and
+  provenance-aware explanations and early propagation;
+- `benchmarks/results/multi-application-evaluation-cache.json` — the same workload
+  after exact thread-local evaluation reuse; and
 - `benchmarks/results/large-model-equivalence.json` — one untimed exhaustive visible
   model comparison at sizes 5,000 and 10,000.
 
@@ -429,6 +431,21 @@ not establish performance parity: at N=1,000 the native solve median remains abo
 follow-up uses 5.8.2, so cross-artifact timing changes are informational; deterministic
 clause counts and widths carry the optimization claim.
 
+At commit `88c4f7fd6e09f50917bd683b8e2f2ce250d23cbd`, an exact thread-local
+cache reuses the closure already computed during early propagation when no seed or rule
+activation has changed. Activation and undo invalidate it. The same seven-sample
+protocol records:
+
+| Candidate values | Native solve before cache | Native solve with cache | Evaluation runs | Check cache hits | Rule-body evaluations | Models equal |
+| ---: | ---: | ---: | ---: | ---: | ---: | :---: |
+| 10 | 4.768 ms | 3.846 ms | 18 | 13 | 162 | yes |
+| 100 | 35.392 ms | 27.878 ms | 198 | 103 | 1,782 | yes |
+| 1,000 | 373.820 ms | 303.996 ms | 1,998 | 1,003 | 17,982 | yes |
+
+At N=1,000, rule-body evaluations fall 33.4% and the same-environment native median
+falls 18.7%. The 8.972 ms relational reference median is still about 34 times faster.
+The cache removes duplicate work; it does not make closure maintenance incremental.
+
 ### Conflict and thread audit
 
 Direct seed functionality conflicts are detected incrementally and receive a clause
@@ -461,9 +478,10 @@ The final measurements record:
 - final decomposition input commit: `d5d78a710505bc6f51ea9aaf1339499ffd046723`;
 - multi-application input commit: `cd31d6885ec90a346d4fc794252957b13f7fc9b9`;
 - provenance-hardening input commit: `1b8dd4f5076fefff76f7b086d63fbc6b227761fb`;
+- evaluation-cache input commit: `88c4f7fd6e09f50917bd683b8e2f2ce250d23cbd`;
 - Python: 3.12.13;
 - Clingo: 5.8.1 for the completed feasibility measurements and 5.8.2 for the
-  provenance-hardening workload;
+  post-feasibility workloads;
 - platform: Windows 11 (`10.0.26200`, AMD64);
 - CPU: Intel64 Family 6 Model 186 Stepping 3, GenuineIntel; and
 - logical CPU count: 12.
@@ -506,8 +524,8 @@ Before reconsidering integration:
    for dynamic undefinedness and wider derivations;
 2. move exact n-loop analysis to grounded typed metadata while mapping witnesses back
    to source locations;
-3. profile and reduce Python evaluation, callback, initialization, and raw enumeration
-   overhead;
+3. incrementally update affected closure state and reduce remaining Python callback,
+   initialization, and raw-enumeration overhead;
 4. stress the bounded two-thread design under substantially larger and conflicting
    workloads, or return to an explicit one-thread production boundary;
 5. define how a production typed frontend represents rule-local n-variable identities

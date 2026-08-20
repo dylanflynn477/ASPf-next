@@ -23,8 +23,9 @@ coverage, and accurate compatibility classification.
    boundary. Defined-value derivations, comparisons, and guards now retain narrow
    support explanations and propagate early in the research prototype. Further work
    must address compositional explanations for dynamic undefinedness and wider
-   derivations, remaining Python callback/evaluation costs, and broader grounded-exact
-   n-loop analysis before a fresh production-integration review.
+   derivations, incremental closure updates beyond the current thread-local evaluation
+   cache, remaining Python callback/evaluation costs, and broader grounded-exact n-loop
+   analysis before a fresh production-integration review.
 4. Consider each remaining historical construct separately, beginning with a
    primary-source semantic contract and a GO/NO-GO review.
 

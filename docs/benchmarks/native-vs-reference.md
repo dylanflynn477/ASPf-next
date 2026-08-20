@@ -195,6 +195,21 @@ for this workload. Timing is not a controlled claim against the older Clingo 5.8
 artifact, and the current native median remains about 41 times the current reference
 median at N=1,000.
 
+A second follow-up at commit `88c4f7fd6e09f50917bd683b8e2f2ce250d23cbd`
+reuses a thread's unchanged early evaluation at its total check. This is an exact cache,
+not a semantic approximation: seed/rule activation and undo invalidate it.
+
+| Values | Native solve before cache | Native solve with cache | Evaluation runs | Check cache hits | Rule-body evaluations | Equal models |
+| ---: | ---: | ---: | ---: | ---: | ---: | :---: |
+| 10 | 4.768 ms | 3.846 ms | 18 | 13 | 162 | yes |
+| 100 | 35.392 ms | 27.878 ms | 198 | 103 | 1,782 | yes |
+| 1,000 | 373.820 ms | 303.996 ms | 1,998 | 1,003 | 17,982 | yes |
+
+At N=1,000 this removes 33.4% of rule-body evaluations and reduces the same-environment
+native median by 18.7%. The clause result remains 2,001 narrow clauses, zero broad
+clauses, 4,001 literals, and maximum width two. Profiled closure evaluation is still
+the main Python callback cost; the 8.972 ms reference median remains much faster.
+
 ## Commands
 
 Run from the repository root with the environment's Python:
@@ -221,7 +236,7 @@ python -m benchmarks.solve_decomposition \
 
 python -m benchmarks.multi_application_workload \
   --sizes 10 100 1000 --warmups 1 --repeats 7 \
-  --output benchmarks/results/multi-application-provenance.json
+  --output benchmarks/results/multi-application-evaluation-cache.json
 ```
 
 Raw result files:
@@ -235,6 +250,7 @@ Raw result files:
 - [`benchmarks/results/solve-decomposition-final.json`](../../benchmarks/results/solve-decomposition-final.json)
 - [`benchmarks/results/multi-application-workload.json`](../../benchmarks/results/multi-application-workload.json)
 - [`benchmarks/results/multi-application-provenance.json`](../../benchmarks/results/multi-application-provenance.json)
+- [`benchmarks/results/multi-application-evaluation-cache.json`](../../benchmarks/results/multi-application-evaluation-cache.json)
 
 ## Interpretation and limitations
 
@@ -256,5 +272,7 @@ grounds 2,032 native versus 8,012 reference rules with exact models, but solves 
 artifact is retained as the pre-provenance baseline. The follow-up run preserves exact
 models and grounding structure while reducing the native result to 2,001 narrow
 clauses, zero broad clauses, 4,001 clause literals, maximum width two, and a 373.820 ms
-solve median. The 9.012 ms reference median remains about 41 times faster. The research
-report documents the semantic, explanation, threading, and n-loop boundaries.
+solve median. Exact evaluation reuse further reduces the final median to 303.996 ms
+without changing those clause metrics. The 8.972 ms reference median remains about
+34 times faster. The research report documents the semantic, explanation, threading,
+and n-loop boundaries.

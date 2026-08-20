@@ -58,9 +58,10 @@ and conservative for ordinary-variable or dynamic-head patterns.
 The propagator now retains deterministic solver-literal support sets through derived
 values, n-variable definitions, comparisons, and guards. It evaluates guarded and
 multi-provider rule families on relevant watched changes, installs narrow clauses, and
-keeps clause caches per solver thread. Static application-potential analysis can prove
-some applications unconditionally undefined; dynamic absence remains unexplained when
-no positive support proof is available.
+keeps clause and evaluation caches per solver thread. The cached closure is invalidated
+exactly when a seed or rule activation changes or is undone. Static
+application-potential analysis can prove some applications unconditionally undefined;
+dynamic absence remains unexplained when no positive support proof is available.
 
 The original three-device multi-application result at N=1,000 emitted 7,482 broad
 clauses containing 7,504,446 literals, with maximum width 1,003. The post-hardening run
@@ -71,6 +72,13 @@ seconds across the recorded artifacts. The artifacts use different Clingo patch
 versions, so deterministic work counts—not that timing ratio—are the primary evidence.
 The current reference median is 0.009 seconds, so this remains a research improvement
 rather than a production-performance result.
+
+A same-environment follow-up caches the evaluation already produced during early
+propagation and reuses it at total checks. At N=1,000, all 1,003 checks are cache hits,
+rule-body evaluations fall from 27,009 to 17,982, and the seven-sample native median
+falls from 0.374 to 0.304 seconds. Clause counts, widths, and exact model digests are
+unchanged. Profiled closure evaluation remains the dominant Python callback cost, so
+this does not justify production integration.
 
 ## Decision
 
