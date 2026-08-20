@@ -194,6 +194,8 @@ class NativeWorkMetrics:
     seed_deactivations: int
     check_calls: int
     check_seed_probes: int
+    evaluation_runs: int
+    evaluation_cache_hits: int
     rule_body_evaluations: int
     blocking_clauses: int
     functionality_clauses: int
@@ -220,6 +222,7 @@ class _ThreadState:
     true_literals: set[int]
     seed_supports: dict[GroundApplication, dict[GroundValue, dict[int, int]]]
     ordinary_supports: dict[str, int]
+    evaluation: _EvaluationState | None
 
 
 @dataclass(slots=True)
@@ -845,6 +848,8 @@ class NativePropagator(clingo.Propagator):
         self.ordinary_activation_count = 0
         self.ordinary_deactivation_count = 0
         self.check_seed_probe_count = 0
+        self.evaluation_count = 0
+        self.evaluation_cache_hit_count = 0
         self.rule_body_evaluation_count = 0
         self.blocking_clause_count = 0
         self.functionality_clause_count = 0
@@ -891,6 +896,8 @@ class NativePropagator(clingo.Propagator):
         self.ordinary_activation_count = 0
         self.ordinary_deactivation_count = 0
         self.check_seed_probe_count = 0
+        self.evaluation_count = 0
+        self.evaluation_cache_hit_count = 0
         self.rule_body_evaluation_count = 0
         self.blocking_clause_count = 0
         self.functionality_clause_count = 0
@@ -1018,7 +1025,7 @@ class NativePropagator(clingo.Propagator):
         state = self._states.get(thread_id)
         if state is not None:
             return state
-        state = _ThreadState(set(), {}, {})
+        state = _ThreadState(set(), {}, {}, None)
         for seed in self._constant_seeds:
             self._add_seed(state.seed_supports, seed)
         for atom in self._constant_ordinary:
@@ -1172,6 +1179,7 @@ class NativePropagator(clingo.Propagator):
         return None
 
     def _evaluate_state(self, state: _ThreadState) -> _EvaluationState:
+        self.evaluation_count += 1
         applications = self._seed_applications(state)
         active = tuple(self._true(state, rule.active_literal) for rule in self._rules)
         pending = deque(index for index in self._rule_order if active[index])
@@ -1245,12 +1253,15 @@ class NativePropagator(clingo.Propagator):
                 state.ordinary_supports[atom] = state.ordinary_supports.get(atom, 0) + 1
                 self.ordinary_activation_count += 1
         conflict = self._seed_conflict_literals(state)
+        if semantic_change:
+            state.evaluation = None
         if conflict is not None:
             self._block_seed_conflict(control, conflict)
             return
         if not semantic_change or not self._early_evaluation_required:
             return
         evaluation = self._evaluate_state(state)
+        state.evaluation = evaluation
         application_conflict = self._application_conflict(evaluation.applications)
         if application_conflict is not None:
             explanation = _merge_explanations(application_conflict)
@@ -1288,7 +1299,12 @@ class NativePropagator(clingo.Propagator):
         if conflict is not None:
             self._block_seed_conflict(control, conflict)
             return
-        evaluation = self._evaluate_state(state)
+        evaluation = state.evaluation
+        if evaluation is None:
+            evaluation = self._evaluate_state(state)
+            state.evaluation = evaluation
+        else:
+            self.evaluation_cache_hit_count += 1
         application_conflict = self._application_conflict(evaluation.applications)
         if application_conflict is not None:
             explanation = _merge_explanations(application_conflict)
@@ -1369,11 +1385,15 @@ class NativePropagator(clingo.Propagator):
         self.undo_count += 1
         self.undone_literal_count += len(changes)
         state = self._state(thread_id)
+        semantic_change = False
         for literal in changes:
             state.true_literals.remove(literal)
             for seed in self._seeds_by_literal.get(literal, ()):
                 self._remove_seed(state.seed_supports, seed)
                 self.seed_deactivation_count += 1
+                semantic_change = True
+            if literal in self._rule_activation_literals:
+                semantic_change = True
             for atom in self._ordinary_by_literal.get(literal, ()):
                 remaining = state.ordinary_supports[atom] - 1
                 if remaining:
@@ -1381,6 +1401,8 @@ class NativePropagator(clingo.Propagator):
                 else:
                     del state.ordinary_supports[atom]
                 self.ordinary_deactivation_count += 1
+        if semantic_change:
+            state.evaluation = None
         self._snapshots.pop(thread_id, None)
 
     def snapshot(self, thread_id: int) -> NativeSnapshot:
@@ -1416,6 +1438,8 @@ class NativePropagator(clingo.Propagator):
             seed_deactivations=self.seed_deactivation_count,
             check_calls=self.check_count,
             check_seed_probes=self.check_seed_probe_count,
+            evaluation_runs=self.evaluation_count,
+            evaluation_cache_hits=self.evaluation_cache_hit_count,
             rule_body_evaluations=self.rule_body_evaluation_count,
             blocking_clauses=self.blocking_clause_count,
             functionality_clauses=self.functionality_clause_count,

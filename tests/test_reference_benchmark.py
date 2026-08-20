@@ -86,6 +86,7 @@ def test_multi_application_workload_smoke_preserves_partial_models() -> None:
     assert case.native.structure.theory_atoms == 21
     assert case.native.work.check_seed_probes == 0
     assert case.native.work.early_explanation_clauses > 0
+    assert case.native.work.evaluation_cache_hits == case.native.work.check_calls
     assert case.native.work.broad_blocking_clauses == 0
     assert case.native.work.maximum_clause_width <= 2
     assert case.native.work.clause_literals <= 5 * case.candidate_values

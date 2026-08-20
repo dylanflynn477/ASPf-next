@@ -948,6 +948,8 @@ def test_two_thread_explained_guards_match_single_thread_repeatedly() -> None:
     ]
     assert parallel.work_metrics.broad_blocking_clauses == 0
     assert repeated.work_metrics.broad_blocking_clauses == 0
+    assert parallel.work_metrics.evaluation_cache_hits > 0
+    assert repeated.work_metrics.evaluation_cache_hits > 0
     assert parallel.work_metrics.maximum_clause_width <= 2
     assert repeated.work_metrics.maximum_clause_width <= 2
 
