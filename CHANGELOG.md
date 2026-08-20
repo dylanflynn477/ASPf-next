@@ -5,6 +5,10 @@ package versions use the same PEP 440 spelling.
 
 ## Unreleased
 
+### Added
+
+- Added `aspf --version` and a wheel-install smoke check in CI.
+
 ### Research
 
 - Retained solver-literal support provenance for native research values, n-variable

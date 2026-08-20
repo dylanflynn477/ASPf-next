@@ -162,6 +162,7 @@ unsupported by the released frontend and no CLI backend flag was added. See the
 Useful CLI forms:
 
 ```console
+aspf --version
 aspf examples/01_basic_assignment.aspf --emit-lowered
 aspf examples/03_conditional_assignment.aspf --json
 aspf examples/05_multiple_models.aspf --models 0
