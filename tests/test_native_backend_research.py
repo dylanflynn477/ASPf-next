@@ -333,7 +333,7 @@ def test_conflicting_or_undefined_definition_makes_nvariable_undefined(
     assert result.work_metrics.blocking_clauses == 0
 
 
-def test_derived_functionality_conflict_is_still_a_broad_total_assignment_clause() -> None:
+def test_unconditional_derived_functionality_conflict_has_an_empty_reason() -> None:
     program = NativeProgram(
         seeds=(Seed(_app("f"), Integer(1)), Seed(_app("g"), Integer(2))),
         rules=(
@@ -345,11 +345,36 @@ def test_derived_functionality_conflict_is_still_a_broad_total_assignment_clause
     result = NativeSolver().solve(program)
 
     assert not result.satisfiable
-    assert result.work_metrics.functionality_clauses == 0
-    assert result.work_metrics.broad_blocking_clauses == 1
+    assert result.work_metrics.functionality_clauses == 1
+    assert result.work_metrics.derived_functionality_clauses == 1
+    assert result.work_metrics.narrow_blocking_clauses == 1
+    assert result.work_metrics.broad_blocking_clauses == 0
+    assert result.work_metrics.clause_literals == 0
 
 
-def test_failed_required_equality_uses_a_total_assignment_filter() -> None:
+def test_conditional_derived_functionality_conflict_keeps_only_actual_supports() -> None:
+    value = Variable("V")
+    program = NativeProgram(
+        choices=(Choice("choose", value, 1, 2),),
+        seeds=(
+            Seed(_app("f"), Integer(1), (Atom("choose", (Integer(1),)),)),
+            Seed(_app("g"), Integer(2)),
+        ),
+        rules=(
+            _copy_rule(identifier="from_f", source=_app("f"), target=_app("h")),
+            _copy_rule(identifier="from_g", source=_app("g"), target=_app("h")),
+        ),
+    )
+
+    result = NativeSolver().solve(program)
+
+    assert [model.visible for model in result.models] == [("choose(2)", "g(x)#=2", "h(x)#=2")]
+    assert result.work_metrics.derived_functionality_clauses == 1
+    assert result.work_metrics.broad_blocking_clauses == 0
+    assert result.work_metrics.maximum_clause_width == 1
+
+
+def test_failed_required_equality_uses_a_narrow_guard_explanation() -> None:
     program = NativeProgram(
         seeds=(Seed(_app("f"), Integer(1)),),
         rules=(
@@ -371,7 +396,35 @@ def test_failed_required_equality_uses_a_total_assignment_filter() -> None:
 
     assert result.models[0].visible == ("f(x)#=1",)
     assert result.work_metrics.functionality_clauses == 0
-    assert result.work_metrics.broad_blocking_clauses == 1
+    assert result.work_metrics.guard_clauses == 1
+    assert result.work_metrics.narrow_blocking_clauses == 1
+    assert result.work_metrics.broad_blocking_clauses == 0
+    assert result.work_metrics.maximum_clause_width == 1
+
+
+def test_static_undefinedness_has_a_narrow_guard_explanation() -> None:
+    program = NativeProgram(
+        rules=(
+            NativeRule(
+                "missing_source",
+                AtomHead(Atom("available")),
+                comparisons=(
+                    Comparison(
+                        AppExpression(_app("missing")),
+                        ComparisonOperator.EQUAL,
+                        ConstantExpression(Integer(1)),
+                    ),
+                ),
+            ),
+        ),
+    )
+
+    result = NativeSolver().solve(program)
+
+    assert result.models[0].visible == ()
+    assert result.work_metrics.guard_clauses == 1
+    assert result.work_metrics.broad_blocking_clauses == 0
+    assert result.work_metrics.maximum_clause_width == 1
 
 
 def test_multiple_level_nvariable_definitions_are_evaluated_in_order() -> None:
@@ -860,6 +913,43 @@ def test_two_thread_copy_enumeration_matches_single_thread_and_restores_state() 
     ]
     assert parallel.work_metrics.seed_activations == parallel.work_metrics.seed_deactivations
     assert repeated.work_metrics.seed_activations == repeated.work_metrics.seed_deactivations
+
+
+def test_two_thread_explained_guards_match_single_thread_repeatedly() -> None:
+    value = Variable("V")
+    source = AppExpression(_app("f"))
+    program = NativeProgram(
+        choices=(Choice("choose", value, 1, 20),),
+        seeds=(Seed(_app("f"), value, (Atom("choose", (value,)),)),),
+        rules=(
+            NativeRule(
+                "high",
+                AtomHead(Atom("high")),
+                comparisons=(
+                    Comparison(
+                        source,
+                        ComparisonOperator.GREATER_EQUAL,
+                        ConstantExpression(Integer(10)),
+                    ),
+                ),
+            ),
+        ),
+    )
+
+    single = NativeSolver().solve(program, threads=1)
+    parallel = NativeSolver().solve(program, threads=2)
+    repeated = NativeSolver().solve(program, threads=2)
+
+    assert [model.visible for model in parallel.models] == [
+        model.visible for model in single.models
+    ]
+    assert [model.visible for model in repeated.models] == [
+        model.visible for model in single.models
+    ]
+    assert parallel.work_metrics.broad_blocking_clauses == 0
+    assert repeated.work_metrics.broad_blocking_clauses == 0
+    assert parallel.work_metrics.maximum_clause_width <= 2
+    assert repeated.work_metrics.maximum_clause_width <= 2
 
 
 def test_thread_count_is_bounded_to_the_evaluated_research_modes() -> None:
