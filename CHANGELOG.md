@@ -3,7 +3,7 @@
 Notable changes to ASPf-next are recorded here. Reader-facing and Python
 package versions use the same PEP 440 spelling.
 
-## 0.2.0a2 - Unreleased
+## 0.2.0a2 - 2026-08-22
 
 ### Added
 
@@ -11,11 +11,11 @@ package versions use the same PEP 440 spelling.
 
 ### Changed
 
-- Prepared future releases for the PolyForm Noncommercial License 1.0.0,
-  subject to final copyright-holder and legal review. This source-available
-  license is not OSI-approved. The published `0.2.0a1` release remains governed
-  by its accompanying MIT License; rights already granted for that release or
-  another pre-transition copy distributed with MIT terms are unchanged.
+- Beginning with this release, ASPf-next is distributed under the PolyForm
+  Noncommercial License 1.0.0. This source-available license is not
+  OSI-approved. The published `0.2.0a1` release remains governed by its
+  accompanying MIT License; rights already granted for that release or another
+  pre-transition copy distributed with MIT terms are unchanged.
 
 ### Research
 

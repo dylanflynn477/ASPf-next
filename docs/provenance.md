@@ -43,17 +43,16 @@ reference backend remains the default and supported implementation.
 
 ## Authorship and licensing record
 
-The repository audit for the `0.2.0a2` release candidate found commits and
-merged pull requests authored only through Dylan Flynn's recorded name/email
+The repository audit for the `0.2.0a2` release found commits and merged pull
+requests authored only through Dylan Flynn's recorded name/email
 identities and GitHub account, with no co-author trailers or other GitHub
 contributors. No third-party implementation is vendored. Clingo remains an
 external runtime dependency under its own terms.
 
 That evidence is useful but is not a legal determination that every copyright
-interest is owned by one person. Before publishing a changed license, the
-copyright holder should confirm authorship, employment/contractor obligations,
-and the status of any tool-assisted material. External patches are paused until
-a reviewed contributor-agreement process exists. See
+interest is owned by one person. The maintainer approved the transition after
+the audit disclosed employment/contractor and tool-assisted-work questions.
+External patches are paused until a reviewed contributor-agreement process exists. See
 [`docs/licensing.md`](licensing.md).
 
 ## Distinction from Potassco flingo

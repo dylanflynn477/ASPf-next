@@ -24,9 +24,9 @@ semantic-boundary tests, Python 3.11/3.12 CI, guided examples, and explicit
 provenance documentation. The current implementation includes definedness-aware
 inequality, integer ordering, application-to-application comparison, default
 negation, global declaration mode, historical visibility controls, and
-domain-safe ordinary variables with seed-equality safety. Version `0.2.0a2` is
-an unpublished release candidate and remains intentionally experimental.
-Arithmetic, broader variables, aggregates containing n-atoms, and a production
+domain-safe ordinary variables with seed-equality safety. Version `0.2.0a2`
+remains intentionally experimental. Arithmetic, broader variables, aggregates
+containing n-atoms, and a production
 native backend remain unimplemented. A separate propagator prototype exists
 only under `research/`; it is not exposed by the package or CLI. The project
 does not claim full historical compatibility or historical grounding
@@ -65,9 +65,9 @@ future work.
 | Project status | Experimental pre-alpha research software |
 | Primary language | Python |
 | Key technologies | Clingo 5.8, typed IR, pytest, Ruff, mypy, GitHub Actions |
-| Published release | `0.2.0a1` experimental alpha (MIT) |
-| Release candidate | `0.2.0a2` (supported language unchanged) |
-| Candidate license | PolyForm Noncommercial 1.0.0 (source available, not OSI-approved) |
+| Current release | `0.2.0a2` experimental alpha |
+| Historical release | `0.2.0a1` (MIT) |
+| License from 0.2.0a2 | PolyForm Noncommercial 1.0.0 (source available, not OSI-approved) |
 | Suggested website tags | Answer Set Programming, logic programming, Python, research software |
 | Suggested call to action | View the source and try the guided examples |
 

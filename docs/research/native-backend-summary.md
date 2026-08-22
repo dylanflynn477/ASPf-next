@@ -2,8 +2,8 @@
 
 ## Current baseline
 
-Published ASPf-next 0.2.0a1 and the unpublished 0.2.0a2 candidate share the same
-clean-room compatibility frontend and reference-backend language boundary for modern
+ASPf-next 0.2.0a1 and 0.2.0a2 share the same clean-room compatibility frontend
+and reference-backend language boundary for modern
 Clingo 5.8. They reproduce a bounded set of partial-function model semantics by lowering
 n-atoms to ordinary relations with functionality and no totality rule. This path is
 inspectable and useful as an executable semantic reference, but a relation variable

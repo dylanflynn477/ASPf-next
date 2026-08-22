@@ -248,8 +248,7 @@ affiliated with Potassco.
 
 ## Status and development
 
-The current source version is the unpublished `0.2.0a2` release candidate; the
-latest published release is `0.2.0a1`. The candidate does not expand the public
+The current version is `0.2.0a2`. This release does not expand the public
 supported-language boundary. It adds research-backend correctness hardening,
 adversarial and differential coverage, benchmark evidence, a CLI version flag,
 package smoke checks, and release documentation. The reference backend remains
@@ -278,7 +277,7 @@ project, or Potassco.
 
 ## License
 
-The `0.2.0a2` release candidate is offered under the
+Beginning with `0.2.0a2`, ASPf-next is distributed under the
 [PolyForm Noncommercial License 1.0.0](LICENSE), an established source-available
 license that is not OSI-approved. Commercial use requires prior written
 permission or a separate commercial license from the copyright holder. See the
@@ -286,11 +285,8 @@ permission or a separate commercial license from the copyright holder. See the
 the maintainer.
 
 ASPf-next `0.2.0a1` was released under the MIT License. Rights granted under
-that release remain governed by its accompanying MIT License. Beginning with
-version `0.2.0a2`, subsequent releases are planned to be distributed under the
-PolyForm Noncommercial License 1.0.0, subject to final copyright-holder and
-legal review. This change does not revoke or narrow rights already granted for
-`0.2.0a1`.
+that release remain governed by its accompanying MIT License. This change does
+not revoke or narrow rights already granted for `0.2.0a1`.
 
 The same non-revocation principle applies to any other repository revision a
 recipient validly obtained with an MIT License before the transition. Users

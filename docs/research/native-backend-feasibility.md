@@ -599,7 +599,7 @@ not an ordinary relational fallback disguised as native support.
     remain unchanged.
 16. **Did production ASPf-next behavior change?** No imports or execution paths were
     added under `src/aspf_next`, and no CLI flag or `_V` syntax was added. The later
-    `0.2.0a2` release candidate changes version/license metadata and research artifacts,
+    `0.2.0a2` release changes version/license metadata and research artifacts,
     not the supported language or production backend.
 17. **Are grounding efficiency and solve speed separated?** Yes. Structural deltas,
     ground time, first-model solve, exhaustive raw solve, and visible output are

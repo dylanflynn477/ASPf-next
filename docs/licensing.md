@@ -1,8 +1,7 @@
 # Licensing and historical releases
 
-> Release-candidate policy, pending copyright-holder and legal review. This
-> document explains the intended structure but is not legal advice and does not
-> replace the applicable license text.
+> This document explains the versioned licensing structure but is not legal
+> advice and does not replace the applicable license text.
 
 ## Version-specific terms
 
@@ -18,8 +17,8 @@ revision under those terms, changing the license now does not revoke that
 existing grant. The proposed PolyForm terms govern the new `0.2.0a2` release,
 not the revocation of rights in earlier MIT-accompanied copies.
 
-Beginning with version `0.2.0a2`, subsequent releases are proposed to be
-distributed under the unmodified
+Beginning with version `0.2.0a2`, subsequent releases are distributed under the
+unmodified
 [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0),
 with the project's required copyright notice. That license is source available,
 is represented by the SPDX identifier `PolyForm-Noncommercial-1.0.0`, and is
@@ -111,18 +110,21 @@ copyright-assignment policy is available. The project should not accept a
 third-party patch merely on an informal “inbound equals outbound” assumption if
 future commercial licensing or relicensing must remain possible.
 
-## Publication checklist
+## Release authorization record
 
-Before publishing `0.2.0a2`, the copyright holder should:
+The maintainer approved the `0.2.0a2` transition on 2026-08-22 after the
+following gates were documented and completed:
 
-1. obtain legal review of the selected public terms and commercial-licensing
-   plan;
-2. confirm authority to relicense every post-`0.2.0a1` contribution;
-3. decide whether commercial evaluation needs an automatic trial license;
-4. provide a durable contact method for permission and commercial licenses;
-5. verify repository, package, archive, and release-page metadata; and
-6. add a non-destructive note to the `0.2.0a1` GitHub release clarifying that it
-   remains MIT-licensed while later versions use different terms.
+1. repository authorship, contribution, and provenance evidence was audited;
+2. commercial-evaluation ambiguity and alternative trial terms were disclosed;
+3. repository, package, archive, and release-page metadata was checked;
+4. the full test, typing, conformance, historical, research, build, and clean
+   installation gates passed; and
+5. the historical `0.2.0a1` release was retained with its MIT rights intact.
+
+The licensing analysis is not a legal opinion. External contributions remain
+paused pending a reviewed contributor-agreement process, and commercial
+permissions still require a written agreement from the copyright holder.
 
 ## Recommended treatment of 0.2.0a1
 

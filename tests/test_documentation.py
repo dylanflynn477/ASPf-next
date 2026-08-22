@@ -66,23 +66,24 @@ def test_release_metadata_is_consistent() -> None:
     changelog = (PROJECT_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
     portfolio = (PROJECT_ROOT / "docs" / "portfolio-copy.md").read_text(encoding="utf-8")
-    assert "0.2.0a2 - Unreleased" in changelog
-    assert "current source version is the unpublished `0.2.0a2`" in readme.lower()
-    assert "Release candidate | `0.2.0a2`" in portfolio
+    assert "0.2.0a2 - 2026-08-22" in changelog
+    assert "current version is `0.2.0a2`" in readme.lower()
+    assert "Current release | `0.2.0a2`" in portfolio
 
 
 def test_license_transition_is_explicit_and_nonretroactive() -> None:
     license_text = (PROJECT_ROOT / "LICENSE").read_text(encoding="utf-8")
     readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
     licensing = (PROJECT_ROOT / "docs" / "licensing.md").read_text(encoding="utf-8")
+    normalized_licensing = " ".join(line.lstrip("> ").strip() for line in licensing.splitlines())
 
     assert license_text.startswith("# PolyForm Noncommercial License 1.0.0")
     assert "Required Notice: Copyright 2026 Dylan Flynn." in license_text
     assert "0.2.0a1` was released under the MIT License" in readme
-    assert "does not revoke" in readme
+    assert "does not revoke" in " ".join(readme.split())
     assert "other repository revision" in readme
     assert "not OSI-approved" in readme
-    assert "not legal advice" in licensing
+    assert "not legal advice" in normalized_licensing
     assert "commercial evaluation" in licensing
 
 
