@@ -210,6 +210,27 @@ native median by 18.7%. The clause result remains 2,001 narrow clauses, zero bro
 clauses, 4,001 literals, and maximum width two. Profiled closure evaluation is still
 the main Python callback cost; the 8.972 ms reference median remains much faster.
 
+## Adversarial dynamic-undefinedness workload
+
+A separate paired workload tests absence explanations rather than the already-static
+undefined source above. It creates N distinct conditional sources, N independent copy
+rules into one target, one all-absent model, and complete normalized reference/native
+model comparison. Both artifacts use Python 3.12.13, Clingo 5.8.2, the same machine,
+one warm-up, seven samples, and one solver thread.
+
+| Providers | Candidate solve | Hardened solve | Broad before/after | Clause literals before/after | Max width before/after | Equal models |
+| ---: | ---: | ---: | ---: | ---: | ---: | :---: |
+| 10 | 3.081 ms | 3.518 ms | 3 / 0 | 76 / 62 | 12 / 11 | yes |
+| 50 | 34.564 ms | 37.346 ms | 3 / 0 | 356 / 302 | 52 / 51 | yes |
+| 100 | 121.390 ms | 128.139 ms | 3 / 0 | 706 / 602 | 102 / 101 | yes |
+
+The hardened clauses contain exactly the false provider supports plus the required
+guard literal. Eliminating broad completion clauses reduces clause literals but adds
+rule-body evaluation, producing a roughly 5–14% solve-time cost on this adversarial
+family. This is evidence for sounder, auditable explanation scope—not a speedup claim.
+The standard multi-application counters and digests remain unchanged because its
+undefined source is statically provable and never invokes the dynamic analysis.
+
 ## Commands
 
 Run from the repository root with the environment's Python:
@@ -237,6 +258,10 @@ python -m benchmarks.solve_decomposition \
 python -m benchmarks.multi_application_workload \
   --sizes 10 100 1000 --warmups 1 --repeats 7 \
   --output benchmarks/results/multi-application-evaluation-cache.json
+
+python -m benchmarks.dynamic_undefinedness_workload \
+  --sizes 10 50 100 --warmups 1 --repeats 7 \
+  --output benchmarks/results/dynamic-undefinedness-adversarial-hardening.json
 ```
 
 Raw result files:
@@ -251,6 +276,9 @@ Raw result files:
 - [`benchmarks/results/multi-application-workload.json`](../../benchmarks/results/multi-application-workload.json)
 - [`benchmarks/results/multi-application-provenance.json`](../../benchmarks/results/multi-application-provenance.json)
 - [`benchmarks/results/multi-application-evaluation-cache.json`](../../benchmarks/results/multi-application-evaluation-cache.json)
+- [`benchmarks/results/multi-application-adversarial-hardening.json`](../../benchmarks/results/multi-application-adversarial-hardening.json)
+- [`benchmarks/results/dynamic-undefinedness-candidate-baseline.json`](../../benchmarks/results/dynamic-undefinedness-candidate-baseline.json)
+- [`benchmarks/results/dynamic-undefinedness-adversarial-hardening.json`](../../benchmarks/results/dynamic-undefinedness-adversarial-hardening.json)
 
 ## Interpretation and limitations
 

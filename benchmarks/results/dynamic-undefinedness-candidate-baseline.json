@@ -1,0 +1,273 @@
+{
+  "schema_version": 1,
+  "family": "dynamic-undefinedness-providers",
+  "repeats": 7,
+  "warmups": 1,
+  "environment": {
+    "benchmark_date_utc": "2026-08-22",
+    "commit": "8c3e1c06cabfb8052b2f7a905b8760c3b35935a3",
+    "python": "3.12.13",
+    "clingo": "5.8.2",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "architecture": "AMD64",
+    "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+    "cpu_count": 12
+  },
+  "cases": [
+    {
+      "providers": 10,
+      "native": {
+        "solve": {
+          "median_seconds": 0.0030813999474048615,
+          "iqr_seconds": 9.884999599307775e-05,
+          "samples_seconds": [
+            0.003103800001554191,
+            0.003504199907183647,
+            0.003180600004270673,
+            0.0030813999474048615,
+            0.003055199980735779,
+            0.0030085999751463532,
+            0.0030315000331029296
+          ]
+        },
+        "total": {
+          "median_seconds": 0.006134199909865856,
+          "iqr_seconds": 0.00025904999347403646,
+          "samples_seconds": [
+            0.006134199909865856,
+            0.006731600034981966,
+            0.00622570002451539,
+            0.0061413999646902084,
+            0.005960799986496568,
+            0.00585079996380955,
+            0.005888200015760958
+          ]
+        },
+        "model_count": 11,
+        "work": {
+          "theory_atoms": 24,
+          "seeds": 10,
+          "rules": 12,
+          "application_decode_requests": 32,
+          "decoded_applications": 11,
+          "application_cache_hits": 21,
+          "value_decode_requests": 12,
+          "decoded_values": 1,
+          "value_cache_hits": 11,
+          "watched_literals": 12,
+          "ordinary_atoms": 13,
+          "ordinary_watched_literals": 13,
+          "ordinary_activations": 26,
+          "ordinary_deactivations": 26,
+          "propagate_calls": 26,
+          "propagated_literals": 26,
+          "seed_activations": 19,
+          "seed_deactivations": 19,
+          "check_calls": 15,
+          "check_seed_probes": 0,
+          "evaluation_runs": 20,
+          "evaluation_cache_hits": 14,
+          "rule_body_evaluations": 240,
+          "blocking_clauses": 23,
+          "functionality_clauses": 0,
+          "derived_functionality_clauses": 0,
+          "guard_clauses": 23,
+          "narrow_blocking_clauses": 20,
+          "broad_blocking_clauses": 3,
+          "broad_clause_causes": [
+            [
+              "guard:absent:satisfied-body",
+              2
+            ],
+            [
+              "guard:present:comparison:eq",
+              1
+            ]
+          ],
+          "duplicate_clauses": 9,
+          "clause_add_conflicts": 13,
+          "clause_propagations": 10,
+          "early_explanation_clauses": 19,
+          "clause_literals": 76,
+          "maximum_clause_width": 12,
+          "snapshot_assignments": 20,
+          "undo_calls": 24,
+          "undone_literals": 26
+        }
+      },
+      "visible_models_equal": true,
+      "reference_sha256": "53cef8295085d17f8ff6dfed296544329fa8a3ecdeeeed1b664e2fb982fcb79b",
+      "native_sha256": "53cef8295085d17f8ff6dfed296544329fa8a3ecdeeeed1b664e2fb982fcb79b"
+    },
+    {
+      "providers": 50,
+      "native": {
+        "solve": {
+          "median_seconds": 0.03456379997078329,
+          "iqr_seconds": 0.00021499994909390807,
+          "samples_seconds": [
+            0.03494549996685237,
+            0.034280600026249886,
+            0.03471409995108843,
+            0.03464399999938905,
+            0.03450379997957498,
+            0.03456379997078329,
+            0.034424300072714686
+          ]
+        },
+        "total": {
+          "median_seconds": 0.05905110004823655,
+          "iqr_seconds": 0.0006020500441081822,
+          "samples_seconds": [
+            0.05967270000837743,
+            0.05823140009306371,
+            0.05905110004823655,
+            0.058518099947832525,
+            0.05936840001959354,
+            0.05914180004037917,
+            0.058788000023923814
+          ]
+        },
+        "model_count": 51,
+        "work": {
+          "theory_atoms": 104,
+          "seeds": 50,
+          "rules": 52,
+          "application_decode_requests": 152,
+          "decoded_applications": 51,
+          "application_cache_hits": 101,
+          "value_decode_requests": 52,
+          "decoded_values": 1,
+          "value_cache_hits": 51,
+          "watched_literals": 52,
+          "ordinary_atoms": 53,
+          "ordinary_watched_literals": 53,
+          "ordinary_activations": 108,
+          "ordinary_deactivations": 108,
+          "propagate_calls": 108,
+          "propagated_literals": 108,
+          "seed_activations": 99,
+          "seed_deactivations": 99,
+          "check_calls": 55,
+          "check_seed_probes": 0,
+          "evaluation_runs": 100,
+          "evaluation_cache_hits": 54,
+          "rule_body_evaluations": 5200,
+          "blocking_clauses": 103,
+          "functionality_clauses": 0,
+          "derived_functionality_clauses": 0,
+          "guard_clauses": 103,
+          "narrow_blocking_clauses": 100,
+          "broad_blocking_clauses": 3,
+          "broad_clause_causes": [
+            [
+              "guard:absent:satisfied-body",
+              2
+            ],
+            [
+              "guard:present:comparison:eq",
+              1
+            ]
+          ],
+          "duplicate_clauses": 49,
+          "clause_add_conflicts": 53,
+          "clause_propagations": 50,
+          "early_explanation_clauses": 99,
+          "clause_literals": 356,
+          "maximum_clause_width": 52,
+          "snapshot_assignments": 100,
+          "undo_calls": 105,
+          "undone_literals": 108
+        }
+      },
+      "visible_models_equal": true,
+      "reference_sha256": "5cd11671b6b5e5d3ec299a25d99f612b0fdfcc32050c2c96a4774578f20d7cd3",
+      "native_sha256": "5cd11671b6b5e5d3ec299a25d99f612b0fdfcc32050c2c96a4774578f20d7cd3"
+    },
+    {
+      "providers": 100,
+      "native": {
+        "solve": {
+          "median_seconds": 0.12138989998493344,
+          "iqr_seconds": 0.0012488499633036554,
+          "samples_seconds": [
+            0.1217778999125585,
+            0.12023979995865375,
+            0.12124760006554425,
+            0.12138989998493344,
+            0.120636299951002,
+            0.12260370003059506,
+            0.13912509998772293
+          ]
+        },
+        "total": {
+          "median_seconds": 0.23039390007033944,
+          "iqr_seconds": 0.002455650013871491,
+          "samples_seconds": [
+            0.2295823999447748,
+            0.22886769997421652,
+            0.23159049998503178,
+            0.2297596000134945,
+            0.23039390007033944,
+            0.2326628000009805,
+            0.24865560000762343
+          ]
+        },
+        "model_count": 101,
+        "work": {
+          "theory_atoms": 204,
+          "seeds": 100,
+          "rules": 102,
+          "application_decode_requests": 302,
+          "decoded_applications": 101,
+          "application_cache_hits": 201,
+          "value_decode_requests": 102,
+          "decoded_values": 1,
+          "value_cache_hits": 101,
+          "watched_literals": 102,
+          "ordinary_atoms": 103,
+          "ordinary_watched_literals": 103,
+          "ordinary_activations": 206,
+          "ordinary_deactivations": 206,
+          "propagate_calls": 206,
+          "propagated_literals": 206,
+          "seed_activations": 199,
+          "seed_deactivations": 199,
+          "check_calls": 105,
+          "check_seed_probes": 0,
+          "evaluation_runs": 200,
+          "evaluation_cache_hits": 104,
+          "rule_body_evaluations": 20400,
+          "blocking_clauses": 203,
+          "functionality_clauses": 0,
+          "derived_functionality_clauses": 0,
+          "guard_clauses": 203,
+          "narrow_blocking_clauses": 200,
+          "broad_blocking_clauses": 3,
+          "broad_clause_causes": [
+            [
+              "guard:absent:satisfied-body",
+              2
+            ],
+            [
+              "guard:present:comparison:eq",
+              1
+            ]
+          ],
+          "duplicate_clauses": 99,
+          "clause_add_conflicts": 103,
+          "clause_propagations": 100,
+          "early_explanation_clauses": 199,
+          "clause_literals": 706,
+          "maximum_clause_width": 102,
+          "snapshot_assignments": 200,
+          "undo_calls": 204,
+          "undone_literals": 206
+        }
+      },
+      "visible_models_equal": true,
+      "reference_sha256": "5a735a637313b1563041c98d289a6789355321e9953266b31dc2b63e96900cf0",
+      "native_sha256": "5a735a637313b1563041c98d289a6789355321e9953266b31dc2b63e96900cf0"
+    }
+  ]
+}

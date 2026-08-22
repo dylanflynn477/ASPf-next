@@ -20,6 +20,14 @@ package versions use the same PEP 440 spelling.
 - Preserved exact reference/native models while eliminating broad clauses from the
   recorded multi-application workload. The native backend remains research-only and
   is still substantially slower than the reference backend.
+- Adversarially verified positive provenance with a 144-case exhaustive differential
+  matrix, corrected unlocked fallback-clause lifetime handling, and made closure-cache
+  validity explicit through per-thread semantic generations.
+- Added opt-in one-thread clause audits and conservative provider-complete explanations
+  for dynamic undefinedness. Unassigned providers remain unexplained rather than being
+  treated as false.
+- Made conservative non-ground n-loop matching preserve repeated and cross-field
+  ordinary-variable bindings; the documented exact fragment is unchanged.
 
 ## 0.2.0a1 - 2026-08-08
 

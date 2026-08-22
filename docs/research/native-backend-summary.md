@@ -28,9 +28,10 @@ The released frontend, backend, CLI, and package API do not invoke the prototype
 
 ## Results
 
-Forty-six focused tests cover copy/binding, definitions, explicit undefinedness,
+Focused and generated tests cover copy/binding, definitions, explicit undefinedness,
 comparisons, functionality, backtracking, ordinary-variable grounding, dependency
-chains and diamonds, repeated controls, and two-thread exhaustive solving. Differential
+chains and diamonds, repeated controls, and two-thread exhaustive solving. A 144-case
+matrix exhausts small comparison/undefinedness/n-variable combinations. Differential
 tests compare normalized visible model sets, not private atoms.
 
 For candidate domains 10 through 10,000, relational copy overhead grows from 10 to
@@ -58,10 +59,10 @@ and conservative for ordinary-variable or dynamic-head patterns.
 The propagator now retains deterministic solver-literal support sets through derived
 values, n-variable definitions, comparisons, and guards. It evaluates guarded and
 multi-provider rule families on relevant watched changes, installs narrow clauses, and
-keeps clause and evaluation caches per solver thread. The cached closure is invalidated
-exactly when a seed or rule activation changes or is undone. Static
-application-potential analysis can prove some applications unconditionally undefined;
-dynamic absence remains unexplained when no positive support proof is available.
+keeps clause and evaluation caches per solver thread. An explicit semantic generation
+validates each cached positive closure. At total checks, a least fixed point can also
+justify dynamic absence when every grounded provider has a proved failure. False
+solver literals are evidence; don't-cares and unsupported cycles are not.
 
 The original three-device multi-application result at N=1,000 emitted 7,482 broad
 clauses containing 7,504,446 literals, with maximum width 1,003. The post-hardening run
@@ -84,17 +85,23 @@ this does not justify production integration.
 
 **PARTIAL GO for continued research; NO-GO for production integration.**
 
+An adversarial review found no narrow clause that excluded a reference model, but it
+did find an unlocked broad fallback incorrectly remembered as permanent even though
+Clingo may delete it. The fallback cache entry was removed. Opt-in one-thread clause
+records now expose exact signed supports and origins for audit.
+
 The experiment establishes that Python-level theory metadata can retain a grounder-inert
 n-variable identity and reproduce a meaningful semantic subset. It does not establish
 the full historical boundary. Wider non-ground n-loop analysis is conservative,
 cross-type ordered semantics are unproved, two-thread evidence is bounded rather than
-production-grade, dynamic undefinedness lacks general compositional explanations, and
-no historical-source adapter connects the prototype to the released IR.
+production-grade, dynamic undefinedness remains incomplete for unassigned/cyclic
+provider paths, and no historical-source adapter connects the prototype to the
+released IR.
 
 ## Remaining questions
 
-1. How should the current support-set reasons become a compositional provenance design
-   for dynamic undefinedness and wider derivation shapes?
+1. How should closure and provider-failure proofs be maintained incrementally without
+   repeating rule-body evaluation?
 2. Can n-loop analysis run on grounded typed metadata and still report source paths?
 3. Can Python evaluation, callback, initialization, and raw enumeration costs be
    reduced materially?

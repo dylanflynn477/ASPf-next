@@ -798,6 +798,82 @@ def test_non_ground_nloop_analysis_is_explicitly_conservative() -> None:
     assert analysis.loop is not None
 
 
+def test_non_ground_nloop_matching_preserves_repeated_variable_equalities() -> None:
+    variable = Variable("X")
+    application = Application("f", (Symbol("a"),))
+    seed = Seed(
+        application,
+        Integer(1),
+        (Atom("p", (Symbol("a"), Symbol("b"))),),
+    )
+
+    def program(head: Atom) -> NativeProgram:
+        return NativeProgram(
+            seeds=(seed,),
+            rules=(
+                NativeRule(
+                    "bridge",
+                    AtomHead(head),
+                    comparisons=(
+                        Comparison(
+                            AppExpression(application),
+                            ComparisonOperator.EQUAL,
+                            ConstantExpression(Integer(1)),
+                        ),
+                    ),
+                    when=(Atom("domain", (variable,)),),
+                ),
+            ),
+        )
+
+    impossible = analyze_nloops(program(Atom("p", (variable, variable))))
+    possible = analyze_nloops(program(Atom("p", (variable, Symbol("b")))))
+
+    assert not impossible.exact_for_ground_program
+    assert impossible.loop is None
+    assert not possible.exact_for_ground_program
+    assert possible.loop is not None
+
+
+def test_non_ground_natom_matching_shares_bindings_between_key_and_value() -> None:
+    variable = Variable("X")
+    seed = Seed(
+        Application("f", (variable,)),
+        variable,
+        (Atom("domain", (variable,)),),
+    )
+    distant = Application("f", (Symbol("c"),))
+
+    def program(head_value: Symbol) -> NativeProgram:
+        return NativeProgram(
+            seeds=(seed,),
+            rules=(
+                NativeRule(
+                    "bridge",
+                    AssignmentHead(
+                        Application("f", (Symbol("a"),)),
+                        ConstantExpression(head_value),
+                    ),
+                    comparisons=(
+                        Comparison(
+                            AppExpression(distant),
+                            ComparisonOperator.NOT_EQUAL,
+                            ConstantExpression(Integer(0)),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+    inconsistent = analyze_nloops(program(Symbol("b")))
+    consistent = analyze_nloops(program(Symbol("a")))
+
+    assert not inconsistent.exact_for_ground_program
+    assert inconsistent.loop is None
+    assert not consistent.exact_for_ground_program
+    assert consistent.loop is not None
+
+
 def test_multiple_nvariables_rules_and_readers_remain_independent() -> None:
     first = NVariable("_first")
     second = NVariable("_second")

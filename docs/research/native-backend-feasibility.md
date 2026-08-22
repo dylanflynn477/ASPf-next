@@ -215,9 +215,10 @@ it reads gains a value. Total checks do not scan the grounded candidate-seed dom
 
 A grounded potential-application fixed point soundly proves unconditional
 undefinedness where no seed or viable provider path exists. It deliberately
-over-approximates potential derivations. Dynamic absence caused by inactive supports is
-not treated as proof of falsehood because Clingo total checks may still contain
-don't-care solver literals; those cases retain an explicit explanation gap.
+over-approximates potential derivations. A second least fixed point at total checks can
+justify dynamic absence when every grounded seed/rule provider is false or has a
+compositional semantic failure. An actually false solver literal is evidence; a Clingo
+don't-care is not. Cyclic or unassigned gaps retain the broad fallback.
 
 Dynamic application values are not Clingo symbolic atoms: the public API can create
 volatile solver literals during solving, but it cannot add a new grounded symbolic
@@ -227,8 +228,8 @@ The incremental design is still a research propagator, not a production backend.
 
 ## Semantic results
 
-Forty-six focused research tests exercise the prototype and differential harness.
-Every implemented semantic case passes:
+Focused, generated, differential, and metamorphic tests exercise the prototype and
+differential harness. Every implemented semantic case passes:
 
 | Property | Result | Evidence boundary |
 | --- | --- | --- |
@@ -240,7 +241,7 @@ Every implemented semantic case passes:
 | direct functionality explanation | pass | two relevant seed supports; width at most two |
 | derived functionality explanation | pass | actual transitive positive supports; unit or empty reasons tested |
 | guard explanation | pass | comparison truth/failure clauses retain actual supports; width at most two in workload |
-| undefinedness explanation | partial | exact static no-provider proof; dynamic absence remains unexplained |
+| undefinedness explanation | partial | exact static proof plus provider-complete dynamic fixed point; unassigned/cyclic gaps fall back |
 | one / agreeing definitions | pass | one derived value |
 | conflicting definitions | pass | n-variable becomes undefined; no target value |
 | undefined defining expression | pass | n-variable becomes undefined; no target value |
@@ -282,11 +283,12 @@ from `f(b)`, and does not confuse an ordinary ASP cycle with an n-loop. Determin
 tests cover each boundary and a rule that is n-stratified but still has an n-loop.
 
 The analysis is exact for the variable-free research subfragment with constant-valued
-assignment heads. Ordinary-variable patterns and dynamic n-variable assignment heads
-are checked conservatively by possible literal unification, so the wider accepted
-class is not advertised as exact historical n-loop detection. The full definition,
-examples, implementation contract, and primary sources are recorded in the focused
-[n-loop analysis note](n-loop-analysis.md).
+assignment heads. Ordinary-variable matching now uses rule-scoped unification, so
+repeated variables and application-key/value bindings cannot create impossible match
+edges. Complete non-ground paths and dynamic n-variable assignment heads remain
+conservative, so the wider accepted class is not advertised as exact historical n-loop
+detection. The full definition, examples, implementation contract, and primary sources
+are recorded in the focused [n-loop analysis note](n-loop-analysis.md).
 
 ## Grounding and performance results
 
@@ -310,7 +312,12 @@ The reproducible raw data is in:
 - `benchmarks/results/multi-application-provenance.json` — the same workload after
   provenance-aware explanations and early propagation;
 - `benchmarks/results/multi-application-evaluation-cache.json` — the same workload
-  after exact thread-local evaluation reuse; and
+  after exact thread-local evaluation reuse;
+- `benchmarks/results/multi-application-adversarial-hardening.json` — the unchanged
+  control workload after explicit generations and dynamic-proof instrumentation;
+- `benchmarks/results/dynamic-undefinedness-candidate-baseline.json` and
+  `dynamic-undefinedness-adversarial-hardening.json` — paired same-machine provider
+  workloads before and after compositional dynamic-absence explanations; and
 - `benchmarks/results/large-model-equivalence.json` — one untimed exhaustive visible
   model comparison at sizes 5,000 and 10,000.
 
@@ -453,10 +460,16 @@ derived from the two incompatible support literals. Tests cover width two, unit,
 empty conflicts. Transitive support sets now give derived functionality conflicts and
 comparison guards narrow explanations as well. Conflicting n-variable definitions
 intentionally make that rule-local n-variable undefined; they are not themselves solver
-conflicts. Static no-provider undefinedness has an empty proof, while dynamic absence
-still has no general reason. The Python API accepts the resulting narrower clauses;
-the remaining research problem is a compositional explanation design for absence and
-wider derivation shapes rather than broadening clauses by assumption.
+conflicts. Static no-provider undefinedness has an empty proof. A provider-complete
+least fixed point now explains dynamic absence from actually false provider literals
+and recursively justified semantic failure; unassigned or cyclic paths remain unknown.
+The Python API accepts the resulting narrower clauses. A one-thread opt-in audit records
+the signed supports and metadata origins without changing normal model output.
+
+The adversarial review also corrected one lifecycle error: broad fallback clauses are
+unlocked and can be deleted by Clingo, so they must not be remembered in the permanent
+learned-clause cache. Narrow clauses remain locked before being deduplicated. No narrow
+clause was found to exclude a reference model in the tested fragment.
 
 Clingo documents that one propagator instance can receive callbacks from different
 solver threads. The experiment now shares only immutable decoded indexes and keeps
@@ -479,6 +492,7 @@ The final measurements record:
 - multi-application input commit: `cd31d6885ec90a346d4fc794252957b13f7fc9b9`;
 - provenance-hardening input commit: `1b8dd4f5076fefff76f7b086d63fbc6b227761fb`;
 - evaluation-cache input commit: `88c4f7fd6e09f50917bd683b8e2f2ce250d23cbd`;
+- adversarial-hardening input commit: `cb96825cc28fa044a03156f0eab532a1dd97df05`;
 - Python: 3.12.13;
 - Clingo: 5.8.1 for the completed feasibility measurements and 5.8.2 for the
   post-feasibility workloads;
@@ -507,8 +521,8 @@ It does not satisfy every GO gate:
    conservative for non-ground or dynamic-head programs;
 3. two-thread behavior has bounded tests but not production-grade concurrency proof;
 4. cross-type historical ordering semantics are not established;
-5. derived values, comparisons, and guards have positive-support reasons, but dynamic
-   undefinedness and wider derivations lack a general compositional provenance model;
+5. dynamic absence is compositional only when all grounded providers have known
+   failures; don't-care/cyclic gaps and wider derivations still fall back;
 6. native first-model and exhaustive solving remain slower than the relational
    reference even after reconstruction overhead was substantially reduced.
 
@@ -520,8 +534,8 @@ language contract are unchanged.
 
 Before reconsidering integration:
 
-1. extend the current support-set explanations into a compositional provenance design
-   for dynamic undefinedness and wider derivations;
+1. incrementally maintain value and provider-failure state rather than repeating rule
+   closure for each relevant change;
 2. move exact n-loop analysis to grounded typed metadata while mapping witnesses back
    to source locations;
 3. incrementally update affected closure state and reduce remaining Python callback,
@@ -568,13 +582,14 @@ not an ordinary relational fallback disguised as native support.
     default-negated edges, full simple-term keys, and the conservative non-ground
     boundary.
 11. **Are conflicts explained from relevant literals?** Direct and derived
-    functionality plus defined comparison guards are; static no-provider
-    undefinedness is exact, while dynamic absence remains an explicit gap.
+    functionality plus defined comparison guards are. Static absence is exact and a
+    provider-complete dynamic fragment has signed false-literal reasons; unassigned or
+    cyclic provider gaps remain explicit.
 12. **Is thread safety accurately stated?** Yes. One and two threads are accepted,
     timing remains one-thread, and the two-thread result is bounded evidence rather
     than a production proof.
 13. **Are limitations disclosed?** Yes: research-only typed input, conservative wider
-    n-loop coverage, incomplete dynamic-undefinedness provenance, bounded threading,
+    n-loop coverage, incomplete dynamic-undefinedness coverage, bounded threading,
     unproved cross-type order, and slower absolute solving are explicit.
 14. **Is model reconstruction counted honestly?** Yes. Raw enumeration, native visible
     reconstruction, stable sorting, and benchmark digest work have separate timers;

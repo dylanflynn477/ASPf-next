@@ -21,11 +21,12 @@ coverage, and accurate compatibility classification.
    language by accident.
 3. Preserve the native-backend feasibility result as a PARTIAL GO research
    boundary. Defined-value derivations, comparisons, and guards now retain narrow
-   support explanations and propagate early in the research prototype. Further work
-   must address compositional explanations for dynamic undefinedness and wider
-   derivations, incremental closure updates beyond the current thread-local evaluation
-   cache, remaining Python callback/evaluation costs, and broader grounded-exact n-loop
-   analysis before a fresh production-integration review.
+   support explanations and propagate early in the research prototype. A conservative
+   provider-complete fixed point now explains part of dynamic undefinedness without
+   treating don't-cares as false. Further work must incrementally maintain closure and
+   absence state, close remaining unassigned/cyclic explanation gaps, reduce Python
+   callback costs, and broaden grounded-exact n-loop analysis before a fresh
+   production-integration review.
 4. Consider each remaining historical construct separately, beginning with a
    primary-source semantic contract and a GO/NO-GO review.
 

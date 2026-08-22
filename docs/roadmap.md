@@ -37,23 +37,23 @@ visible-atom index eliminates per-model full symbolic-atom rescans. The realisti
 multi-application workload originally exposed broad explanation clauses as the
 dominant solver-performance problem. Post-study hardening now retains support sets for
 derived values and comparisons, propagates narrow guard clauses earlier, and eliminates
-broad clauses on that workload. Native solving remains substantially slower than the
-reference, dynamic undefinedness does not yet have a general narrow explanation,
-thread-local caching avoids repeating an unchanged early evaluation at total checks,
-non-ground n-loop detection remains conservative, and two-thread support has only
-bounded evidence.
+broad clauses on that workload. Adversarial follow-up adds conservative compositional
+reasons when every grounded provider of a dynamically absent application has a proved
+failure; unassigned or cyclic provider paths still fall back rather than becoming fake
+evidence. Native solving remains substantially slower than the reference, thread-local
+generation tracking prevents stale closure reuse, non-ground n-loop detection remains
+conservative, and two-thread support has only bounded evidence.
 
 The code remains under `research/`; the released syntax, reference backend, and CLI are
 unchanged. The [feasibility report](research/native-backend-feasibility.md) and
 [benchmark report](benchmarks/native-vs-reference.md) record the preregistered gates,
 raw evidence, and limitations.
 
-The next native research milestone, if pursued, is extending the current support-set
-provenance into a compositional explanation design for dynamic undefinedness and wider
-derivations, incrementally updating affected closure state rather than reevaluating the
-rule family, reducing remaining Python callback cost, and broadening grounded-exact
-n-loop analysis. A fresh production-integration review should occur only if those gates
-succeed.
+The next native research milestone, if pursued, is incrementally maintaining affected
+value and absence state instead of reevaluating rule families, narrowing the remaining
+unassigned/cyclic explanation gaps, reducing Python callback cost, and moving wider
+n-loop checks to grounded typed metadata with source provenance. A fresh
+production-integration review should occur only if those gates succeed.
 
 ## Deferred compatibility candidates
 

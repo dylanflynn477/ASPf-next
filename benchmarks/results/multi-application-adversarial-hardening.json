@@ -1,0 +1,516 @@
+{
+  "schema_version": 1,
+  "family": "multi-application-observation-pipeline",
+  "repeats": 7,
+  "warmups": 1,
+  "environment": {
+    "benchmark_date_utc": "2026-08-22",
+    "commit": "cb96825cc28fa044a03156f0eab532a1dd97df05",
+    "python": "3.12.13",
+    "clingo": "5.8.2",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "architecture": "AMD64",
+    "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+    "cpu_count": 12
+  },
+  "cases": [
+    {
+      "candidate_values": 10,
+      "reference": {
+        "structure": {
+          "observer_rules": 90,
+          "observer_weight_rules": 2,
+          "symbolic_atoms": 62,
+          "theory_atoms": 0,
+          "statistics_rules": 92,
+          "statistics_atoms": 81,
+          "statistics_bodies": 54
+        },
+        "ground": {
+          "median_seconds": 0.0002992000663653016,
+          "iqr_seconds": 2.0849984139204025e-05,
+          "samples_seconds": [
+            0.00030949991196393967,
+            0.0002901999978348613,
+            0.0003131000557914376,
+            0.00031939998734742403,
+            0.00029070000164210796,
+            0.0002992000663653016,
+            0.0002845999551936984
+          ]
+        },
+        "solve": {
+          "median_seconds": 9.049999061971903e-05,
+          "iqr_seconds": 7.850001566112041e-06,
+          "samples_seconds": [
+            0.00011120003182440996,
+            9.049999061971903e-05,
+            9.619991760700941e-05,
+            9.640003554522991e-05,
+            8.869997691363096e-05,
+            8.819997310638428e-05,
+            8.539995178580284e-05
+          ]
+        },
+        "total": {
+          "median_seconds": 0.0005610999651253223,
+          "iqr_seconds": 4.414998693391681e-05,
+          "samples_seconds": [
+            0.0006449000211432576,
+            0.0005545999156311154,
+            0.0005924999713897705,
+            0.0006060999585315585,
+            0.00055570004042238,
+            0.0005610999651253223,
+            0.0005383999086916447
+          ]
+        },
+        "model_count": 10
+      },
+      "native": {
+        "structure": {
+          "observer_rules": 50,
+          "observer_weight_rules": 2,
+          "symbolic_atoms": 18,
+          "theory_atoms": 35,
+          "statistics_rules": 52,
+          "statistics_atoms": 75,
+          "statistics_bodies": 23
+        },
+        "ground": {
+          "median_seconds": 0.0006521000759676099,
+          "iqr_seconds": 2.0599982235580683e-05,
+          "samples_seconds": [
+            0.0006764000281691551,
+            0.0006564999930560589,
+            0.0006454000249505043,
+            0.0006463000318035483,
+            0.0006521000759676099,
+            0.0006416999967768788,
+            0.0006861999863758683
+          ]
+        },
+        "solve": {
+          "median_seconds": 0.003821799997240305,
+          "iqr_seconds": 5.145004251971841e-05,
+          "samples_seconds": [
+            0.0038372999988496304,
+            0.0037981000496074557,
+            0.003821799997240305,
+            0.00403740000911057,
+            0.0037629998987540603,
+            0.0037392000667750835,
+            0.0038267000345513225
+          ]
+        },
+        "total": {
+          "median_seconds": 0.0056724000023677945,
+          "iqr_seconds": 0.00010255002416670322,
+          "samples_seconds": [
+            0.005804100073873997,
+            0.005658100009895861,
+            0.0056724000023677945,
+            0.005906399921514094,
+            0.00563170004170388,
+            0.005545099964365363,
+            0.005690800026059151
+          ]
+        },
+        "model_reconstruction": {
+          "median_seconds": 8.419982623308897e-05,
+          "iqr_seconds": 1.5503610484302044e-06,
+          "samples_seconds": [
+            8.480018004775047e-05,
+            8.520018309354782e-05,
+            8.419982623308897e-05,
+            8.619984146207571e-05,
+            8.349982090294361e-05,
+            8.339982014149427e-05,
+            8.230016101151705e-05
+          ]
+        },
+        "model_count": 10,
+        "work": {
+          "theory_atoms": 35,
+          "seeds": 23,
+          "rules": 9,
+          "application_decode_requests": 41,
+          "decoded_applications": 12,
+          "application_cache_hits": 29,
+          "value_decode_requests": 29,
+          "decoded_values": 13,
+          "value_cache_hits": 16,
+          "watched_literals": 13,
+          "ordinary_atoms": 18,
+          "ordinary_watched_literals": 13,
+          "ordinary_activations": 31,
+          "ordinary_deactivations": 31,
+          "propagate_calls": 31,
+          "propagated_literals": 31,
+          "seed_activations": 36,
+          "seed_deactivations": 36,
+          "check_calls": 13,
+          "check_seed_probes": 0,
+          "semantic_state_changes": 36,
+          "evaluation_runs": 18,
+          "evaluation_cache_hits": 13,
+          "evaluation_cache_stale_rejections": 0,
+          "dynamic_undefined_analysis_runs": 0,
+          "dynamic_undefined_applications_proven": 0,
+          "rule_body_evaluations": 162,
+          "blocking_clauses": 21,
+          "functionality_clauses": 0,
+          "derived_functionality_clauses": 0,
+          "guard_clauses": 21,
+          "narrow_blocking_clauses": 21,
+          "broad_blocking_clauses": 0,
+          "broad_clause_causes": [],
+          "duplicate_clauses": 8,
+          "clause_add_conflicts": 11,
+          "clause_propagations": 10,
+          "early_explanation_clauses": 18,
+          "clause_literals": 41,
+          "maximum_clause_width": 2,
+          "snapshot_assignments": 90,
+          "undo_calls": 21,
+          "undone_literals": 31
+        }
+      },
+      "visible_models_equal": true,
+      "reference_sha256": "a3ef1cec289d8343b131ef7ecbcd67695498691a105db348836317278456cfa8",
+      "native_sha256": "a3ef1cec289d8343b131ef7ecbcd67695498691a105db348836317278456cfa8"
+    },
+    {
+      "candidate_values": 100,
+      "reference": {
+        "structure": {
+          "observer_rules": 810,
+          "observer_weight_rules": 2,
+          "symbolic_atoms": 512,
+          "theory_atoms": 0,
+          "statistics_rules": 812,
+          "statistics_atoms": 711,
+          "statistics_bodies": 504
+        },
+        "ground": {
+          "median_seconds": 0.0013755999971181154,
+          "iqr_seconds": 3.559998003765941e-05,
+          "samples_seconds": [
+            0.0014072000049054623,
+            0.0013783000176772475,
+            0.0013755999971181154,
+            0.0013362000463530421,
+            0.0013595999917015433,
+            0.0013886999804526567,
+            0.0012599000474438071
+          ]
+        },
+        "solve": {
+          "median_seconds": 0.0006244999822229147,
+          "iqr_seconds": 3.585004014894366e-05,
+          "samples_seconds": [
+            0.000698799965903163,
+            0.0006231999723240733,
+            0.0006470000371336937,
+            0.0006188999395817518,
+            0.0006667999550700188,
+            0.0006016000406816602,
+            0.0006244999822229147
+          ]
+        },
+        "total": {
+          "median_seconds": 0.002258499967865646,
+          "iqr_seconds": 6.135005969554186e-05,
+          "samples_seconds": [
+            0.002305599977262318,
+            0.0022507000248879194,
+            0.002289400086738169,
+            0.0021884000161662698,
+            0.002258499967865646,
+            0.0022724000737071037,
+            0.002104500075802207
+          ]
+        },
+        "model_count": 100
+      },
+      "native": {
+        "structure": {
+          "observer_rules": 230,
+          "observer_weight_rules": 2,
+          "symbolic_atoms": 108,
+          "theory_atoms": 215,
+          "statistics_rules": 232,
+          "statistics_atoms": 525,
+          "statistics_bodies": 113
+        },
+        "ground": {
+          "median_seconds": 0.001438500010408461,
+          "iqr_seconds": 2.675002906471491e-05,
+          "samples_seconds": [
+            0.0014052999904379249,
+            0.0014125999296084046,
+            0.0014462999533861876,
+            0.0014485000865533948,
+            0.001443800050765276,
+            0.001424000016413629,
+            0.001438500010408461
+          ]
+        },
+        "solve": {
+          "median_seconds": 0.028212200035341084,
+          "iqr_seconds": 0.0004569001030176878,
+          "samples_seconds": [
+            0.028475999948568642,
+            0.028212200035341084,
+            0.0284706000238657,
+            0.027789899962954223,
+            0.02831390011124313,
+            0.02808079996611923,
+            0.027511499938555062
+          ]
+        },
+        "total": {
+          "median_seconds": 0.031287700054235756,
+          "iqr_seconds": 0.00044270005309954286,
+          "samples_seconds": [
+            0.031464200001209974,
+            0.031287700054235756,
+            0.03168799995910376,
+            0.030748500023037195,
+            0.03147619997616857,
+            0.031113999895751476,
+            0.030940999975427985
+          ]
+        },
+        "model_reconstruction": {
+          "median_seconds": 0.0008217993890866637,
+          "iqr_seconds": 1.7250014934688807e-05,
+          "samples_seconds": [
+            0.0008241996401920915,
+            0.0008270998951047659,
+            0.000810399535112083,
+            0.0008054000791162252,
+            0.0008217993890866637,
+            0.0008261000039055943,
+            0.0007972002495080233
+          ]
+        },
+        "model_count": 100,
+        "work": {
+          "theory_atoms": 215,
+          "seeds": 203,
+          "rules": 9,
+          "application_decode_requests": 221,
+          "decoded_applications": 12,
+          "application_cache_hits": 209,
+          "value_decode_requests": 209,
+          "decoded_values": 103,
+          "value_cache_hits": 106,
+          "watched_literals": 103,
+          "ordinary_atoms": 108,
+          "ordinary_watched_literals": 103,
+          "ordinary_activations": 301,
+          "ordinary_deactivations": 301,
+          "propagate_calls": 301,
+          "propagated_literals": 301,
+          "seed_activations": 396,
+          "seed_deactivations": 396,
+          "check_calls": 103,
+          "check_seed_probes": 0,
+          "semantic_state_changes": 396,
+          "evaluation_runs": 198,
+          "evaluation_cache_hits": 103,
+          "evaluation_cache_stale_rejections": 0,
+          "dynamic_undefined_analysis_runs": 0,
+          "dynamic_undefined_applications_proven": 0,
+          "rule_body_evaluations": 1782,
+          "blocking_clauses": 201,
+          "functionality_clauses": 0,
+          "derived_functionality_clauses": 0,
+          "guard_clauses": 201,
+          "narrow_blocking_clauses": 201,
+          "broad_blocking_clauses": 0,
+          "broad_clause_causes": [],
+          "duplicate_clauses": 98,
+          "clause_add_conflicts": 101,
+          "clause_propagations": 100,
+          "early_explanation_clauses": 198,
+          "clause_literals": 401,
+          "maximum_clause_width": 2,
+          "snapshot_assignments": 900,
+          "undo_calls": 201,
+          "undone_literals": 301
+        }
+      },
+      "visible_models_equal": true,
+      "reference_sha256": "61c2271b0d7c5b13912f108727e9ab303e4bfeee793a828a596ac027ac5546e3",
+      "native_sha256": "61c2271b0d7c5b13912f108727e9ab303e4bfeee793a828a596ac027ac5546e3"
+    },
+    {
+      "candidate_values": 1000,
+      "reference": {
+        "structure": {
+          "observer_rules": 8010,
+          "observer_weight_rules": 2,
+          "symbolic_atoms": 5012,
+          "theory_atoms": 0,
+          "statistics_rules": 8012,
+          "statistics_atoms": 7011,
+          "statistics_bodies": 5004
+        },
+        "ground": {
+          "median_seconds": 0.011881299898959696,
+          "iqr_seconds": 0.000235249986872077,
+          "samples_seconds": [
+            0.0114558000350371,
+            0.011666400008834898,
+            0.012386700022034347,
+            0.011986700003035367,
+            0.011920099961571395,
+            0.011881299898959696,
+            0.01176989998202771
+          ]
+        },
+        "solve": {
+          "median_seconds": 0.008877100073732436,
+          "iqr_seconds": 0.00010679999832063913,
+          "samples_seconds": [
+            0.008811399922706187,
+            0.008880499983206391,
+            0.00881110003683716,
+            0.008805899997241795,
+            0.008955599972978234,
+            0.0091594000114128,
+            0.008877100073732436
+          ]
+        },
+        "total": {
+          "median_seconds": 0.021759800030849874,
+          "iqr_seconds": 0.0004231499624438584,
+          "samples_seconds": [
+            0.021031799959018826,
+            0.021569499978795648,
+            0.022180200088769197,
+            0.021759800030849874,
+            0.021955600008368492,
+            0.021979799959808588,
+            0.021519600064493716
+          ]
+        },
+        "model_count": 1000
+      },
+      "native": {
+        "structure": {
+          "observer_rules": 2030,
+          "observer_weight_rules": 2,
+          "symbolic_atoms": 1008,
+          "theory_atoms": 2015,
+          "statistics_rules": 2032,
+          "statistics_atoms": 5025,
+          "statistics_bodies": 1013
+        },
+        "ground": {
+          "median_seconds": 0.008892100071534514,
+          "iqr_seconds": 0.00019924994558095932,
+          "samples_seconds": [
+            0.008593800012022257,
+            0.008899700012989342,
+            0.009296300006099045,
+            0.008892100071534514,
+            0.008776700007729232,
+            0.008819700102321804,
+            0.009095199988223612
+          ]
+        },
+        "solve": {
+          "median_seconds": 0.3076321999542415,
+          "iqr_seconds": 0.006075400044210255,
+          "samples_seconds": [
+            0.3076321999542415,
+            0.30591009999625385,
+            0.30582450004294515,
+            0.32198530004825443,
+            0.30636259994935244,
+            0.30850859999191016,
+            0.31591490004211664
+          ]
+        },
+        "total": {
+          "median_seconds": 0.3204301999649033,
+          "iqr_seconds": 0.005700250039808452,
+          "samples_seconds": [
+            0.3204301999649033,
+            0.31895069999154657,
+            0.3196551000000909,
+            0.3350778000894934,
+            0.32000019995030016,
+            0.3214494000421837,
+            0.32960639998782426
+          ]
+        },
+        "model_reconstruction": {
+          "median_seconds": 0.008542799158021808,
+          "iqr_seconds": 0.0001680506975390017,
+          "samples_seconds": [
+            0.008542799158021808,
+            0.008419300080277026,
+            0.008467598585411906,
+            0.009084498859010637,
+            0.00841610215138644,
+            0.008638600818812847,
+            0.008584399241954088
+          ]
+        },
+        "model_count": 1000,
+        "work": {
+          "theory_atoms": 2015,
+          "seeds": 2003,
+          "rules": 9,
+          "application_decode_requests": 2021,
+          "decoded_applications": 12,
+          "application_cache_hits": 2009,
+          "value_decode_requests": 2009,
+          "decoded_values": 1003,
+          "value_cache_hits": 1006,
+          "watched_literals": 1003,
+          "ordinary_atoms": 1008,
+          "ordinary_watched_literals": 1003,
+          "ordinary_activations": 2400,
+          "ordinary_deactivations": 2400,
+          "propagate_calls": 2400,
+          "propagated_literals": 2400,
+          "seed_activations": 3996,
+          "seed_deactivations": 3996,
+          "check_calls": 1003,
+          "check_seed_probes": 0,
+          "semantic_state_changes": 3996,
+          "evaluation_runs": 1998,
+          "evaluation_cache_hits": 1003,
+          "evaluation_cache_stale_rejections": 0,
+          "dynamic_undefined_analysis_runs": 0,
+          "dynamic_undefined_applications_proven": 0,
+          "rule_body_evaluations": 17982,
+          "blocking_clauses": 2001,
+          "functionality_clauses": 0,
+          "derived_functionality_clauses": 0,
+          "guard_clauses": 2001,
+          "narrow_blocking_clauses": 2001,
+          "broad_blocking_clauses": 0,
+          "broad_clause_causes": [],
+          "duplicate_clauses": 998,
+          "clause_add_conflicts": 1001,
+          "clause_propagations": 1000,
+          "early_explanation_clauses": 1998,
+          "clause_literals": 4001,
+          "maximum_clause_width": 2,
+          "snapshot_assignments": 9000,
+          "undo_calls": 2001,
+          "undone_literals": 2400
+        }
+      },
+      "visible_models_equal": true,
+      "reference_sha256": "2b21bcee5a3ece8b47c51122dabdb0899d971a0e2182e167ccecb7146b6fbc9d",
+      "native_sha256": "2b21bcee5a3ece8b47c51122dabdb0899d971a0e2182e167ccecb7146b6fbc9d"
+    }
+  ]
+}
