@@ -76,8 +76,8 @@ classification to primary sources and executable cases.
 | `#hide #nherb.` and selected forms | Supported | Typed post-solve assignment policy |
 | Selected `#show #nherb` | Supported | Typed post-solve assignment policy |
 | Historical ordinary `#hide.` | Supported | Presentation-only translation to modern `#show.` plus assignment hide-all |
-| Native theory-atom backend | Planned only | Not implemented |
-| Custom propagator | Planned only | Not implemented |
+| Native theory-atom backend | Research only | Bounded prototype under `research/`; no package/CLI integration |
+| Custom propagator | Research only | Implemented for the typed research subset; NO-GO for production integration |
 | Historical grounding-efficiency behavior | Not claimed | Reference backend only |
 
 The executable historical target is recorded in

@@ -33,3 +33,24 @@ jobs:
         run: pytest tests/historical_compat -rxX
       - name: Compatibility report
         run: python scripts/compatibility_report.py
+
+  package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - name: Build wheel
+        run: python -m pip wheel . --no-deps --wheel-dir dist
+      - name: Install wheel in a clean environment
+        run: |
+          python -m venv .smoke-venv
+          .smoke-venv/bin/python -m pip install dist/aspf_next-*.whl
+      - name: Smoke-test installed CLI
+        run: |
+          .smoke-venv/bin/aspf --version
+          .smoke-venv/bin/aspf examples/01_basic_assignment.aspf

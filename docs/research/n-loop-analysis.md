@@ -101,10 +101,16 @@ heads have constant values. It compares complete application keys, so `f(a)` and
 default-negated comparisons and follows ordinary literals across rules, addressing
 both major defects of the earlier function-symbol cycle screen.
 
-The detector is deliberately conservative when ordinary variables or dynamic
-n-variable assignment-head values require reasoning about possible ground literal
-identity. It connects compatible patterns and may reject a potential path that no
-actual grounding realizes. This is a stated research restriction, not a claim of exact
+For non-ground patterns, matching performs rule-scoped first-order unification. It
+therefore preserves repeated-variable constraints (`p(X,X)` cannot match `p(a,b)`) and
+shares an ordinary-variable binding between an n-atom application key and its scalar
+value. This removes two concrete conservative false-positive families without
+enumerating a value domain.
+
+The detector remains deliberately conservative when ordinary variables or dynamic
+n-variable assignment-head values require reasoning about complete grounded joins.
+Compatible paths can still exist syntactically when no actual grounding realizes all
+of them together. This is a stated research restriction, not a claim of exact
 historical detection for every non-ground ASP{f} program. Exact analysis of that wider
 class should operate on grounded typed metadata while mapping each witness back to its
 source rule.

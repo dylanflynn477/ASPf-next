@@ -11,6 +11,7 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import cast
 
 from research.native_backend.ir import (
     AppExpression,
@@ -21,6 +22,7 @@ from research.native_backend.ir import (
     ComparisonOperator,
     ConstantExpression,
     Expression,
+    GroundTerm,
     NativeProgram,
     NVariableExpression,
     SourceLocation,
@@ -125,45 +127,97 @@ def _render_comparison(comparison: Comparison) -> str:
     )
 
 
-def _terms_compatible(left: Term, right: Term) -> bool:
-    return isinstance(left, Variable) or isinstance(right, Variable) or left == right
+_VariableKey = tuple[str, str]
 
 
-def _applications_compatible(left: Application, right: Application) -> bool:
+def _term_pairs_unifiable(
+    pairs: tuple[tuple[Term, Term], ...],
+    left_scope: str,
+    right_scope: str,
+) -> bool:
+    """Decide pairwise first-order unifiability with occurrence-local variables.
+
+    Variable names are shared across occurrences from the same source rule and kept
+    distinct across rules.  Retaining those equality constraints avoids false matches
+    such as ``p(X,X)`` with ``p(a,b)`` while remaining independent of value-domain
+    enumeration.
+    """
+
+    edges: dict[_VariableKey, set[_VariableKey]] = {}
+    constants: dict[_VariableKey, set[GroundTerm]] = {}
+
+    def variable_key(scope: str, term: Variable) -> _VariableKey:
+        key = (scope, term.name)
+        edges.setdefault(key, set())
+        constants.setdefault(key, set())
+        return key
+
+    for left, right in pairs:
+        if isinstance(left, Variable) and isinstance(right, Variable):
+            left_key = variable_key(left_scope, left)
+            right_key = variable_key(right_scope, right)
+            edges[left_key].add(right_key)
+            edges[right_key].add(left_key)
+        elif isinstance(left, Variable):
+            constants[variable_key(left_scope, left)].add(cast(GroundTerm, right))
+        elif isinstance(right, Variable):
+            constants[variable_key(right_scope, right)].add(left)
+        elif left != right:
+            return False
+
+    visited: set[_VariableKey] = set()
+    for start in sorted(edges):
+        if start in visited:
+            continue
+        pending = [start]
+        component_constants: set[GroundTerm] = set()
+        while pending:
+            key = pending.pop()
+            if key in visited:
+                continue
+            visited.add(key)
+            component_constants.update(constants[key])
+            pending.extend(edges[key] - visited)
+        if len(component_constants) > 1:
+            return False
+    return True
+
+
+def _applications_compatible(
+    left: Application,
+    right: Application,
+    left_scope: str,
+    right_scope: str,
+) -> bool:
     return (
         left.function == right.function
         and len(left.arguments) == len(right.arguments)
-        and all(
-            _terms_compatible(left_term, right_term)
-            for left_term, right_term in zip(left.arguments, right.arguments, strict=True)
+        and _term_pairs_unifiable(
+            tuple(zip(left.arguments, right.arguments, strict=True)),
+            left_scope,
+            right_scope,
         )
     )
 
 
-def _expressions_compatible(left: Expression, right: Expression) -> bool:
-    if isinstance(left, NVariableExpression) or isinstance(right, NVariableExpression):
-        return True
-    if isinstance(left, ConstantExpression) and isinstance(right, ConstantExpression):
-        return _terms_compatible(left.value, right.value)
-    if isinstance(left, AppExpression) and isinstance(right, AppExpression):
-        return _applications_compatible(left.application, right.application)
-    return False
-
-
-def _atoms_compatible(left: Atom, right: Atom) -> bool:
+def _atoms_compatible(
+    left: Atom,
+    right: Atom,
+    left_scope: str,
+    right_scope: str,
+) -> bool:
     return (
         left.name == right.name
         and len(left.arguments) == len(right.arguments)
-        and all(
-            _terms_compatible(left_term, right_term)
-            for left_term, right_term in zip(left.arguments, right.arguments, strict=True)
+        and _term_pairs_unifiable(
+            tuple(zip(left.arguments, right.arguments, strict=True)),
+            left_scope,
+            right_scope,
         )
     )
 
 
-def _nodes_match(left: DependencyNode, right: DependencyNode) -> bool:
-    if left.ordinary_atom is not None and right.ordinary_atom is not None:
-        return _atoms_compatible(left.ordinary_atom, right.ordinary_atom)
+def _natoms_compatible(left: DependencyNode, right: DependencyNode) -> bool:
     if (
         left.seed_application is None
         or left.seed_value is None
@@ -171,9 +225,45 @@ def _nodes_match(left: DependencyNode, right: DependencyNode) -> bool:
         or right.seed_value is None
     ):
         return False
-    return _applications_compatible(
-        left.seed_application, right.seed_application
-    ) and _expressions_compatible(left.seed_value, right.seed_value)
+    left_application = left.seed_application
+    right_application = right.seed_application
+    if left_application.function != right_application.function or len(
+        left_application.arguments
+    ) != len(right_application.arguments):
+        return False
+    pairs = list(zip(left_application.arguments, right_application.arguments, strict=True))
+    left_value = left.seed_value
+    right_value = right.seed_value
+    if isinstance(left_value, NVariableExpression) or isinstance(right_value, NVariableExpression):
+        pass
+    elif isinstance(left_value, ConstantExpression) and isinstance(right_value, ConstantExpression):
+        pairs.append((left_value.value, right_value.value))
+    elif isinstance(left_value, AppExpression) and isinstance(right_value, AppExpression):
+        left_nested = left_value.application
+        right_nested = right_value.application
+        if left_nested.function != right_nested.function or len(left_nested.arguments) != len(
+            right_nested.arguments
+        ):
+            return False
+        pairs.extend(zip(left_nested.arguments, right_nested.arguments, strict=True))
+    else:
+        return False
+    return _term_pairs_unifiable(
+        tuple(pairs),
+        left.rule_identifier,
+        right.rule_identifier,
+    )
+
+
+def _nodes_match(left: DependencyNode, right: DependencyNode) -> bool:
+    if left.ordinary_atom is not None and right.ordinary_atom is not None:
+        return _atoms_compatible(
+            left.ordinary_atom,
+            right.ordinary_atom,
+            left.rule_identifier,
+            right.rule_identifier,
+        )
+    return _natoms_compatible(left, right)
 
 
 def _seed_parts(comparison: Comparison) -> tuple[Application, Expression] | None:
@@ -195,7 +285,12 @@ def _shared_terms(seed: DependencyNode, endpoint: DependencyNode) -> tuple[Appli
         seed_term
         for seed_term in seed.simple_terms
         if any(
-            _applications_compatible(seed_term, endpoint_term)
+            _applications_compatible(
+                seed_term,
+                endpoint_term,
+                seed.rule_identifier,
+                endpoint.rule_identifier,
+            )
             for endpoint_term in endpoint.simple_terms
         )
     }

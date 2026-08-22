@@ -92,7 +92,7 @@ The less synthetic observation-pipeline workload is reproducible with:
 ```console
 python -m benchmarks.multi_application_workload \
   --sizes 10 100 1000 --warmups 1 --repeats 7 \
-  --output benchmarks/results/multi-application-workload.json
+  --output benchmarks/results/multi-application-evaluation-cache.json
 ```
 
 It uses three ordinary-grounded devices, multiple non-Herbrand applications, an
@@ -101,3 +101,30 @@ comparison. The paired reference and native programs have exact normalized model
 digests. Its exactly-one choice makes application conflicts impossible, so the
 reference source deliberately omits a redundant functionality constraint that would
 otherwise introduce an unrelated quadratic grounding artifact.
+
+`multi-application-workload.json` preserves the result before provenance-aware guard
+explanations. `multi-application-provenance.json` records the same protocol after
+support-set provenance and early propagation. `multi-application-evaluation-cache.json`
+then records exact thread-local cache invalidation and total-check reuse.
+`multi-application-adversarial-hardening.json` is the control run after explicit cache
+generations and dynamic-proof instrumentation; its work counts are unchanged and the
+new dynamic counters remain zero. These artifacts add deterministic counts for
+evaluations/cache hits, derived-functionality and guard clauses, narrow versus broad
+clauses, attributed broad fallbacks, duplicate clauses, solver propagation outcomes,
+and early explanations. Timing remains secondary to exact model digests and these
+structural work counters.
+
+Exercise branch-local absence separately with:
+
+```console
+python -m benchmarks.dynamic_undefinedness_workload \
+  --sizes 10 50 100 --warmups 1 --repeats 7 \
+  --output benchmarks/results/dynamic-undefinedness-adversarial-hardening.json
+```
+
+This workload gives one target N distinct conditional providers and includes one model
+where all are false. `dynamic-undefinedness-candidate-baseline.json` records candidate
+commit `8c3e1c0`; `dynamic-undefinedness-adversarial-hardening.json` records the
+provider-complete proof. Both exhaustively compare normalized model sets. The paired
+artifacts show narrower explanation scope with a modest evaluation-time cost; they do
+not claim a solve-speed improvement.

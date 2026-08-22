@@ -3,9 +3,39 @@
 Notable changes to ASPf-next are recorded here. Reader-facing and Python
 package versions use the same PEP 440 spelling.
 
-## Unreleased
+## 0.2.0a2 - 2026-08-22
 
-No changes yet.
+### Added
+
+- Added `aspf --version` and a wheel-install smoke check in CI.
+
+### Changed
+
+- Beginning with this release, ASPf-next is distributed under the PolyForm
+  Noncommercial License 1.0.0. This source-available license is not
+  OSI-approved. The published `0.2.0a1` release remains governed by its
+  accompanying MIT License; rights already granted for that release or another
+  pre-transition copy distributed with MIT terms are unchanged.
+
+### Research
+
+- Retained solver-literal support provenance for native research values, n-variable
+  definitions, comparisons, and guards; derived functionality conflicts and guard
+  mismatches can now receive narrow clauses.
+- Added early research-propagator evaluation, static undefinedness proofs, thread-local
+  learned-clause/evaluation caches with exact invalidation, explanation diagnostics,
+  and deterministic work counters.
+- Preserved exact reference/native models while eliminating broad clauses from the
+  recorded multi-application workload. The native backend remains research-only and
+  is still substantially slower than the reference backend.
+- Adversarially verified positive provenance with a 144-case exhaustive differential
+  matrix, corrected unlocked fallback-clause lifetime handling, and made closure-cache
+  validity explicit through per-thread semantic generations.
+- Added opt-in one-thread clause audits and conservative provider-complete explanations
+  for dynamic undefinedness. Unassigned providers remain unexplained rather than being
+  treated as false.
+- Made conservative non-ground n-loop matching preserve repeated and cross-field
+  ordinary-variable bindings; the documented exact fragment is unchanged.
 
 ## 0.2.0a1 - 2026-08-08
 

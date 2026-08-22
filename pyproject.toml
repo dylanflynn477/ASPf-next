@@ -4,11 +4,12 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aspf-next"
-version = "0.2.0a1"
+version = "0.2.0a2"
 description = "Experimental clean-room ASP{f} compatibility frontend for Clingo 5.8"
 readme = "README.md"
 requires-python = ">=3.11"
-license = "MIT"
+license = "PolyForm-Noncommercial-1.0.0"
+license-files = ["LICENSE"]
 authors = [{ name = "Dylan Flynn" }]
 keywords = [
   "answer-set-programming",
@@ -21,7 +22,7 @@ keywords = [
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: MIT License",
+  "License :: Other/Proprietary License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",

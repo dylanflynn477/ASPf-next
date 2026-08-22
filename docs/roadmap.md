@@ -34,19 +34,39 @@ out of ordinary grounding, preserves the tested copy/undefinedness/backtracking 
 and holds copy-rule grounding overhead to one rule/theory atom through 10,000 candidate
 values. Incremental watched support eliminates check-time full seed rescans, and the
 visible-atom index eliminates per-model full symbolic-atom rescans. The realistic
-multi-application workload instead exposes broad explanation clauses as the dominant
-solver-performance problem; non-ground n-loop detection remains conservative, and
-two-thread support has only bounded feasibility evidence.
+multi-application workload originally exposed broad explanation clauses as the
+dominant solver-performance problem. Post-study hardening now retains support sets for
+derived values and comparisons, propagates narrow guard clauses earlier, and eliminates
+broad clauses on that workload. Adversarial follow-up adds conservative compositional
+reasons when every grounded provider of a dynamically absent application has a proved
+failure; unassigned or cyclic provider paths still fall back rather than becoming fake
+evidence. Native solving remains substantially slower than the reference, thread-local
+generation tracking prevents stale closure reuse, non-ground n-loop detection remains
+conservative, and two-thread support has only bounded evidence.
 
 The code remains under `research/`; the released syntax, reference backend, and CLI are
 unchanged. The [feasibility report](research/native-backend-feasibility.md) and
 [benchmark report](benchmarks/native-vs-reference.md) record the preregistered gates,
 raw evidence, and limitations.
 
-The next native research milestone, if pursued, is provenance-aware explanations for
-derived values, comparisons, guards, and undefinedness; narrower conflict clauses and
-earlier propagation; and broader grounded-exact n-loop analysis. A fresh
+The next native research milestone, if pursued, is incrementally maintaining affected
+value and absence state instead of reevaluating rule families, narrowing the remaining
+unassigned/cyclic explanation gaps, reducing Python callback cost, and moving wider
+n-loop checks to grounded typed metadata with source provenance. A fresh
 production-integration review should occur only if those gates succeed.
+
+## 0.2.0a2 release
+
+This alpha is a patch-level prerelease because it does not expand the
+released syntax, reference semantics, or backend selection surface. It packages
+the native research hardening, adversarial/differential evidence, CLI version
+reporting, package smoke checks, and documentation accumulated after
+`0.2.0a1`. The native backend remains research-only, `_v` remains rejected by
+the frontend, and the reference backend remains the production/default path.
+
+Beginning with `0.2.0a2`, releases use the PolyForm Noncommercial License 1.0.0.
+The historical `0.2.0a1` MIT grant and other valid pre-transition MIT grants
+remain unchanged.
 
 ## Deferred compatibility candidates
 

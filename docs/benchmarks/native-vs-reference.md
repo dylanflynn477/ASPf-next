@@ -175,6 +175,62 @@ exhaustive-raw, and exhaustive-visible native medians are 705.793, 2,657.385, an
 and 10,602.728 ms. The reference visible figure also contains Python symbol extraction
 and is not a search-speed comparison.
 
+## Post-feasibility provenance workload
+
+The original multi-application workload isolated broad guard clauses as the dominant
+remaining solver cost. A follow-up at commit
+`1b8dd4f5076fefff76f7b086d63fbc6b227761fb` uses the same generated programs, one
+warm-up, seven samples, and one solver thread after support-set provenance and early
+propagation were added. It ran on the recorded Windows/Intel environment above with
+Python 3.12.13 and Clingo 5.8.2 on 2026-08-20.
+
+| Values | Reference solve | Native solve | Checks | Clauses | Broad | Clause literals | Max width | Equal models |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | :---: |
+| 10 | 0.092 ms | 4.768 ms | 13 | 21 | 0 | 41 | 2 | yes |
+| 100 | 0.622 ms | 35.392 ms | 103 | 201 | 0 | 401 | 2 | yes |
+| 1,000 | 9.012 ms | 373.820 ms | 1,003 | 2,001 | 0 | 4,001 | 2 | yes |
+
+The deterministic work counters demonstrate that the broad-clause pathology is gone
+for this workload. Timing is not a controlled claim against the older Clingo 5.8.1
+artifact, and the current native median remains about 41 times the current reference
+median at N=1,000.
+
+A second follow-up at commit `88c4f7fd6e09f50917bd683b8e2f2ce250d23cbd`
+reuses a thread's unchanged early evaluation at its total check. This is an exact cache,
+not a semantic approximation: seed/rule activation and undo invalidate it.
+
+| Values | Native solve before cache | Native solve with cache | Evaluation runs | Check cache hits | Rule-body evaluations | Equal models |
+| ---: | ---: | ---: | ---: | ---: | ---: | :---: |
+| 10 | 4.768 ms | 3.846 ms | 18 | 13 | 162 | yes |
+| 100 | 35.392 ms | 27.878 ms | 198 | 103 | 1,782 | yes |
+| 1,000 | 373.820 ms | 303.996 ms | 1,998 | 1,003 | 17,982 | yes |
+
+At N=1,000 this removes 33.4% of rule-body evaluations and reduces the same-environment
+native median by 18.7%. The clause result remains 2,001 narrow clauses, zero broad
+clauses, 4,001 literals, and maximum width two. Profiled closure evaluation is still
+the main Python callback cost; the 8.972 ms reference median remains much faster.
+
+## Adversarial dynamic-undefinedness workload
+
+A separate paired workload tests absence explanations rather than the already-static
+undefined source above. It creates N distinct conditional sources, N independent copy
+rules into one target, one all-absent model, and complete normalized reference/native
+model comparison. Both artifacts use Python 3.12.13, Clingo 5.8.2, the same machine,
+one warm-up, seven samples, and one solver thread.
+
+| Providers | Candidate solve | Hardened solve | Broad before/after | Clause literals before/after | Max width before/after | Equal models |
+| ---: | ---: | ---: | ---: | ---: | ---: | :---: |
+| 10 | 3.081 ms | 3.518 ms | 3 / 0 | 76 / 62 | 12 / 11 | yes |
+| 50 | 34.564 ms | 37.346 ms | 3 / 0 | 356 / 302 | 52 / 51 | yes |
+| 100 | 121.390 ms | 128.139 ms | 3 / 0 | 706 / 602 | 102 / 101 | yes |
+
+The hardened clauses contain exactly the false provider supports plus the required
+guard literal. Eliminating broad completion clauses reduces clause literals but adds
+rule-body evaluation, producing a roughly 5–14% solve-time cost on this adversarial
+family. This is evidence for sounder, auditable explanation scope—not a speedup claim.
+The standard multi-application counters and digests remain unchanged because its
+undefined source is statically provable and never invokes the dynamic analysis.
+
 ## Commands
 
 Run from the repository root with the environment's Python:
@@ -201,7 +257,11 @@ python -m benchmarks.solve_decomposition \
 
 python -m benchmarks.multi_application_workload \
   --sizes 10 100 1000 --warmups 1 --repeats 7 \
-  --output benchmarks/results/multi-application-workload.json
+  --output benchmarks/results/multi-application-evaluation-cache.json
+
+python -m benchmarks.dynamic_undefinedness_workload \
+  --sizes 10 50 100 --warmups 1 --repeats 7 \
+  --output benchmarks/results/dynamic-undefinedness-adversarial-hardening.json
 ```
 
 Raw result files:
@@ -214,20 +274,33 @@ Raw result files:
 - [`benchmarks/results/solve-decomposition-after-visible-index.json`](../../benchmarks/results/solve-decomposition-after-visible-index.json)
 - [`benchmarks/results/solve-decomposition-final.json`](../../benchmarks/results/solve-decomposition-final.json)
 - [`benchmarks/results/multi-application-workload.json`](../../benchmarks/results/multi-application-workload.json)
+- [`benchmarks/results/multi-application-provenance.json`](../../benchmarks/results/multi-application-provenance.json)
+- [`benchmarks/results/multi-application-evaluation-cache.json`](../../benchmarks/results/multi-application-evaluation-cache.json)
+- [`benchmarks/results/multi-application-adversarial-hardening.json`](../../benchmarks/results/multi-application-adversarial-hardening.json)
+- [`benchmarks/results/dynamic-undefinedness-candidate-baseline.json`](../../benchmarks/results/dynamic-undefinedness-candidate-baseline.json)
+- [`benchmarks/results/dynamic-undefinedness-adversarial-hardening.json`](../../benchmarks/results/dynamic-undefinedness-adversarial-hardening.json)
 
 ## Interpretation and limitations
 
 The theory/propagator representation materially improves copy-rule grounding growth,
 preserves the tested visible models, and no longer performs candidate-domain rescans
 at every model. It remains slower for first-model and raw exhaustive solving. The
-largest avoidable visible-output scan has been removed; a multi-application workload
-instead exposes broad guard clauses as the dominant solver problem. This is evidence
-that grounder-inert metadata is possible through the Python API, not evidence that this
-implementation is production-ready or faster than the mature relational reference.
+largest avoidable visible-output scan has been removed. The original multi-application
+result then exposed broad guard clauses; provenance-aware support sets and early
+propagation remove that pathology in the follow-up run. This is evidence that
+grounder-inert metadata and narrow positive-support explanations are possible through
+the Python API, not evidence that this implementation is production-ready or faster
+than the mature relational reference.
 
 The copy family isolates one important historical motivation. The additional
 three-device workload exercises several applications, ordinary variables, partial
 undefinedness, a copy, two n-variable definitions, and several rules; at N=1,000 it
 grounds 2,032 native versus 8,012 reference rules with exact models, but solves in
 4,526.886 versus 9.552 ms because it generates 7,482 broad clauses. The research
-report documents the semantic, explanation, threading, and n-loop boundaries.
+artifact is retained as the pre-provenance baseline. The follow-up run preserves exact
+models and grounding structure while reducing the native result to 2,001 narrow
+clauses, zero broad clauses, 4,001 clause literals, maximum width two, and a 373.820 ms
+solve median. Exact evaluation reuse further reduces the final median to 303.996 ms
+without changing those clause metrics. The 8.972 ms reference median remains about
+34 times faster. The research report documents the semantic, explanation, threading,
+and n-loop boundaries.

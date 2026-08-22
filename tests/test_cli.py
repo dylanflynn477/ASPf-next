@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from aspf_next import __version__
 from aspf_next.cli import main
 
 
@@ -12,6 +13,18 @@ def write_program(tmp_path: Path, source: str, name: str = "input.aspf") -> Path
     path = tmp_path / name
     path.write_text(source, encoding="utf-8")
     return path
+
+
+def test_version_does_not_require_an_input_file(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as raised:
+        main(["--version"])
+
+    assert raised.value.code == 0
+    captured = capsys.readouterr()
+    assert captured.out == f"aspf {__version__}\n"
+    assert captured.err == ""
 
 
 def test_human_output_hides_internal_predicates(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]

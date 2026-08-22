@@ -9,6 +9,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import TextIO
 
+from aspf_next import __version__
 from aspf_next.errors import AspfNextError
 from aspf_next.frontend import parse_sources
 from aspf_next.lowering import lower_program
@@ -22,6 +23,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="aspf",
         description="Run the restricted ASP{f} compatibility frontend on Clingo 5.8.",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
     )
     parser.add_argument("files", metavar="FILE", nargs="+", type=Path)
     parser.add_argument(

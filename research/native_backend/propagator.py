@@ -5,13 +5,15 @@ from __future__ import annotations
 import json
 import time
 from collections import deque
-from collections.abc import Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, replace
 from enum import Enum, StrEnum
 from heapq import heapify, heappop, heappush
 from typing import TypeAlias
 
 import clingo
+
+from research.native_backend.audit import ClauseAudit, ClauseAuditKind, SupportOrigin
 
 
 class ValueKind(StrEnum):
@@ -111,6 +113,10 @@ class RuleKey:
     identifier: str
     instance: tuple[GroundValue, ...]
 
+    def render(self) -> str:
+        instance = ",".join(value.render() for value in self.instance)
+        return f"{self.identifier}[{instance}]" if instance else self.identifier
+
 
 @dataclass(frozen=True, slots=True)
 class GroundRule:
@@ -129,6 +135,23 @@ class GroundSeed:
     literal: int
 
 
+@dataclass(frozen=True, slots=True)
+class _SeedConflict:
+    application: GroundApplication
+    left_value: GroundValue
+    right_value: GroundValue
+    literals: tuple[int, int]
+
+
+@dataclass(frozen=True, slots=True)
+class _ApplicationConflict:
+    application: GroundApplication
+    left_value: GroundValue
+    right_value: GroundValue
+    left_explanation: Explanation | None
+    right_explanation: Explanation | None
+
+
 class StateKind(StrEnum):
     """Explicit state; undefinedness is not represented as a source value."""
 
@@ -141,9 +164,25 @@ class StateKind(StrEnum):
 class ValueState:
     kind: StateKind
     value: GroundValue | None = None
+    explanation: frozenset[int] | None = None
 
 
 UNDEFINED = ValueState(StateKind.UNDEFINED)
+
+
+Explanation: TypeAlias = frozenset[int]
+ApplicationValues: TypeAlias = dict[GroundApplication, dict[GroundValue, Explanation | None]]
+UndefinedExplanations: TypeAlias = dict[GroundApplication, Explanation]
+
+
+@dataclass(frozen=True, slots=True)
+class RuleEvaluation:
+    """A rule-body result and the solver literals sufficient to justify it."""
+
+    satisfied: bool
+    nvariables: dict[str, ValueState]
+    explanation: Explanation | None
+    explanation_gap: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -179,10 +218,24 @@ class NativeWorkMetrics:
     seed_deactivations: int
     check_calls: int
     check_seed_probes: int
+    semantic_state_changes: int
+    evaluation_runs: int
+    evaluation_cache_hits: int
+    evaluation_cache_stale_rejections: int
+    dynamic_undefined_analysis_runs: int
+    dynamic_undefined_applications_proven: int
     rule_body_evaluations: int
     blocking_clauses: int
     functionality_clauses: int
+    derived_functionality_clauses: int
+    guard_clauses: int
+    narrow_blocking_clauses: int
     broad_blocking_clauses: int
+    broad_clause_causes: tuple[tuple[str, int], ...]
+    duplicate_clauses: int
+    clause_add_conflicts: int
+    clause_propagations: int
+    early_explanation_clauses: int
     clause_literals: int
     maximum_clause_width: int
     snapshot_assignments: int
@@ -195,8 +248,30 @@ class _ThreadState:
     """Assignment-dependent state owned by one Clingo solving thread."""
 
     true_literals: set[int]
-    seed_supports: dict[GroundApplication, dict[GroundValue, int]]
+    seed_supports: dict[GroundApplication, dict[GroundValue, dict[int, int]]]
     ordinary_supports: dict[str, int]
+    semantic_generation: int = 0
+    evaluation: _CachedEvaluation | None = None
+
+
+@dataclass(slots=True)
+class _EvaluationState:
+    """One deterministic native closure over a thread's current positive supports."""
+
+    applications: ApplicationValues
+    active: tuple[bool, ...]
+    rule_states: dict[int, dict[str, ValueState]]
+    rule_satisfaction: dict[int, bool]
+    rule_explanations: dict[int, Explanation | None]
+    rule_explanation_gaps: dict[int, str | None]
+
+
+@dataclass(frozen=True, slots=True)
+class _CachedEvaluation:
+    """A closure result tied to one exact thread-local semantic generation."""
+
+    generation: int
+    result: _EvaluationState
 
 
 def _expect_function(term: clingo.TheoryTerm, name: str, arity: int | None = None) -> None:
@@ -428,32 +503,73 @@ def _decode_guard(atom: clingo.TheoryAtom, literal: int) -> tuple[RuleKey, int]:
     return _decode_meta(terms[0]), literal
 
 
+def _merge_explanations(explanations: Iterable[Explanation | None]) -> Explanation | None:
+    """Combine conjunctive supports, preserving an unknown explanation as unknown."""
+
+    merged: set[int] = set()
+    for explanation in explanations:
+        if explanation is None:
+            return None
+        merged.update(explanation)
+    return frozenset(merged)
+
+
+def _prefer_explanation(candidate: Explanation | None, current: Explanation | None) -> bool:
+    """Choose a deterministic small support when one value has several derivations."""
+
+    if candidate is None:
+        return False
+    if current is None:
+        return True
+    return (len(candidate), tuple(sorted(candidate))) < (len(current), tuple(sorted(current)))
+
+
 def _application_state(
-    values: dict[GroundApplication, set[GroundValue]], application: GroundApplication
+    values: ApplicationValues,
+    application: GroundApplication,
+    potential_applications: frozenset[GroundApplication],
+    undefined_explanations: UndefinedExplanations | None = None,
 ) -> ValueState:
-    candidates = values.get(application, set())
+    candidates = values.get(application, {})
     if not candidates:
-        return UNDEFINED
+        explanation: Explanation | None = None
+        if undefined_explanations is not None and application in undefined_explanations:
+            explanation = undefined_explanations[application]
+        elif application not in potential_applications:
+            explanation = frozenset()
+        return ValueState(StateKind.UNDEFINED, explanation=explanation)
     if len(candidates) > 1:
-        return ValueState(StateKind.CONFLICT)
-    return ValueState(StateKind.DEFINED, next(iter(candidates)))
+        first, second = sorted(candidates)[:2]
+        explanation = _merge_explanations((candidates[first], candidates[second]))
+        return ValueState(StateKind.CONFLICT, explanation=explanation)
+    value, explanation = next(iter(candidates.items()))
+    return ValueState(StateKind.DEFINED, value, explanation)
 
 
 def _evaluate_expression(
     expression: GroundExpression,
-    applications: dict[GroundApplication, set[GroundValue]],
+    applications: ApplicationValues,
     nvariables: dict[str, ValueState],
+    potential_applications: frozenset[GroundApplication],
+    undefined_explanations: UndefinedExplanations | None = None,
 ) -> ValueState:
     if isinstance(expression, ConstantGroundExpression):
-        return ValueState(StateKind.DEFINED, expression.value)
+        return ValueState(StateKind.DEFINED, expression.value, frozenset())
     if isinstance(expression, ApplicationGroundExpression):
-        return _application_state(applications, expression.application)
+        return _application_state(
+            applications,
+            expression.application,
+            potential_applications,
+            undefined_explanations,
+        )
     return nvariables.get(expression.name, UNDEFINED)
 
 
 def _resolve_nvariables(
     rule: GroundRule,
-    applications: dict[GroundApplication, set[GroundValue]],
+    applications: ApplicationValues,
+    potential_applications: frozenset[GroundApplication],
+    undefined_explanations: UndefinedExplanations | None = None,
 ) -> dict[str, ValueState]:
     grouped: dict[str, list[GroundExpression]] = {}
     for definition in rule.definitions:
@@ -471,7 +587,13 @@ def _resolve_nvariables(
             if not dependencies.issubset(resolved):
                 continue
             states = [
-                _evaluate_expression(expression, applications, resolved)
+                _evaluate_expression(
+                    expression,
+                    applications,
+                    resolved,
+                    potential_applications,
+                    undefined_explanations,
+                )
                 for expression in expressions
             ]
             values = {
@@ -480,9 +602,33 @@ def _resolve_nvariables(
                 if state.kind is StateKind.DEFINED and state.value is not None
             }
             if all(state.kind is StateKind.DEFINED for state in states) and len(values) == 1:
-                resolved[name] = ValueState(StateKind.DEFINED, next(iter(values)))
+                resolved[name] = ValueState(
+                    StateKind.DEFINED,
+                    next(iter(values)),
+                    _merge_explanations(state.explanation for state in states),
+                )
             else:
-                resolved[name] = UNDEFINED
+                known_undefined = next(
+                    (
+                        state.explanation
+                        for state in states
+                        if state.kind is not StateKind.DEFINED and state.explanation is not None
+                    ),
+                    None,
+                )
+                if known_undefined is None and len(values) > 1:
+                    first, second = sorted(values)[:2]
+                    conflicting = (
+                        state.explanation
+                        for value in (first, second)
+                        for state in states
+                        if state.kind is StateKind.DEFINED and state.value == value
+                    )
+                    known_undefined = _merge_explanations(conflicting)
+                resolved[name] = ValueState(
+                    StateKind.UNDEFINED,
+                    explanation=known_undefined,
+                )
             del pending[name]
             progressed = True
         if not progressed:
@@ -510,31 +656,85 @@ def _compare_values(
 
 def _rule_body(
     rule: GroundRule,
-    applications: dict[GroundApplication, set[GroundValue]],
-) -> tuple[bool, dict[str, ValueState]]:
-    nvariables = _resolve_nvariables(rule, applications)
-    definitions_satisfied = all(
-        nvariables[definition.variable].kind is StateKind.DEFINED
-        and _evaluate_expression(definition.expression, applications, nvariables)
-        == nvariables[definition.variable]
-        for definition in rule.definitions
+    applications: ApplicationValues,
+    potential_applications: frozenset[GroundApplication],
+    undefined_explanations: UndefinedExplanations | None = None,
+) -> RuleEvaluation:
+    nvariables = _resolve_nvariables(
+        rule,
+        applications,
+        potential_applications,
+        undefined_explanations,
     )
-    if not definitions_satisfied:
-        return False, nvariables
+    satisfied_explanations: list[Explanation | None] = []
+    for definition in rule.definitions:
+        variable = nvariables[definition.variable]
+        expression = _evaluate_expression(
+            definition.expression,
+            applications,
+            nvariables,
+            potential_applications,
+            undefined_explanations,
+        )
+        if variable.kind is not StateKind.DEFINED:
+            gap = None if variable.explanation is not None else f"definition:{definition.variable}"
+            return RuleEvaluation(False, nvariables, variable.explanation, gap)
+        if expression.kind is not StateKind.DEFINED or expression.value != variable.value:
+            gap = None if expression.explanation is not None else "definition-expression"
+            return RuleEvaluation(False, nvariables, expression.explanation, gap)
+        satisfied_explanations.append(
+            _merge_explanations((variable.explanation, expression.explanation))
+        )
     for comparison in rule.comparisons:
-        left = _evaluate_expression(comparison.left, applications, nvariables)
-        right = _evaluate_expression(comparison.right, applications, nvariables)
-        positive = (
+        left = _evaluate_expression(
+            comparison.left,
+            applications,
+            nvariables,
+            potential_applications,
+            undefined_explanations,
+        )
+        right = _evaluate_expression(
+            comparison.right,
+            applications,
+            nvariables,
+            potential_applications,
+            undefined_explanations,
+        )
+        if (
             left.kind is StateKind.DEFINED
             and right.kind is StateKind.DEFINED
             and left.value is not None
             and right.value is not None
-            and _compare_values(left.value, comparison.operator, right.value)
-        )
+        ):
+            positive = _compare_values(left.value, comparison.operator, right.value)
+            comparison_explanation = _merge_explanations((left.explanation, right.explanation))
+        else:
+            positive = False
+            known_undefined = next(
+                (
+                    state.explanation
+                    for state in (left, right)
+                    if state.kind is StateKind.UNDEFINED and state.explanation is not None
+                ),
+                None,
+            )
+            comparison_explanation = known_undefined
         satisfied = not positive if comparison.default_negated else positive
         if not satisfied:
-            return False, nvariables
-    return True, nvariables
+            gap = (
+                None
+                if comparison_explanation is not None
+                else f"comparison:{comparison.operator.value}"
+            )
+            return RuleEvaluation(False, nvariables, comparison_explanation, gap)
+        satisfied_explanations.append(comparison_explanation)
+    explanation = _merge_explanations(satisfied_explanations)
+    return RuleEvaluation(
+        True,
+        nvariables,
+        explanation,
+        None if explanation is not None else "satisfied-body",
+    )
 
 
 def _rule_applications(rule: GroundRule) -> set[GroundApplication]:
@@ -582,25 +782,118 @@ def _rule_dependency_order(rules: tuple[GroundRule, ...]) -> tuple[int, ...]:
     return tuple(ordered)
 
 
+def _expression_is_potential(
+    expression: GroundExpression,
+    applications: set[GroundApplication],
+    nvariables: dict[str, bool],
+) -> bool:
+    if isinstance(expression, ConstantGroundExpression):
+        return True
+    if isinstance(expression, ApplicationGroundExpression):
+        return expression.application in applications
+    return nvariables.get(expression.name, False)
+
+
+def _rule_can_produce_value(
+    rule: GroundRule,
+    applications: set[GroundApplication],
+) -> bool:
+    """Over-approximate whether a grounded rule can ever derive its head value.
+
+    The analysis deliberately ignores value equality and comparison outcomes. Its only
+    proof-producing result is the negative one: an application outside the fixed point
+    has no grounded seed or viable assignment-provider path and is therefore always
+    undefined in this compiled program.
+    """
+
+    grouped: dict[str, list[GroundExpression]] = {}
+    for definition in rule.definitions:
+        grouped.setdefault(definition.variable, []).append(definition.expression)
+    nvariables: dict[str, bool] = {}
+    pending = dict(grouped)
+    while pending:
+        progressed = False
+        for name, expressions in tuple(pending.items()):
+            dependencies = {
+                expression.name
+                for expression in expressions
+                if isinstance(expression, NVariableGroundExpression)
+            }
+            if not dependencies.issubset(nvariables):
+                continue
+            nvariables[name] = all(
+                _expression_is_potential(expression, applications, nvariables)
+                for expression in expressions
+            )
+            del pending[name]
+            progressed = True
+        if not progressed:
+            raise RuntimeError(f"decoded rule is not n-stratified: {rule.key.identifier}")
+
+    if any(not possible for possible in nvariables.values()):
+        return False
+    for comparison in rule.comparisons:
+        if comparison.default_negated:
+            continue
+        if not _expression_is_potential(
+            comparison.left, applications, nvariables
+        ) or not _expression_is_potential(comparison.right, applications, nvariables):
+            return False
+    if not isinstance(rule.head, GroundAssignmentHead):
+        return False
+    return _expression_is_potential(rule.head.expression, applications, nvariables)
+
+
+def _potential_applications(
+    seeds: tuple[GroundSeed, ...], rules: tuple[GroundRule, ...]
+) -> frozenset[GroundApplication]:
+    """Compute a sound over-approximation of applications that can become defined."""
+
+    applications = {seed.application for seed in seeds}
+    changed = True
+    while changed:
+        changed = False
+        for rule in rules:
+            if not isinstance(rule.head, GroundAssignmentHead):
+                continue
+            if rule.head.application in applications:
+                continue
+            if _rule_can_produce_value(rule, applications):
+                applications.add(rule.head.application)
+                changed = True
+    return frozenset(applications)
+
+
 class NativePropagator(clingo.Propagator):
     """Maintain seed state incrementally and constrain rule guards at total models."""
 
-    def __init__(self, *, record_snapshots: bool = True) -> None:
+    def __init__(
+        self,
+        *,
+        record_snapshots: bool = True,
+        audit_clauses: bool = False,
+    ) -> None:
         self._record_snapshots = record_snapshots
+        self._audit_clauses = audit_clauses
         self._seeds: tuple[GroundSeed, ...] = ()
         self._rules: tuple[GroundRule, ...] = ()
         self._native_literals: tuple[int, ...] = ()
         self._constant_seeds: tuple[GroundSeed, ...] = ()
         self._seeds_by_literal: dict[int, tuple[GroundSeed, ...]] = {}
-        self._seeds_by_value: dict[
-            tuple[GroundApplication, GroundValue], tuple[GroundSeed, ...]
-        ] = {}
+        self._seeds_by_application: dict[GroundApplication, tuple[GroundSeed, ...]] = {}
         self._rules_by_application: dict[GroundApplication, tuple[int, ...]] = {}
+        self._providers_by_application: dict[GroundApplication, tuple[int, ...]] = {}
+        self._rule_activation_literals: frozenset[int] = frozenset()
         self._rule_order: tuple[int, ...] = ()
+        self._potential_applications: frozenset[GroundApplication] = frozenset()
+        self._early_evaluation_required = False
         self._ordinary_by_literal: dict[int, tuple[str, ...]] = {}
         self._constant_ordinary: tuple[str, ...] = ()
         self._states: dict[int, _ThreadState] = {}
         self._snapshots: dict[int, NativeSnapshot] = {}
+        self._learned_clauses: dict[int, set[tuple[int, ...]]] = {}
+        self._literal_origins: dict[int, tuple[str, ...]] = {}
+        self._clause_audits: list[ClauseAudit] = []
         self._theory_atom_count = 0
         self._application_decode_requests = 0
         self._decoded_applications = 0
@@ -618,10 +911,24 @@ class NativePropagator(clingo.Propagator):
         self.ordinary_activation_count = 0
         self.ordinary_deactivation_count = 0
         self.check_seed_probe_count = 0
+        self.semantic_state_change_count = 0
+        self.evaluation_count = 0
+        self.evaluation_cache_hit_count = 0
+        self.evaluation_cache_stale_rejection_count = 0
+        self.dynamic_undefined_analysis_count = 0
+        self.dynamic_undefined_application_count = 0
         self.rule_body_evaluation_count = 0
         self.blocking_clause_count = 0
         self.functionality_clause_count = 0
+        self.derived_functionality_clause_count = 0
+        self.guard_clause_count = 0
+        self.narrow_blocking_clause_count = 0
         self.broad_blocking_clause_count = 0
+        self._broad_clause_causes: dict[str, int] = {}
+        self.duplicate_clause_count = 0
+        self.clause_add_conflict_count = 0
+        self.clause_propagation_count = 0
+        self.early_explanation_clause_count = 0
         self.clause_literal_count = 0
         self.maximum_clause_width = 0
         self.snapshot_assignment_count = 0
@@ -632,6 +939,10 @@ class NativePropagator(clingo.Propagator):
         started = time.perf_counter()
         if not 1 <= init.number_of_threads <= 2:
             raise RuntimeError("native feasibility prototype is evaluated for at most two threads")
+        # Clingo can invoke a Total check with solver don't-cares still unassigned.
+        # Explanations therefore use positive supports only; a fallback clause treats
+        # every non-true native literal as a conditional completion, never as evidence
+        # that the literal is already false.
         init.check_mode = clingo.PropagatorCheckMode.Total
         init.undo_mode = clingo.PropagatorUndoMode.Always
         seeds: list[GroundSeed] = []
@@ -642,6 +953,9 @@ class NativePropagator(clingo.Propagator):
         self._theory_atom_count = 0
         self._states.clear()
         self._snapshots.clear()
+        self._learned_clauses.clear()
+        self._literal_origins.clear()
+        self._clause_audits.clear()
         self.check_count = 0
         self.undo_count = 0
         self.propagate_count = 0
@@ -651,10 +965,24 @@ class NativePropagator(clingo.Propagator):
         self.ordinary_activation_count = 0
         self.ordinary_deactivation_count = 0
         self.check_seed_probe_count = 0
+        self.semantic_state_change_count = 0
+        self.evaluation_count = 0
+        self.evaluation_cache_hit_count = 0
+        self.evaluation_cache_stale_rejection_count = 0
+        self.dynamic_undefined_analysis_count = 0
+        self.dynamic_undefined_application_count = 0
         self.rule_body_evaluation_count = 0
         self.blocking_clause_count = 0
         self.functionality_clause_count = 0
+        self.derived_functionality_clause_count = 0
+        self.guard_clause_count = 0
+        self.narrow_blocking_clause_count = 0
         self.broad_blocking_clause_count = 0
+        self._broad_clause_causes.clear()
+        self.duplicate_clause_count = 0
+        self.clause_add_conflict_count = 0
+        self.clause_propagation_count = 0
+        self.early_explanation_clause_count = 0
         self.clause_literal_count = 0
         self.maximum_clause_width = 0
         self.snapshot_assignment_count = 0
@@ -686,14 +1014,47 @@ class NativePropagator(clingo.Propagator):
         self._rules = tuple(
             replace(rule, guard_literal=guards.get(key)) for key, rule in sorted(rules.items())
         )
+        literal_origins: dict[int, set[str]] = {}
+        for seed in self._seeds:
+            literal_origins.setdefault(seed.literal, set()).add(
+                f"seed:{seed.application.render()}#={seed.value.render()}"
+            )
+        for rule in self._rules:
+            literal_origins.setdefault(rule.active_literal, set()).add(f"rule:{rule.key.render()}")
+            if rule.guard_literal is not None:
+                literal_origins.setdefault(rule.guard_literal, set()).add(
+                    f"guard:{rule.key.render()}"
+                )
+        self._literal_origins = {
+            literal: tuple(sorted(origins)) for literal, origins in literal_origins.items()
+        }
         grouped_rules: dict[GroundApplication, list[int]] = {}
+        grouped_providers: dict[GroundApplication, list[int]] = {}
         for index, rule in enumerate(self._rules):
             for application in _rule_applications(rule):
                 grouped_rules.setdefault(application, []).append(index)
+            if isinstance(rule.head, GroundAssignmentHead):
+                grouped_providers.setdefault(rule.head.application, []).append(index)
         self._rules_by_application = {
             application: tuple(indexes) for application, indexes in grouped_rules.items()
         }
+        self._providers_by_application = {
+            application: tuple(indexes) for application, indexes in grouped_providers.items()
+        }
         self._rule_order = _rule_dependency_order(self._rules)
+        self._rule_activation_literals = frozenset(
+            rule.active_literal for rule in self._rules if abs(rule.active_literal) > 1
+        )
+        self._potential_applications = _potential_applications(self._seeds, self._rules)
+        provider_counts: dict[GroundApplication, int] = {}
+        for rule in self._rules:
+            if isinstance(rule.head, GroundAssignmentHead):
+                provider_counts[rule.head.application] = (
+                    provider_counts.get(rule.head.application, 0) + 1
+                )
+        self._early_evaluation_required = bool(guards) or any(
+            count > 1 for count in provider_counts.values()
+        )
         self._native_literals = tuple(sorted(native_literals))
         ordinary_by_literal: dict[int, list[str]] = {}
         constant_ordinary: list[str] = []
@@ -713,18 +1074,18 @@ class NativePropagator(clingo.Propagator):
         }
         self._constant_ordinary = tuple(sorted(constant_ordinary))
         self._constant_seeds = tuple(seed for seed in self._seeds if seed.literal == 1)
+        grouped_application_seeds: dict[GroundApplication, list[GroundSeed]] = {}
         grouped_seeds: dict[int, list[GroundSeed]] = {}
-        grouped_values: dict[tuple[GroundApplication, GroundValue], list[GroundSeed]] = {}
         for seed in self._seeds:
-            grouped_values.setdefault((seed.application, seed.value), []).append(seed)
+            grouped_application_seeds.setdefault(seed.application, []).append(seed)
             if abs(seed.literal) > 1:
                 grouped_seeds.setdefault(seed.literal, []).append(seed)
+        self._seeds_by_application = {
+            application: tuple(grouped)
+            for application, grouped in grouped_application_seeds.items()
+        }
         self._seeds_by_literal = {
             literal: tuple(grouped) for literal, grouped in grouped_seeds.items()
-        }
-        self._seeds_by_value = {
-            key: tuple(sorted(grouped, key=lambda seed: seed.literal))
-            for key, grouped in grouped_values.items()
         }
         watched_literals = {literal for literal in self._native_literals if abs(literal) > 1}
         watched_literals.update(self._ordinary_by_literal)
@@ -735,22 +1096,26 @@ class NativePropagator(clingo.Propagator):
 
     @staticmethod
     def _add_seed(
-        supports: dict[GroundApplication, dict[GroundValue, int]],
+        supports: dict[GroundApplication, dict[GroundValue, dict[int, int]]],
         seed: GroundSeed,
     ) -> None:
         values = supports.setdefault(seed.application, {})
-        values[seed.value] = values.get(seed.value, 0) + 1
+        literals = values.setdefault(seed.value, {})
+        literals[seed.literal] = literals.get(seed.literal, 0) + 1
 
     @staticmethod
     def _remove_seed(
-        supports: dict[GroundApplication, dict[GroundValue, int]],
+        supports: dict[GroundApplication, dict[GroundValue, dict[int, int]]],
         seed: GroundSeed,
     ) -> None:
         values = supports[seed.application]
-        remaining = values[seed.value] - 1
+        literals = values[seed.value]
+        remaining = literals[seed.literal] - 1
         if remaining:
-            values[seed.value] = remaining
+            literals[seed.literal] = remaining
         else:
+            del literals[seed.literal]
+        if not literals:
             del values[seed.value]
         if not values:
             del supports[seed.application]
@@ -775,53 +1140,431 @@ class NativePropagator(clingo.Propagator):
             return False
         return literal in state.true_literals
 
+    def _record_clause_audit(
+        self,
+        control: clingo.PropagateControl,
+        *,
+        kind: ClauseAuditKind,
+        target: str,
+        support_literals: Iterable[int] = (),
+        required_literal: int | None = None,
+        clause: Sequence[int],
+        early: bool = False,
+        locked: bool,
+    ) -> None:
+        if not self._audit_clauses:
+            return
+        supports = tuple(sorted(set(support_literals)))
+        origins: list[SupportOrigin] = []
+        for literal in supports:
+            descriptions = list(self._literal_origins.get(literal, ()))
+            descriptions.extend(
+                f"not {description}" for description in self._literal_origins.get(-literal, ())
+            )
+            origins.append(
+                SupportOrigin(
+                    literal,
+                    tuple(sorted(descriptions)) if descriptions else ("unknown",),
+                )
+            )
+        self._clause_audits.append(
+            ClauseAudit(
+                sequence=len(self._clause_audits),
+                thread_id=control.thread_id,
+                kind=kind,
+                target=target,
+                support_literals=supports,
+                support_origins=tuple(origins),
+                required_literal=required_literal,
+                clause=tuple(clause),
+                early=early,
+                locked=locked,
+            )
+        )
+
     def _block_current_native_assignment(
         self,
         control: clingo.PropagateControl,
         state: _ThreadState,
+        *,
+        functionality: bool = False,
+        guard: bool = False,
+        cause: str,
     ) -> None:
+        """Exclude the current completion when no smaller justified reason is known."""
+
         clause = {
             -literal if self._true(state, literal) else literal
             for literal in self._native_literals
             if abs(literal) > 1
         }
         rendered = sorted(clause)
-        self._record_clause(len(rendered), broad=True)
-        control.add_clause(rendered)
+        # Broad fallback clauses are intentionally unlocked because locking every
+        # completion can retain a prohibitive number of wide clauses.  Clingo may
+        # therefore delete one under its regular clause policy; unlike the locked
+        # narrow clauses below, an unlocked fallback must never be remembered as if
+        # it were permanent.
+        self._record_clause(
+            len(rendered),
+            broad=True,
+            functionality=functionality,
+            guard=guard,
+            derived_functionality=functionality,
+        )
+        self._broad_clause_causes[cause] = self._broad_clause_causes.get(cause, 0) + 1
+        self._record_clause_audit(
+            control,
+            kind=ClauseAuditKind.BROAD_FALLBACK,
+            target=cause,
+            clause=rendered,
+            locked=False,
+        )
+        if control.add_clause(rendered):
+            self.clause_propagation_count += 1
+            control.propagate()
+        else:
+            self.clause_add_conflict_count += 1
 
-    def _record_clause(self, width: int, *, broad: bool = False) -> None:
+    def _record_clause(
+        self,
+        width: int,
+        *,
+        broad: bool = False,
+        functionality: bool = False,
+        guard: bool = False,
+        derived_functionality: bool = False,
+    ) -> None:
         self.blocking_clause_count += 1
         self.clause_literal_count += width
         self.maximum_clause_width = max(self.maximum_clause_width, width)
         if broad:
             self.broad_blocking_clause_count += 1
         else:
+            self.narrow_blocking_clause_count += 1
+        if functionality:
             self.functionality_clause_count += 1
+        if derived_functionality:
+            self.derived_functionality_clause_count += 1
+        if guard:
+            self.guard_clause_count += 1
 
-    def _seed_conflict_literals(self, state: _ThreadState) -> tuple[int, int] | None:
+    @staticmethod
+    def _seed_applications(state: _ThreadState) -> ApplicationValues:
+        applications: ApplicationValues = {}
+        for application, values in state.seed_supports.items():
+            applications[application] = {
+                value: frozenset() if 1 in literals else frozenset((min(literals),))
+                for value, literals in values.items()
+            }
+        return applications
+
+    def _seed_conflict(self, state: _ThreadState) -> _SeedConflict | None:
         for application, supports in sorted(state.seed_supports.items()):
             values = sorted(supports)
             if len(values) < 2:
                 continue
-            literals: list[int] = []
-            for value in values[:2]:
-                active = (
-                    seed.literal
-                    for seed in self._seeds_by_value[(application, value)]
-                    if self._true(state, seed.literal)
-                )
-                literals.append(next(active))
-            return literals[0], literals[1]
+            literals = [min(supports[value]) for value in values[:2]]
+            return _SeedConflict(
+                application,
+                values[0],
+                values[1],
+                (literals[0], literals[1]),
+            )
         return None
 
     def _block_seed_conflict(
         self,
         control: clingo.PropagateControl,
-        literals: tuple[int, int],
+        conflict: _SeedConflict,
     ) -> None:
-        clause = sorted({-literal for literal in literals if literal != 1})
-        self._record_clause(len(clause))
-        control.add_clause(clause, lock=True)
+        clause = sorted({-literal for literal in conflict.literals if literal != 1})
+        self._record_clause(len(clause), functionality=True)
+        self._record_clause_audit(
+            control,
+            kind=ClauseAuditKind.SEED_FUNCTIONALITY,
+            target=(
+                f"{conflict.application.render()}:{conflict.left_value.render()}"
+                f"!={conflict.right_value.render()}"
+            ),
+            support_literals=(literal for literal in conflict.literals if literal != 1),
+            clause=clause,
+            locked=True,
+        )
+        if control.add_clause(clause, lock=True):
+            self.clause_propagation_count += 1
+            control.propagate()
+        else:
+            self.clause_add_conflict_count += 1
+
+    def _block_explained_conflict(
+        self,
+        control: clingo.PropagateControl,
+        explanation: Explanation,
+        *,
+        functionality: bool = False,
+        guard: bool = False,
+        required_literal: int | None = None,
+        early: bool = False,
+        kind: ClauseAuditKind,
+        target: str,
+    ) -> bool | None:
+        clause = {-literal for literal in explanation if abs(literal) > 1}
+        if required_literal is not None and abs(required_literal) > 1:
+            clause.add(required_literal)
+        rendered = sorted(clause)
+        key = tuple(rendered)
+        learned = self._learned_clauses.setdefault(control.thread_id, set())
+        if key in learned:
+            self.duplicate_clause_count += 1
+            return None
+        learned.add(key)
+        if early:
+            self.early_explanation_clause_count += 1
+        self._record_clause(
+            len(rendered),
+            functionality=functionality,
+            guard=guard,
+            derived_functionality=functionality,
+        )
+        self._record_clause_audit(
+            control,
+            kind=kind,
+            target=target,
+            support_literals=explanation,
+            required_literal=required_literal,
+            clause=rendered,
+            early=early,
+            locked=True,
+        )
+        if control.add_clause(rendered, lock=True):
+            self.clause_propagation_count += 1
+            return control.propagate()
+        self.clause_add_conflict_count += 1
+        return False
+
+    @staticmethod
+    def _application_conflict(
+        applications: ApplicationValues,
+    ) -> _ApplicationConflict | None:
+        for application in sorted(applications):
+            values = applications[application]
+            if len(values) < 2:
+                continue
+            first, second = sorted(values)[:2]
+            return _ApplicationConflict(
+                application,
+                first,
+                second,
+                values[first],
+                values[second],
+            )
+        return None
+
+    def _evaluate_state(self, state: _ThreadState) -> _EvaluationState:
+        self.evaluation_count += 1
+        applications = self._seed_applications(state)
+        active = tuple(self._true(state, rule.active_literal) for rule in self._rules)
+        pending = deque(index for index in self._rule_order if active[index])
+        scheduled = set(pending)
+        rule_states: dict[int, dict[str, ValueState]] = {}
+        rule_satisfaction: dict[int, bool] = {}
+        rule_explanations: dict[int, Explanation | None] = {}
+        rule_explanation_gaps: dict[int, str | None] = {}
+        while pending:
+            index = pending.popleft()
+            scheduled.remove(index)
+            rule = self._rules[index]
+            self.rule_body_evaluation_count += 1
+            evaluation = _rule_body(rule, applications, self._potential_applications)
+            active_explanation = (
+                frozenset() if rule.active_literal == 1 else frozenset((rule.active_literal,))
+            )
+            explanation = _merge_explanations((active_explanation, evaluation.explanation))
+            rule_states[index] = evaluation.nvariables
+            rule_satisfaction[index] = evaluation.satisfied
+            rule_explanations[index] = explanation
+            rule_explanation_gaps[index] = evaluation.explanation_gap
+            if not evaluation.satisfied or not isinstance(rule.head, GroundAssignmentHead):
+                continue
+            value = _evaluate_expression(
+                rule.head.expression,
+                applications,
+                evaluation.nvariables,
+                self._potential_applications,
+            )
+            if value.kind is not StateKind.DEFINED or value.value is None:
+                continue
+            value_explanation = _merge_explanations((explanation, value.explanation))
+            candidates = applications.setdefault(rule.head.application, {})
+            existing = candidates.get(value.value)
+            if value.value in candidates and not _prefer_explanation(value_explanation, existing):
+                continue
+            new_value = value.value not in candidates
+            candidates[value.value] = value_explanation
+            if not new_value and existing == value_explanation:
+                continue
+            for dependent in self._rules_by_application.get(rule.head.application, ()):
+                if active[dependent] and dependent not in scheduled:
+                    pending.append(dependent)
+                    scheduled.add(dependent)
+        return _EvaluationState(
+            applications,
+            active,
+            rule_states,
+            rule_satisfaction,
+            rule_explanations,
+            rule_explanation_gaps,
+        )
+
+    @staticmethod
+    def _inactive_literal_explanation(
+        literal: int,
+        is_false: Callable[[int], bool],
+    ) -> Explanation | None:
+        """Explain that one grounded provider is inactive, if currently known.
+
+        A total propagator check can still contain solver don't-cares.  Only an
+        explicitly false literal is evidence; an unassigned literal deliberately
+        remains unexplained.
+        """
+
+        if literal == -1:
+            return frozenset()
+        if literal == 1 or not is_false(literal):
+            return None
+        return frozenset((-literal,))
+
+    def _rule_provider_failure(
+        self,
+        rule: GroundRule,
+        applications: ApplicationValues,
+        undefined_explanations: UndefinedExplanations,
+        is_false: Callable[[int], bool],
+    ) -> Explanation | None:
+        """Return sufficient support showing that an assignment rule cannot fire."""
+
+        inactive = self._inactive_literal_explanation(rule.active_literal, is_false)
+        evaluation = _rule_body(
+            rule,
+            applications,
+            self._potential_applications,
+            undefined_explanations,
+        )
+        self.rule_body_evaluation_count += 1
+        semantic: Explanation | None = None
+        if not evaluation.satisfied:
+            semantic = evaluation.explanation
+        elif isinstance(rule.head, GroundAssignmentHead):
+            head = _evaluate_expression(
+                rule.head.expression,
+                applications,
+                evaluation.nvariables,
+                self._potential_applications,
+                undefined_explanations,
+            )
+            if head.kind is not StateKind.DEFINED:
+                semantic = head.explanation
+        candidates = [reason for reason in (inactive, semantic) if reason is not None]
+        if not candidates:
+            return None
+        return min(candidates, key=lambda reason: (len(reason), tuple(sorted(reason))))
+
+    def _dynamic_undefined_explanations(
+        self,
+        applications: ApplicationValues,
+        is_false: Callable[[int], bool],
+    ) -> UndefinedExplanations:
+        """Prove branch-local absence without treating lack of support as evidence.
+
+        An application becomes explainably undefined only after every grounded seed
+        and rule provider has an independently justified failure.  The least fixed
+        point prevents recursive provider paths from bootstrapping absence proofs.
+        """
+
+        self.dynamic_undefined_analysis_count += 1
+        unexplained = {
+            application
+            for application in self._potential_applications
+            if not applications.get(application)
+        }
+        explained: UndefinedExplanations = {}
+        changed = True
+        while changed:
+            changed = False
+            for application in sorted(unexplained - explained.keys()):
+                failures: list[Explanation] = []
+                complete = True
+                for seed in self._seeds_by_application.get(application, ()):
+                    failure = self._inactive_literal_explanation(seed.literal, is_false)
+                    if failure is None:
+                        complete = False
+                        break
+                    failures.append(failure)
+                if not complete:
+                    continue
+                for index in self._providers_by_application.get(application, ()):
+                    failure = self._rule_provider_failure(
+                        self._rules[index],
+                        applications,
+                        explained,
+                        is_false,
+                    )
+                    if failure is None:
+                        complete = False
+                        break
+                    failures.append(failure)
+                if not complete:
+                    continue
+                explanation = _merge_explanations(failures)
+                if explanation is None:
+                    continue
+                explained[application] = explanation
+                changed = True
+        self.dynamic_undefined_application_count += len(explained)
+        return explained
+
+    def _with_dynamic_undefinedness(
+        self,
+        evaluation: _EvaluationState,
+        assignment: clingo.Assignment,
+    ) -> _EvaluationState:
+        """Re-evaluate active bodies with conservative branch-local absence proofs."""
+
+        explanations = self._dynamic_undefined_explanations(
+            evaluation.applications,
+            assignment.is_false,
+        )
+        if not explanations:
+            return evaluation
+        rule_states: dict[int, dict[str, ValueState]] = {}
+        rule_satisfaction: dict[int, bool] = {}
+        rule_explanations: dict[int, Explanation | None] = {}
+        rule_explanation_gaps: dict[int, str | None] = {}
+        for index, rule in enumerate(self._rules):
+            if not evaluation.active[index]:
+                continue
+            self.rule_body_evaluation_count += 1
+            body = _rule_body(
+                rule,
+                evaluation.applications,
+                self._potential_applications,
+                explanations,
+            )
+            active_explanation = (
+                frozenset() if rule.active_literal == 1 else frozenset((rule.active_literal,))
+            )
+            rule_states[index] = body.nvariables
+            rule_satisfaction[index] = body.satisfied
+            rule_explanations[index] = _merge_explanations((active_explanation, body.explanation))
+            rule_explanation_gaps[index] = body.explanation_gap
+        return _EvaluationState(
+            evaluation.applications,
+            evaluation.active,
+            rule_states,
+            rule_satisfaction,
+            rule_explanations,
+            rule_explanation_gaps,
+        )
 
     def propagate(self, control: clingo.PropagateControl, changes: Sequence[int]) -> None:
         """Index newly true native literals without scanning unrelated seeds."""
@@ -829,74 +1572,167 @@ class NativePropagator(clingo.Propagator):
         self.propagate_count += 1
         self.propagated_literal_count += len(changes)
         state = self._state(control.thread_id)
+        semantic_change = False
         for literal in changes:
             state.true_literals.add(literal)
             for seed in self._seeds_by_literal.get(literal, ()):
                 self._add_seed(state.seed_supports, seed)
                 self.seed_activation_count += 1
+                semantic_change = True
+            if literal in self._rule_activation_literals:
+                semantic_change = True
             for atom in self._ordinary_by_literal.get(literal, ()):
                 state.ordinary_supports[atom] = state.ordinary_supports.get(atom, 0) + 1
                 self.ordinary_activation_count += 1
-        conflict = self._seed_conflict_literals(state)
+        conflict = self._seed_conflict(state)
+        if semantic_change:
+            state.semantic_generation += 1
+            self.semantic_state_change_count += 1
         if conflict is not None:
             self._block_seed_conflict(control, conflict)
+            return
+        if not semantic_change or not self._early_evaluation_required:
+            return
+        evaluation = self._evaluate_state(state)
+        state.evaluation = _CachedEvaluation(state.semantic_generation, evaluation)
+        application_conflict = self._application_conflict(evaluation.applications)
+        if application_conflict is not None:
+            explanation = _merge_explanations(
+                (
+                    application_conflict.left_explanation,
+                    application_conflict.right_explanation,
+                )
+            )
+            if explanation is not None:
+                self._block_explained_conflict(
+                    control,
+                    explanation,
+                    functionality=True,
+                    early=True,
+                    kind=ClauseAuditKind.DERIVED_FUNCTIONALITY,
+                    target=(
+                        f"{application_conflict.application.render()}:"
+                        f"{application_conflict.left_value.render()}"
+                        f"!={application_conflict.right_value.render()}"
+                    ),
+                )
+            return
+        for index, rule in enumerate(self._rules):
+            if rule.guard_literal is None:
+                continue
+            explanation = evaluation.rule_explanations.get(index)
+            if explanation is None:
+                continue
+            expected = evaluation.rule_satisfaction.get(index, False)
+            required_literal = rule.guard_literal if expected else -rule.guard_literal
+            added = self._block_explained_conflict(
+                control,
+                explanation,
+                guard=True,
+                required_literal=required_literal,
+                early=True,
+                kind=ClauseAuditKind.GUARD,
+                target=f"{rule.key.render()}:{'true' if expected else 'false'}",
+            )
+            if added is not None:
+                return
 
     def check(self, control: clingo.PropagateControl) -> None:
         self.check_count += 1
         self._snapshots.pop(control.thread_id, None)
         state = self._state(control.thread_id)
-        conflict = self._seed_conflict_literals(state)
+        conflict = self._seed_conflict(state)
         if conflict is not None:
             self._block_seed_conflict(control, conflict)
             return
-        applications = {
-            application: set(values) for application, values in state.seed_supports.items()
-        }
-
-        active = tuple(self._true(state, rule.active_literal) for rule in self._rules)
-        pending = deque(index for index in self._rule_order if active[index])
-        scheduled = set(pending)
-        rule_states: dict[int, dict[str, ValueState]] = {}
-        rule_satisfaction: dict[int, bool] = {}
-        while pending:
-            index = pending.popleft()
-            scheduled.remove(index)
-            rule = self._rules[index]
-            self.rule_body_evaluation_count += 1
-            satisfied, nvariables = _rule_body(rule, applications)
-            rule_states[index] = nvariables
-            rule_satisfaction[index] = satisfied
-            if not satisfied or not isinstance(rule.head, GroundAssignmentHead):
-                continue
-            value = _evaluate_expression(rule.head.expression, applications, nvariables)
-            if value.kind is not StateKind.DEFINED or value.value is None:
-                continue
-            candidates = applications.setdefault(rule.head.application, set())
-            old_size = len(candidates)
-            candidates.add(value.value)
-            if len(candidates) == old_size:
-                continue
-            for dependent in self._rules_by_application.get(rule.head.application, ()):
-                if active[dependent] and dependent not in scheduled:
-                    pending.append(dependent)
-                    scheduled.add(dependent)
-        if any(len(values) > 1 for values in applications.values()):
-            self._block_current_native_assignment(control, state)
+        cached = state.evaluation
+        if cached is None or cached.generation != state.semantic_generation:
+            if cached is not None:
+                self.evaluation_cache_stale_rejection_count += 1
+            evaluation = self._evaluate_state(state)
+            state.evaluation = _CachedEvaluation(state.semantic_generation, evaluation)
+        else:
+            self.evaluation_cache_hit_count += 1
+            evaluation = cached.result
+        application_conflict = self._application_conflict(evaluation.applications)
+        if application_conflict is not None:
+            explanation = _merge_explanations(
+                (
+                    application_conflict.left_explanation,
+                    application_conflict.right_explanation,
+                )
+            )
+            if explanation is None:
+                self._block_current_native_assignment(
+                    control,
+                    state,
+                    functionality=True,
+                    cause="derived-functionality",
+                )
+            else:
+                self._block_explained_conflict(
+                    control,
+                    explanation,
+                    functionality=True,
+                    kind=ClauseAuditKind.DERIVED_FUNCTIONALITY,
+                    target=(
+                        f"{application_conflict.application.render()}:"
+                        f"{application_conflict.left_value.render()}"
+                        f"!={application_conflict.right_value.render()}"
+                    ),
+                )
             return
 
         undefined = {
             (self._rules[index].key, name)
-            for index, nvariables in rule_states.items()
+            for index, nvariables in evaluation.rule_states.items()
             for name, value_state in nvariables.items()
             if value_state.kind is StateKind.UNDEFINED
         }
+        needs_dynamic_undefinedness = any(
+            rule.guard_literal is not None
+            and evaluation.rule_explanations.get(index) is None
+            and evaluation.rule_satisfaction.get(index, False)
+            != self._true(state, rule.guard_literal)
+            for index, rule in enumerate(self._rules)
+        )
+        if needs_dynamic_undefinedness:
+            previous_satisfaction = evaluation.rule_satisfaction
+            evaluation = self._with_dynamic_undefinedness(evaluation, control.assignment)
+            if evaluation.rule_satisfaction != previous_satisfaction:
+                raise RuntimeError("undefinedness explanations changed native rule semantics")
+            undefined = {
+                (self._rules[index].key, name)
+                for index, nvariables in evaluation.rule_states.items()
+                for name, value_state in nvariables.items()
+                if value_state.kind is StateKind.UNDEFINED
+            }
         for index, rule in enumerate(self._rules):
             if rule.guard_literal is None:
                 continue
-            expected = rule_satisfaction.get(index, False)
+            expected = evaluation.rule_satisfaction.get(index, False)
             actual = self._true(state, rule.guard_literal)
             if expected != actual:
-                self._block_current_native_assignment(control, state)
+                explanation = evaluation.rule_explanations.get(index)
+                if explanation is None:
+                    explanation_gap = evaluation.rule_explanation_gaps.get(index)
+                    gap = f":{explanation_gap}" if explanation_gap else ""
+                    self._block_current_native_assignment(
+                        control,
+                        state,
+                        guard=True,
+                        cause=f"guard:{rule.key.render()}{gap}",
+                    )
+                else:
+                    required_literal = rule.guard_literal if expected else -rule.guard_literal
+                    self._block_explained_conflict(
+                        control,
+                        explanation,
+                        guard=True,
+                        required_literal=required_literal,
+                        kind=ClauseAuditKind.GUARD,
+                        target=f"{rule.key.render()}:{'true' if expected else 'false'}",
+                    )
                 return
 
         if not self._record_snapshots:
@@ -905,7 +1741,7 @@ class NativePropagator(clingo.Propagator):
         assignments = tuple(
             sorted(
                 (application, next(iter(values)))
-                for application, values in applications.items()
+                for application, values in evaluation.applications.items()
                 if len(values) == 1
             )
         )
@@ -927,11 +1763,15 @@ class NativePropagator(clingo.Propagator):
         self.undo_count += 1
         self.undone_literal_count += len(changes)
         state = self._state(thread_id)
+        semantic_change = False
         for literal in changes:
             state.true_literals.remove(literal)
             for seed in self._seeds_by_literal.get(literal, ()):
                 self._remove_seed(state.seed_supports, seed)
                 self.seed_deactivation_count += 1
+                semantic_change = True
+            if literal in self._rule_activation_literals:
+                semantic_change = True
             for atom in self._ordinary_by_literal.get(literal, ()):
                 remaining = state.ordinary_supports[atom] - 1
                 if remaining:
@@ -939,6 +1779,9 @@ class NativePropagator(clingo.Propagator):
                 else:
                     del state.ordinary_supports[atom]
                 self.ordinary_deactivation_count += 1
+        if semantic_change:
+            state.semantic_generation += 1
+            self.semantic_state_change_count += 1
         self._snapshots.pop(thread_id, None)
 
     def snapshot(self, thread_id: int) -> NativeSnapshot:
@@ -948,6 +1791,11 @@ class NativePropagator(clingo.Propagator):
             return self._snapshots[thread_id]
         except KeyError as error:
             raise RuntimeError("native snapshot is unavailable for this model") from error
+
+    def clause_audits(self) -> tuple[ClauseAudit, ...]:
+        """Return opt-in deterministic clause records for semantic review."""
+
+        return tuple(self._clause_audits)
 
     def metrics(self) -> NativeWorkMetrics:
         """Return deterministic work counters for tests and benchmark evidence."""
@@ -974,10 +1822,24 @@ class NativePropagator(clingo.Propagator):
             seed_deactivations=self.seed_deactivation_count,
             check_calls=self.check_count,
             check_seed_probes=self.check_seed_probe_count,
+            semantic_state_changes=self.semantic_state_change_count,
+            evaluation_runs=self.evaluation_count,
+            evaluation_cache_hits=self.evaluation_cache_hit_count,
+            evaluation_cache_stale_rejections=self.evaluation_cache_stale_rejection_count,
+            dynamic_undefined_analysis_runs=self.dynamic_undefined_analysis_count,
+            dynamic_undefined_applications_proven=self.dynamic_undefined_application_count,
             rule_body_evaluations=self.rule_body_evaluation_count,
             blocking_clauses=self.blocking_clause_count,
             functionality_clauses=self.functionality_clause_count,
+            derived_functionality_clauses=self.derived_functionality_clause_count,
+            guard_clauses=self.guard_clause_count,
+            narrow_blocking_clauses=self.narrow_blocking_clause_count,
             broad_blocking_clauses=self.broad_blocking_clause_count,
+            broad_clause_causes=tuple(sorted(self._broad_clause_causes.items())),
+            duplicate_clauses=self.duplicate_clause_count,
+            clause_add_conflicts=self.clause_add_conflict_count,
+            clause_propagations=self.clause_propagation_count,
+            early_explanation_clauses=self.early_explanation_clause_count,
             clause_literals=self.clause_literal_count,
             maximum_clause_width=self.maximum_clause_width,
             snapshot_assignments=self.snapshot_assignment_count,

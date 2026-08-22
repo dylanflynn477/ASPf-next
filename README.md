@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/dylanflynn477/ASPf-next/actions/workflows/ci.yml/badge.svg)](https://github.com/dylanflynn477/ASPf-next/actions/workflows/ci.yml)
 [![Python 3.11-3.12](https://img.shields.io/badge/Python-3.11%20%7C%203.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-blue.svg)](LICENSE)
 [![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-orange.svg)](docs/roadmap.md)
 
 ASPf-next is an experimental, independent clean-room modernization of Marcello
@@ -151,15 +151,20 @@ component boundaries.
 
 A separate theory-atom/Python-propagator feasibility study reached **PARTIAL GO for
 further research and NO-GO for production integration**. It demonstrated constant
-copy-rule grounding overhead and matching tested models, but its solver algorithm is
-not performant and exact historical n-loop coverage is incomplete. The prototype stays
-under `research/`; `_v` remains unsupported by the released frontend and no CLI backend
-flag was added. See the [research result](docs/research/native-backend-feasibility.md)
-and [benchmark report](docs/benchmarks/native-vs-reference.md).
+copy-rule grounding overhead and matching tested models. Subsequent research hardening
+added support-set provenance, conservative provider-complete dynamic-absence reasons,
+narrow derived/guard clauses, explicit cache generations, and clause audit records.
+Native solving remains substantially slower than the reference and exact historical
+n-loop coverage is incomplete. The prototype stays under `research/`; `_v` remains
+unsupported by the released frontend and no CLI backend flag was added. See the
+[research result](docs/research/native-backend-feasibility.md), the
+[adversarial review](docs/research/native-provenance-adversarial-review.md), and the
+[benchmark report](docs/benchmarks/native-vs-reference.md).
 
 Useful CLI forms:
 
 ```console
+aspf --version
 aspf examples/01_basic_assignment.aspf --emit-lowered
 aspf examples/03_conditional_assignment.aspf --json
 aspf examples/05_multiple_models.aspf --models 0
@@ -226,11 +231,13 @@ affiliated with Potassco.
 - [Historical compatibility audit](docs/compatibility/historical-clingof-audit.md)
 - [Semantics notes](docs/semantics-notes.md)
 - [Specification traceability](docs/specification-traceability.md)
-- [Architecture and future backend](docs/architecture.md)
+- [Architecture and backend boundary](docs/architecture.md)
 - [Architecture decisions](docs/decisions/)
 - [0.2.0a1 adversarial semantic review](docs/reviews/0.2.0a1-semantic-review.md)
 - [Provenance and clean-room policy](docs/provenance.md)
+- [Licensing and historical release terms](docs/licensing.md)
 - [Roadmap](docs/roadmap.md)
+- [0.2.0a2 draft release notes](docs/releases/0.2.0a2.md)
 - [0.2.0a1 release notes](docs/releases/0.2.0a1.md)
 - [`#!=` development notes](docs/releases/not-equal-development.md)
 - [ordered-comparison development notes](docs/releases/ordered-comparisons-development.md)
@@ -241,12 +248,12 @@ affiliated with Potassco.
 
 ## Status and development
 
-The current version is `0.2.0a1`. This first release line reflects the global
-declaration, historical visibility, and seed-equality safety milestones now in
-the tested compatibility subset. It remains experimental alpha research
-software. The roadmap separates implemented reference-frontend behavior from
-compatibility candidates and longer-term native-backend research; those
-directions are proposals, not promises.
+The current version is `0.2.0a2`. This release does not expand the public
+supported-language boundary. It adds research-backend correctness hardening,
+adversarial and differential coverage, benchmark evidence, a CLI version flag,
+package smoke checks, and release documentation. The reference backend remains
+the production/default implementation, while the native backend and `_v`
+remain research-only and unsupported respectively.
 
 ```console
 ruff format --check src tests
@@ -270,5 +277,20 @@ project, or Potassco.
 
 ## License
 
-[MIT](LICENSE). The license covers this clean-room implementation only; it does
-not imply ownership of ASP{f} or the historical Clingo{f} work.
+Beginning with `0.2.0a2`, ASPf-next is distributed under the
+[PolyForm Noncommercial License 1.0.0](LICENSE), an established source-available
+license that is not OSI-approved. Commercial use requires prior written
+permission or a separate commercial license from the copyright holder. See the
+[licensing guide](docs/licensing.md) before relying on a use case or contacting
+the maintainer.
+
+ASPf-next `0.2.0a1` was released under the MIT License. Rights granted under
+that release remain governed by its accompanying MIT License. This change does
+not revoke or narrow rights already granted for `0.2.0a1`.
+
+The same non-revocation principle applies to any other repository revision a
+recipient validly obtained with an MIT License before the transition. Users
+should retain and consult the license accompanying the exact revision they use.
+
+These terms cover this clean-room implementation only; they do not imply
+ownership of ASP{f} or the historical Clingo{f} work.

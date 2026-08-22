@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from benchmarks.dynamic_undefinedness_workload import run_workload as run_dynamic_undefinedness
 from benchmarks.multi_application_workload import run_workload
 from benchmarks.native_vs_reference import run_comparison
 from benchmarks.reference_scaling import reference_source, run_reference
@@ -85,3 +86,21 @@ def test_multi_application_workload_smoke_preserves_partial_models() -> None:
     assert case.reference_sha256 == case.native_sha256
     assert case.native.structure.theory_atoms == 21
     assert case.native.work.check_seed_probes == 0
+    assert case.native.work.early_explanation_clauses > 0
+    assert case.native.work.evaluation_cache_hits == case.native.work.check_calls
+    assert case.native.work.broad_blocking_clauses == 0
+    assert case.native.work.maximum_clause_width <= 2
+    assert case.native.work.clause_literals <= 5 * case.candidate_values
+
+
+def test_dynamic_undefinedness_workload_has_exact_narrow_models() -> None:
+    result = run_dynamic_undefinedness((2,), repeats=1, warmups=0)
+    case = result.cases[0]
+
+    assert case.visible_models_equal
+    assert case.reference_sha256 == case.native_sha256
+    assert case.native.model_count == 3
+    assert case.native.work.dynamic_undefined_analysis_runs > 0
+    assert case.native.work.dynamic_undefined_applications_proven > 0
+    assert case.native.work.broad_blocking_clauses == 0
+    assert case.native.work.maximum_clause_width == 3

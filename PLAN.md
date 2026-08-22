@@ -20,9 +20,12 @@ coverage, and accurate compatibility classification.
    scope, visibility, and private-namespace isolation without expanding the
    language by accident.
 3. Preserve the native-backend feasibility result as a PARTIAL GO research
-   boundary. Further work must address provenance-aware explanations for derived
-   values, comparisons, guards, and undefinedness; narrower clauses and earlier
-   propagation; and broader grounded-exact n-loop analysis before a fresh
+   boundary. Defined-value derivations, comparisons, and guards now retain narrow
+   support explanations and propagate early in the research prototype. A conservative
+   provider-complete fixed point now explains part of dynamic undefinedness without
+   treating don't-cares as false. Further work must incrementally maintain closure and
+   absence state, close remaining unassigned/cyclic explanation gaps, reduce Python
+   callback costs, and broaden grounded-exact n-loop analysis before a fresh
    production-integration review.
 4. Consider each remaining historical construct separately, beginning with a
    primary-source semantic contract and a GO/NO-GO review.
@@ -47,6 +50,10 @@ Before any release or compatibility increment:
 - verify normal human and JSON output never exposes private predicates; and
 - update the changelog, supported-language specification, compatibility matrix,
   examples, and release notes together.
+
+The `0.2.0a2` release established an additional gate: verify that
+source-available terminology, package metadata, contributor policy, and the
+immutable MIT status of `v0.2.0a1` remain consistent before publication.
 
 ## Invariants
 
