@@ -12,6 +12,12 @@ historical license is preserved in the
 [`v0.2.0a1` tag](https://github.com/dylanflynn477/ASPf-next/blob/v0.2.0a1/LICENSE)
 and is not revoked or narrowed by later repository changes.
 
+The public repository also exposed post-release development revisions while
+its root license was MIT. To the extent a recipient validly obtained any such
+revision under those terms, changing the license now does not revoke that
+existing grant. The proposed PolyForm terms govern the new `0.2.0a2` release,
+not the revocation of rights in earlier MIT-accompanied copies.
+
 Beginning with version `0.2.0a2`, subsequent releases are proposed to be
 distributed under the unmodified
 [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0),
@@ -133,4 +139,5 @@ Deleting the GitHub release presentation would remove its release-page entry
 and any attached assets. It would not erase the Git tag or commits, remove
 source archives already obtained, alter downstream copies, or revoke MIT rights
 already granted. Rewriting history would likewise not revoke grants already
-received and is not proposed.
+received for the tagged release or other MIT-accompanied snapshots and is not
+proposed.

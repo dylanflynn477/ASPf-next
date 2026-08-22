@@ -14,8 +14,8 @@ package versions use the same PEP 440 spelling.
 - Prepared future releases for the PolyForm Noncommercial License 1.0.0,
   subject to final copyright-holder and legal review. This source-available
   license is not OSI-approved. The published `0.2.0a1` release remains governed
-  by its accompanying MIT License; rights already granted for that release are
-  unchanged.
+  by its accompanying MIT License; rights already granted for that release or
+  another pre-transition copy distributed with MIT terms are unchanged.
 
 ### Research
 

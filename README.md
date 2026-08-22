@@ -292,5 +292,9 @@ PolyForm Noncommercial License 1.0.0, subject to final copyright-holder and
 legal review. This change does not revoke or narrow rights already granted for
 `0.2.0a1`.
 
+The same non-revocation principle applies to any other repository revision a
+recipient validly obtained with an MIT License before the transition. Users
+should retain and consult the license accompanying the exact revision they use.
+
 These terms cover this clean-room implementation only; they do not imply
 ownership of ASP{f} or the historical Clingo{f} work.

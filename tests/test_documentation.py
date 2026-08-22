@@ -80,6 +80,7 @@ def test_license_transition_is_explicit_and_nonretroactive() -> None:
     assert "Required Notice: Copyright 2026 Dylan Flynn." in license_text
     assert "0.2.0a1` was released under the MIT License" in readme
     assert "does not revoke" in readme
+    assert "other repository revision" in readme
     assert "not OSI-approved" in readme
     assert "not legal advice" in licensing
     assert "commercial evaluation" in licensing
