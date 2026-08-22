@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 import clingo
 
+from research.native_backend.audit import ClauseAudit
 from research.native_backend.compiler import compile_program
 from research.native_backend.ir import NativeProgram
 from research.native_backend.propagator import NativePropagator, NativeWorkMetrics, RuleKey
@@ -62,6 +63,7 @@ class NativeSolveResult:
     check_count: int
     undo_count: int
     work_metrics: NativeWorkMetrics
+    clause_audits: tuple[ClauseAudit, ...]
 
 
 def _render_undefined(key: RuleKey, name: str) -> str:
@@ -82,14 +84,20 @@ class NativeSolver:
         collect_models: bool = True,
         profile_reconstruction: bool = False,
         threads: int = 1,
+        audit_clauses: bool = False,
     ) -> NativeSolveResult:
         if model_limit < 0:
             raise ValueError("model limit must not be negative")
         if threads not in (1, 2):
             raise ValueError("research solver thread count must be 1 or 2")
+        if audit_clauses and threads != 1:
+            raise ValueError("clause auditing requires deterministic one-thread solving")
         source = compile_program(program)
         control = clingo.Control([str(model_limit), "--stats=2", f"-t{threads}"])
-        propagator = NativePropagator(record_snapshots=collect_models)
+        propagator = NativePropagator(
+            record_snapshots=collect_models,
+            audit_clauses=audit_clauses,
+        )
         control.register_propagator(propagator)
         if observer is not None:
             control.register_observer(observer)
@@ -184,4 +192,5 @@ class NativeSolver:
             check_count=propagator.check_count,
             undo_count=propagator.undo_count,
             work_metrics=propagator.metrics(),
+            clause_audits=propagator.clause_audits(),
         )

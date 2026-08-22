@@ -5,13 +5,15 @@ from __future__ import annotations
 import json
 import time
 from collections import deque
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, replace
 from enum import Enum, StrEnum
 from heapq import heapify, heappop, heappush
 from typing import TypeAlias
 
 import clingo
+
+from research.native_backend.audit import ClauseAudit, ClauseAuditKind, SupportOrigin
 
 
 class ValueKind(StrEnum):
@@ -111,6 +113,10 @@ class RuleKey:
     identifier: str
     instance: tuple[GroundValue, ...]
 
+    def render(self) -> str:
+        instance = ",".join(value.render() for value in self.instance)
+        return f"{self.identifier}[{instance}]" if instance else self.identifier
+
 
 @dataclass(frozen=True, slots=True)
 class GroundRule:
@@ -127,6 +133,23 @@ class GroundSeed:
     application: GroundApplication
     value: GroundValue
     literal: int
+
+
+@dataclass(frozen=True, slots=True)
+class _SeedConflict:
+    application: GroundApplication
+    left_value: GroundValue
+    right_value: GroundValue
+    literals: tuple[int, int]
+
+
+@dataclass(frozen=True, slots=True)
+class _ApplicationConflict:
+    application: GroundApplication
+    left_value: GroundValue
+    right_value: GroundValue
+    left_explanation: Explanation | None
+    right_explanation: Explanation | None
 
 
 class StateKind(StrEnum):
@@ -149,6 +172,7 @@ UNDEFINED = ValueState(StateKind.UNDEFINED)
 
 Explanation: TypeAlias = frozenset[int]
 ApplicationValues: TypeAlias = dict[GroundApplication, dict[GroundValue, Explanation | None]]
+UndefinedExplanations: TypeAlias = dict[GroundApplication, Explanation]
 
 
 @dataclass(frozen=True, slots=True)
@@ -194,8 +218,12 @@ class NativeWorkMetrics:
     seed_deactivations: int
     check_calls: int
     check_seed_probes: int
+    semantic_state_changes: int
     evaluation_runs: int
     evaluation_cache_hits: int
+    evaluation_cache_stale_rejections: int
+    dynamic_undefined_analysis_runs: int
+    dynamic_undefined_applications_proven: int
     rule_body_evaluations: int
     blocking_clauses: int
     functionality_clauses: int
@@ -222,7 +250,8 @@ class _ThreadState:
     true_literals: set[int]
     seed_supports: dict[GroundApplication, dict[GroundValue, dict[int, int]]]
     ordinary_supports: dict[str, int]
-    evaluation: _EvaluationState | None
+    semantic_generation: int = 0
+    evaluation: _CachedEvaluation | None = None
 
 
 @dataclass(slots=True)
@@ -235,6 +264,14 @@ class _EvaluationState:
     rule_satisfaction: dict[int, bool]
     rule_explanations: dict[int, Explanation | None]
     rule_explanation_gaps: dict[int, str | None]
+
+
+@dataclass(frozen=True, slots=True)
+class _CachedEvaluation:
+    """A closure result tied to one exact thread-local semantic generation."""
+
+    generation: int
+    result: _EvaluationState
 
 
 def _expect_function(term: clingo.TheoryTerm, name: str, arity: int | None = None) -> None:
@@ -491,11 +528,14 @@ def _application_state(
     values: ApplicationValues,
     application: GroundApplication,
     potential_applications: frozenset[GroundApplication],
+    undefined_explanations: UndefinedExplanations | None = None,
 ) -> ValueState:
     candidates = values.get(application, {})
     if not candidates:
         explanation: Explanation | None = None
-        if application not in potential_applications:
+        if undefined_explanations is not None and application in undefined_explanations:
+            explanation = undefined_explanations[application]
+        elif application not in potential_applications:
             explanation = frozenset()
         return ValueState(StateKind.UNDEFINED, explanation=explanation)
     if len(candidates) > 1:
@@ -511,6 +551,7 @@ def _evaluate_expression(
     applications: ApplicationValues,
     nvariables: dict[str, ValueState],
     potential_applications: frozenset[GroundApplication],
+    undefined_explanations: UndefinedExplanations | None = None,
 ) -> ValueState:
     if isinstance(expression, ConstantGroundExpression):
         return ValueState(StateKind.DEFINED, expression.value, frozenset())
@@ -519,6 +560,7 @@ def _evaluate_expression(
             applications,
             expression.application,
             potential_applications,
+            undefined_explanations,
         )
     return nvariables.get(expression.name, UNDEFINED)
 
@@ -527,6 +569,7 @@ def _resolve_nvariables(
     rule: GroundRule,
     applications: ApplicationValues,
     potential_applications: frozenset[GroundApplication],
+    undefined_explanations: UndefinedExplanations | None = None,
 ) -> dict[str, ValueState]:
     grouped: dict[str, list[GroundExpression]] = {}
     for definition in rule.definitions:
@@ -549,6 +592,7 @@ def _resolve_nvariables(
                     applications,
                     resolved,
                     potential_applications,
+                    undefined_explanations,
                 )
                 for expression in expressions
             ]
@@ -614,8 +658,14 @@ def _rule_body(
     rule: GroundRule,
     applications: ApplicationValues,
     potential_applications: frozenset[GroundApplication],
+    undefined_explanations: UndefinedExplanations | None = None,
 ) -> RuleEvaluation:
-    nvariables = _resolve_nvariables(rule, applications, potential_applications)
+    nvariables = _resolve_nvariables(
+        rule,
+        applications,
+        potential_applications,
+        undefined_explanations,
+    )
     satisfied_explanations: list[Explanation | None] = []
     for definition in rule.definitions:
         variable = nvariables[definition.variable]
@@ -624,6 +674,7 @@ def _rule_body(
             applications,
             nvariables,
             potential_applications,
+            undefined_explanations,
         )
         if variable.kind is not StateKind.DEFINED:
             gap = None if variable.explanation is not None else f"definition:{definition.variable}"
@@ -640,12 +691,14 @@ def _rule_body(
             applications,
             nvariables,
             potential_applications,
+            undefined_explanations,
         )
         right = _evaluate_expression(
             comparison.right,
             applications,
             nvariables,
             potential_applications,
+            undefined_explanations,
         )
         if (
             left.kind is StateKind.DEFINED
@@ -814,14 +867,22 @@ def _potential_applications(
 class NativePropagator(clingo.Propagator):
     """Maintain seed state incrementally and constrain rule guards at total models."""
 
-    def __init__(self, *, record_snapshots: bool = True) -> None:
+    def __init__(
+        self,
+        *,
+        record_snapshots: bool = True,
+        audit_clauses: bool = False,
+    ) -> None:
         self._record_snapshots = record_snapshots
+        self._audit_clauses = audit_clauses
         self._seeds: tuple[GroundSeed, ...] = ()
         self._rules: tuple[GroundRule, ...] = ()
         self._native_literals: tuple[int, ...] = ()
         self._constant_seeds: tuple[GroundSeed, ...] = ()
         self._seeds_by_literal: dict[int, tuple[GroundSeed, ...]] = {}
+        self._seeds_by_application: dict[GroundApplication, tuple[GroundSeed, ...]] = {}
         self._rules_by_application: dict[GroundApplication, tuple[int, ...]] = {}
+        self._providers_by_application: dict[GroundApplication, tuple[int, ...]] = {}
         self._rule_activation_literals: frozenset[int] = frozenset()
         self._rule_order: tuple[int, ...] = ()
         self._potential_applications: frozenset[GroundApplication] = frozenset()
@@ -831,6 +892,8 @@ class NativePropagator(clingo.Propagator):
         self._states: dict[int, _ThreadState] = {}
         self._snapshots: dict[int, NativeSnapshot] = {}
         self._learned_clauses: dict[int, set[tuple[int, ...]]] = {}
+        self._literal_origins: dict[int, tuple[str, ...]] = {}
+        self._clause_audits: list[ClauseAudit] = []
         self._theory_atom_count = 0
         self._application_decode_requests = 0
         self._decoded_applications = 0
@@ -848,8 +911,12 @@ class NativePropagator(clingo.Propagator):
         self.ordinary_activation_count = 0
         self.ordinary_deactivation_count = 0
         self.check_seed_probe_count = 0
+        self.semantic_state_change_count = 0
         self.evaluation_count = 0
         self.evaluation_cache_hit_count = 0
+        self.evaluation_cache_stale_rejection_count = 0
+        self.dynamic_undefined_analysis_count = 0
+        self.dynamic_undefined_application_count = 0
         self.rule_body_evaluation_count = 0
         self.blocking_clause_count = 0
         self.functionality_clause_count = 0
@@ -887,6 +954,8 @@ class NativePropagator(clingo.Propagator):
         self._states.clear()
         self._snapshots.clear()
         self._learned_clauses.clear()
+        self._literal_origins.clear()
+        self._clause_audits.clear()
         self.check_count = 0
         self.undo_count = 0
         self.propagate_count = 0
@@ -896,8 +965,12 @@ class NativePropagator(clingo.Propagator):
         self.ordinary_activation_count = 0
         self.ordinary_deactivation_count = 0
         self.check_seed_probe_count = 0
+        self.semantic_state_change_count = 0
         self.evaluation_count = 0
         self.evaluation_cache_hit_count = 0
+        self.evaluation_cache_stale_rejection_count = 0
+        self.dynamic_undefined_analysis_count = 0
+        self.dynamic_undefined_application_count = 0
         self.rule_body_evaluation_count = 0
         self.blocking_clause_count = 0
         self.functionality_clause_count = 0
@@ -941,12 +1014,32 @@ class NativePropagator(clingo.Propagator):
         self._rules = tuple(
             replace(rule, guard_literal=guards.get(key)) for key, rule in sorted(rules.items())
         )
+        literal_origins: dict[int, set[str]] = {}
+        for seed in self._seeds:
+            literal_origins.setdefault(seed.literal, set()).add(
+                f"seed:{seed.application.render()}#={seed.value.render()}"
+            )
+        for rule in self._rules:
+            literal_origins.setdefault(rule.active_literal, set()).add(f"rule:{rule.key.render()}")
+            if rule.guard_literal is not None:
+                literal_origins.setdefault(rule.guard_literal, set()).add(
+                    f"guard:{rule.key.render()}"
+                )
+        self._literal_origins = {
+            literal: tuple(sorted(origins)) for literal, origins in literal_origins.items()
+        }
         grouped_rules: dict[GroundApplication, list[int]] = {}
+        grouped_providers: dict[GroundApplication, list[int]] = {}
         for index, rule in enumerate(self._rules):
             for application in _rule_applications(rule):
                 grouped_rules.setdefault(application, []).append(index)
+            if isinstance(rule.head, GroundAssignmentHead):
+                grouped_providers.setdefault(rule.head.application, []).append(index)
         self._rules_by_application = {
             application: tuple(indexes) for application, indexes in grouped_rules.items()
+        }
+        self._providers_by_application = {
+            application: tuple(indexes) for application, indexes in grouped_providers.items()
         }
         self._rule_order = _rule_dependency_order(self._rules)
         self._rule_activation_literals = frozenset(
@@ -981,10 +1074,16 @@ class NativePropagator(clingo.Propagator):
         }
         self._constant_ordinary = tuple(sorted(constant_ordinary))
         self._constant_seeds = tuple(seed for seed in self._seeds if seed.literal == 1)
+        grouped_application_seeds: dict[GroundApplication, list[GroundSeed]] = {}
         grouped_seeds: dict[int, list[GroundSeed]] = {}
         for seed in self._seeds:
+            grouped_application_seeds.setdefault(seed.application, []).append(seed)
             if abs(seed.literal) > 1:
                 grouped_seeds.setdefault(seed.literal, []).append(seed)
+        self._seeds_by_application = {
+            application: tuple(grouped)
+            for application, grouped in grouped_application_seeds.items()
+        }
         self._seeds_by_literal = {
             literal: tuple(grouped) for literal, grouped in grouped_seeds.items()
         }
@@ -1025,7 +1124,7 @@ class NativePropagator(clingo.Propagator):
         state = self._states.get(thread_id)
         if state is not None:
             return state
-        state = _ThreadState(set(), {}, {}, None)
+        state = _ThreadState(set(), {}, {})
         for seed in self._constant_seeds:
             self._add_seed(state.seed_supports, seed)
         for atom in self._constant_ordinary:
@@ -1040,6 +1139,48 @@ class NativePropagator(clingo.Propagator):
         if literal == -1:
             return False
         return literal in state.true_literals
+
+    def _record_clause_audit(
+        self,
+        control: clingo.PropagateControl,
+        *,
+        kind: ClauseAuditKind,
+        target: str,
+        support_literals: Iterable[int] = (),
+        required_literal: int | None = None,
+        clause: Sequence[int],
+        early: bool = False,
+        locked: bool,
+    ) -> None:
+        if not self._audit_clauses:
+            return
+        supports = tuple(sorted(set(support_literals)))
+        origins: list[SupportOrigin] = []
+        for literal in supports:
+            descriptions = list(self._literal_origins.get(literal, ()))
+            descriptions.extend(
+                f"not {description}" for description in self._literal_origins.get(-literal, ())
+            )
+            origins.append(
+                SupportOrigin(
+                    literal,
+                    tuple(sorted(descriptions)) if descriptions else ("unknown",),
+                )
+            )
+        self._clause_audits.append(
+            ClauseAudit(
+                sequence=len(self._clause_audits),
+                thread_id=control.thread_id,
+                kind=kind,
+                target=target,
+                support_literals=supports,
+                support_origins=tuple(origins),
+                required_literal=required_literal,
+                clause=tuple(clause),
+                early=early,
+                locked=locked,
+            )
+        )
 
     def _block_current_native_assignment(
         self,
@@ -1058,12 +1199,11 @@ class NativePropagator(clingo.Propagator):
             if abs(literal) > 1
         }
         rendered = sorted(clause)
-        key = tuple(rendered)
-        learned = self._learned_clauses.setdefault(control.thread_id, set())
-        if key in learned:
-            self.duplicate_clause_count += 1
-            return
-        learned.add(key)
+        # Broad fallback clauses are intentionally unlocked because locking every
+        # completion can retain a prohibitive number of wide clauses.  Clingo may
+        # therefore delete one under its regular clause policy; unlike the locked
+        # narrow clauses below, an unlocked fallback must never be remembered as if
+        # it were permanent.
         self._record_clause(
             len(rendered),
             broad=True,
@@ -1072,6 +1212,13 @@ class NativePropagator(clingo.Propagator):
             derived_functionality=functionality,
         )
         self._broad_clause_causes[cause] = self._broad_clause_causes.get(cause, 0) + 1
+        self._record_clause_audit(
+            control,
+            kind=ClauseAuditKind.BROAD_FALLBACK,
+            target=cause,
+            clause=rendered,
+            locked=False,
+        )
         if control.add_clause(rendered):
             self.clause_propagation_count += 1
             control.propagate()
@@ -1111,22 +1258,38 @@ class NativePropagator(clingo.Propagator):
             }
         return applications
 
-    def _seed_conflict_literals(self, state: _ThreadState) -> tuple[int, int] | None:
-        for _application, supports in sorted(state.seed_supports.items()):
+    def _seed_conflict(self, state: _ThreadState) -> _SeedConflict | None:
+        for application, supports in sorted(state.seed_supports.items()):
             values = sorted(supports)
             if len(values) < 2:
                 continue
             literals = [min(supports[value]) for value in values[:2]]
-            return literals[0], literals[1]
+            return _SeedConflict(
+                application,
+                values[0],
+                values[1],
+                (literals[0], literals[1]),
+            )
         return None
 
     def _block_seed_conflict(
         self,
         control: clingo.PropagateControl,
-        literals: tuple[int, int],
+        conflict: _SeedConflict,
     ) -> None:
-        clause = sorted({-literal for literal in literals if literal != 1})
+        clause = sorted({-literal for literal in conflict.literals if literal != 1})
         self._record_clause(len(clause), functionality=True)
+        self._record_clause_audit(
+            control,
+            kind=ClauseAuditKind.SEED_FUNCTIONALITY,
+            target=(
+                f"{conflict.application.render()}:{conflict.left_value.render()}"
+                f"!={conflict.right_value.render()}"
+            ),
+            support_literals=(literal for literal in conflict.literals if literal != 1),
+            clause=clause,
+            locked=True,
+        )
         if control.add_clause(clause, lock=True):
             self.clause_propagation_count += 1
             control.propagate()
@@ -1142,6 +1305,8 @@ class NativePropagator(clingo.Propagator):
         guard: bool = False,
         required_literal: int | None = None,
         early: bool = False,
+        kind: ClauseAuditKind,
+        target: str,
     ) -> bool | None:
         clause = {-literal for literal in explanation if abs(literal) > 1}
         if required_literal is not None and abs(required_literal) > 1:
@@ -1161,6 +1326,16 @@ class NativePropagator(clingo.Propagator):
             guard=guard,
             derived_functionality=functionality,
         )
+        self._record_clause_audit(
+            control,
+            kind=kind,
+            target=target,
+            support_literals=explanation,
+            required_literal=required_literal,
+            clause=rendered,
+            early=early,
+            locked=True,
+        )
         if control.add_clause(rendered, lock=True):
             self.clause_propagation_count += 1
             return control.propagate()
@@ -1170,12 +1345,19 @@ class NativePropagator(clingo.Propagator):
     @staticmethod
     def _application_conflict(
         applications: ApplicationValues,
-    ) -> tuple[Explanation | None, Explanation | None] | None:
-        for values in (applications[key] for key in sorted(applications)):
+    ) -> _ApplicationConflict | None:
+        for application in sorted(applications):
+            values = applications[application]
             if len(values) < 2:
                 continue
             first, second = sorted(values)[:2]
-            return values[first], values[second]
+            return _ApplicationConflict(
+                application,
+                first,
+                second,
+                values[first],
+                values[second],
+            )
         return None
 
     def _evaluate_state(self, state: _ThreadState) -> _EvaluationState:
@@ -1234,6 +1416,156 @@ class NativePropagator(clingo.Propagator):
             rule_explanation_gaps,
         )
 
+    @staticmethod
+    def _inactive_literal_explanation(
+        literal: int,
+        is_false: Callable[[int], bool],
+    ) -> Explanation | None:
+        """Explain that one grounded provider is inactive, if currently known.
+
+        A total propagator check can still contain solver don't-cares.  Only an
+        explicitly false literal is evidence; an unassigned literal deliberately
+        remains unexplained.
+        """
+
+        if literal == -1:
+            return frozenset()
+        if literal == 1 or not is_false(literal):
+            return None
+        return frozenset((-literal,))
+
+    def _rule_provider_failure(
+        self,
+        rule: GroundRule,
+        applications: ApplicationValues,
+        undefined_explanations: UndefinedExplanations,
+        is_false: Callable[[int], bool],
+    ) -> Explanation | None:
+        """Return sufficient support showing that an assignment rule cannot fire."""
+
+        inactive = self._inactive_literal_explanation(rule.active_literal, is_false)
+        evaluation = _rule_body(
+            rule,
+            applications,
+            self._potential_applications,
+            undefined_explanations,
+        )
+        self.rule_body_evaluation_count += 1
+        semantic: Explanation | None = None
+        if not evaluation.satisfied:
+            semantic = evaluation.explanation
+        elif isinstance(rule.head, GroundAssignmentHead):
+            head = _evaluate_expression(
+                rule.head.expression,
+                applications,
+                evaluation.nvariables,
+                self._potential_applications,
+                undefined_explanations,
+            )
+            if head.kind is not StateKind.DEFINED:
+                semantic = head.explanation
+        candidates = [reason for reason in (inactive, semantic) if reason is not None]
+        if not candidates:
+            return None
+        return min(candidates, key=lambda reason: (len(reason), tuple(sorted(reason))))
+
+    def _dynamic_undefined_explanations(
+        self,
+        applications: ApplicationValues,
+        is_false: Callable[[int], bool],
+    ) -> UndefinedExplanations:
+        """Prove branch-local absence without treating lack of support as evidence.
+
+        An application becomes explainably undefined only after every grounded seed
+        and rule provider has an independently justified failure.  The least fixed
+        point prevents recursive provider paths from bootstrapping absence proofs.
+        """
+
+        self.dynamic_undefined_analysis_count += 1
+        unexplained = {
+            application
+            for application in self._potential_applications
+            if not applications.get(application)
+        }
+        explained: UndefinedExplanations = {}
+        changed = True
+        while changed:
+            changed = False
+            for application in sorted(unexplained - explained.keys()):
+                failures: list[Explanation] = []
+                complete = True
+                for seed in self._seeds_by_application.get(application, ()):
+                    failure = self._inactive_literal_explanation(seed.literal, is_false)
+                    if failure is None:
+                        complete = False
+                        break
+                    failures.append(failure)
+                if not complete:
+                    continue
+                for index in self._providers_by_application.get(application, ()):
+                    failure = self._rule_provider_failure(
+                        self._rules[index],
+                        applications,
+                        explained,
+                        is_false,
+                    )
+                    if failure is None:
+                        complete = False
+                        break
+                    failures.append(failure)
+                if not complete:
+                    continue
+                explanation = _merge_explanations(failures)
+                if explanation is None:
+                    continue
+                explained[application] = explanation
+                changed = True
+        self.dynamic_undefined_application_count += len(explained)
+        return explained
+
+    def _with_dynamic_undefinedness(
+        self,
+        evaluation: _EvaluationState,
+        assignment: clingo.Assignment,
+    ) -> _EvaluationState:
+        """Re-evaluate active bodies with conservative branch-local absence proofs."""
+
+        explanations = self._dynamic_undefined_explanations(
+            evaluation.applications,
+            assignment.is_false,
+        )
+        if not explanations:
+            return evaluation
+        rule_states: dict[int, dict[str, ValueState]] = {}
+        rule_satisfaction: dict[int, bool] = {}
+        rule_explanations: dict[int, Explanation | None] = {}
+        rule_explanation_gaps: dict[int, str | None] = {}
+        for index, rule in enumerate(self._rules):
+            if not evaluation.active[index]:
+                continue
+            self.rule_body_evaluation_count += 1
+            body = _rule_body(
+                rule,
+                evaluation.applications,
+                self._potential_applications,
+                explanations,
+            )
+            active_explanation = (
+                frozenset() if rule.active_literal == 1 else frozenset((rule.active_literal,))
+            )
+            rule_states[index] = body.nvariables
+            rule_satisfaction[index] = body.satisfied
+            rule_explanations[index] = _merge_explanations((active_explanation, body.explanation))
+            rule_explanation_gaps[index] = body.explanation_gap
+        return _EvaluationState(
+            evaluation.applications,
+            evaluation.active,
+            rule_states,
+            rule_satisfaction,
+            rule_explanations,
+            rule_explanation_gaps,
+        )
+
     def propagate(self, control: clingo.PropagateControl, changes: Sequence[int]) -> None:
         """Index newly true native literals without scanning unrelated seeds."""
 
@@ -1252,25 +1584,37 @@ class NativePropagator(clingo.Propagator):
             for atom in self._ordinary_by_literal.get(literal, ()):
                 state.ordinary_supports[atom] = state.ordinary_supports.get(atom, 0) + 1
                 self.ordinary_activation_count += 1
-        conflict = self._seed_conflict_literals(state)
+        conflict = self._seed_conflict(state)
         if semantic_change:
-            state.evaluation = None
+            state.semantic_generation += 1
+            self.semantic_state_change_count += 1
         if conflict is not None:
             self._block_seed_conflict(control, conflict)
             return
         if not semantic_change or not self._early_evaluation_required:
             return
         evaluation = self._evaluate_state(state)
-        state.evaluation = evaluation
+        state.evaluation = _CachedEvaluation(state.semantic_generation, evaluation)
         application_conflict = self._application_conflict(evaluation.applications)
         if application_conflict is not None:
-            explanation = _merge_explanations(application_conflict)
+            explanation = _merge_explanations(
+                (
+                    application_conflict.left_explanation,
+                    application_conflict.right_explanation,
+                )
+            )
             if explanation is not None:
                 self._block_explained_conflict(
                     control,
                     explanation,
                     functionality=True,
                     early=True,
+                    kind=ClauseAuditKind.DERIVED_FUNCTIONALITY,
+                    target=(
+                        f"{application_conflict.application.render()}:"
+                        f"{application_conflict.left_value.render()}"
+                        f"!={application_conflict.right_value.render()}"
+                    ),
                 )
             return
         for index, rule in enumerate(self._rules):
@@ -1287,6 +1631,8 @@ class NativePropagator(clingo.Propagator):
                 guard=True,
                 required_literal=required_literal,
                 early=True,
+                kind=ClauseAuditKind.GUARD,
+                target=f"{rule.key.render()}:{'true' if expected else 'false'}",
             )
             if added is not None:
                 return
@@ -1295,19 +1641,27 @@ class NativePropagator(clingo.Propagator):
         self.check_count += 1
         self._snapshots.pop(control.thread_id, None)
         state = self._state(control.thread_id)
-        conflict = self._seed_conflict_literals(state)
+        conflict = self._seed_conflict(state)
         if conflict is not None:
             self._block_seed_conflict(control, conflict)
             return
-        evaluation = state.evaluation
-        if evaluation is None:
+        cached = state.evaluation
+        if cached is None or cached.generation != state.semantic_generation:
+            if cached is not None:
+                self.evaluation_cache_stale_rejection_count += 1
             evaluation = self._evaluate_state(state)
-            state.evaluation = evaluation
+            state.evaluation = _CachedEvaluation(state.semantic_generation, evaluation)
         else:
             self.evaluation_cache_hit_count += 1
+            evaluation = cached.result
         application_conflict = self._application_conflict(evaluation.applications)
         if application_conflict is not None:
-            explanation = _merge_explanations(application_conflict)
+            explanation = _merge_explanations(
+                (
+                    application_conflict.left_explanation,
+                    application_conflict.right_explanation,
+                )
+            )
             if explanation is None:
                 self._block_current_native_assignment(
                     control,
@@ -1320,6 +1674,12 @@ class NativePropagator(clingo.Propagator):
                     control,
                     explanation,
                     functionality=True,
+                    kind=ClauseAuditKind.DERIVED_FUNCTIONALITY,
+                    target=(
+                        f"{application_conflict.application.render()}:"
+                        f"{application_conflict.left_value.render()}"
+                        f"!={application_conflict.right_value.render()}"
+                    ),
                 )
             return
 
@@ -1329,6 +1689,24 @@ class NativePropagator(clingo.Propagator):
             for name, value_state in nvariables.items()
             if value_state.kind is StateKind.UNDEFINED
         }
+        needs_dynamic_undefinedness = any(
+            rule.guard_literal is not None
+            and evaluation.rule_explanations.get(index) is None
+            and evaluation.rule_satisfaction.get(index, False)
+            != self._true(state, rule.guard_literal)
+            for index, rule in enumerate(self._rules)
+        )
+        if needs_dynamic_undefinedness:
+            previous_satisfaction = evaluation.rule_satisfaction
+            evaluation = self._with_dynamic_undefinedness(evaluation, control.assignment)
+            if evaluation.rule_satisfaction != previous_satisfaction:
+                raise RuntimeError("undefinedness explanations changed native rule semantics")
+            undefined = {
+                (self._rules[index].key, name)
+                for index, nvariables in evaluation.rule_states.items()
+                for name, value_state in nvariables.items()
+                if value_state.kind is StateKind.UNDEFINED
+            }
         for index, rule in enumerate(self._rules):
             if rule.guard_literal is None:
                 continue
@@ -1337,15 +1715,13 @@ class NativePropagator(clingo.Propagator):
             if expected != actual:
                 explanation = evaluation.rule_explanations.get(index)
                 if explanation is None:
-                    instance = ",".join(value.render() for value in rule.key.instance)
-                    suffix = f"[{instance}]" if instance else ""
                     explanation_gap = evaluation.rule_explanation_gaps.get(index)
                     gap = f":{explanation_gap}" if explanation_gap else ""
                     self._block_current_native_assignment(
                         control,
                         state,
                         guard=True,
-                        cause=f"guard:{rule.key.identifier}{suffix}{gap}",
+                        cause=f"guard:{rule.key.render()}{gap}",
                     )
                 else:
                     required_literal = rule.guard_literal if expected else -rule.guard_literal
@@ -1354,6 +1730,8 @@ class NativePropagator(clingo.Propagator):
                         explanation,
                         guard=True,
                         required_literal=required_literal,
+                        kind=ClauseAuditKind.GUARD,
+                        target=f"{rule.key.render()}:{'true' if expected else 'false'}",
                     )
                 return
 
@@ -1402,7 +1780,8 @@ class NativePropagator(clingo.Propagator):
                     del state.ordinary_supports[atom]
                 self.ordinary_deactivation_count += 1
         if semantic_change:
-            state.evaluation = None
+            state.semantic_generation += 1
+            self.semantic_state_change_count += 1
         self._snapshots.pop(thread_id, None)
 
     def snapshot(self, thread_id: int) -> NativeSnapshot:
@@ -1412,6 +1791,11 @@ class NativePropagator(clingo.Propagator):
             return self._snapshots[thread_id]
         except KeyError as error:
             raise RuntimeError("native snapshot is unavailable for this model") from error
+
+    def clause_audits(self) -> tuple[ClauseAudit, ...]:
+        """Return opt-in deterministic clause records for semantic review."""
+
+        return tuple(self._clause_audits)
 
     def metrics(self) -> NativeWorkMetrics:
         """Return deterministic work counters for tests and benchmark evidence."""
@@ -1438,8 +1822,12 @@ class NativePropagator(clingo.Propagator):
             seed_deactivations=self.seed_deactivation_count,
             check_calls=self.check_count,
             check_seed_probes=self.check_seed_probe_count,
+            semantic_state_changes=self.semantic_state_change_count,
             evaluation_runs=self.evaluation_count,
             evaluation_cache_hits=self.evaluation_cache_hit_count,
+            evaluation_cache_stale_rejections=self.evaluation_cache_stale_rejection_count,
+            dynamic_undefined_analysis_runs=self.dynamic_undefined_analysis_count,
+            dynamic_undefined_applications_proven=self.dynamic_undefined_application_count,
             rule_body_evaluations=self.rule_body_evaluation_count,
             blocking_clauses=self.blocking_clause_count,
             functionality_clauses=self.functionality_clause_count,

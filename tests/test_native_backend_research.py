@@ -861,6 +861,8 @@ def test_dependency_diamond_with_two_nvariables_backtracks_without_stale_values(
             f"k(x)#={expected}",
         )
     assert result.work_metrics.seed_activations == result.work_metrics.seed_deactivations
+    assert result.work_metrics.semantic_state_changes == 2 * result.model_count
+    assert result.work_metrics.evaluation_cache_stale_rejections == result.model_count - 1
     assert result.work_metrics.check_seed_probes == 0
 
 

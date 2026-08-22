@@ -1,5 +1,6 @@
 """Isolated theory-atom/propagator feasibility prototype."""
 
+from research.native_backend.audit import ClauseAudit, ClauseAuditKind, SupportOrigin
 from research.native_backend.errors import NativeValidationError
 from research.native_backend.ir import (
     AppExpression,
@@ -47,6 +48,8 @@ __all__ = [
     "Atom",
     "AtomHead",
     "Choice",
+    "ClauseAudit",
+    "ClauseAuditKind",
     "Comparison",
     "ComparisonOperator",
     "ConstantExpression",
@@ -71,6 +74,7 @@ __all__ = [
     "Seed",
     "SourceLocation",
     "String",
+    "SupportOrigin",
     "Symbol",
     "Variable",
     "analyze_nloops",
