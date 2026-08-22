@@ -55,6 +55,19 @@ unassigned/cyclic explanation gaps, reducing Python callback cost, and moving wi
 n-loop checks to grounded typed metadata with source provenance. A fresh
 production-integration review should occur only if those gates succeed.
 
+## 0.2.0a2 release candidate
+
+The next alpha is a patch-level prerelease because it does not expand the
+released syntax, reference semantics, or backend selection surface. It packages
+the native research hardening, adversarial/differential evidence, CLI version
+reporting, package smoke checks, and documentation accumulated after
+`0.2.0a1`. The native backend remains research-only, `_v` remains rejected by
+the frontend, and the reference backend remains the production/default path.
+
+The candidate also prepares a prospective license transition for releases
+beginning with `0.2.0a2`. Publication is gated on copyright-holder and legal
+review; the historical `0.2.0a1` MIT grant remains unchanged.
+
 ## Deferred compatibility candidates
 
 Each candidate requires primary-source research, a typed design, explicit

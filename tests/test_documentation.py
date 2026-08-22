@@ -54,8 +54,11 @@ def test_release_metadata_is_consistent() -> None:
         "project"
     ]
 
-    assert metadata["version"] == __version__ == "0.2.0a1"
+    assert metadata["version"] == __version__ == "0.2.0a2"
     assert metadata["authors"] == [{"name": "Dylan Flynn"}]
+    assert metadata["license"] == "PolyForm-Noncommercial-1.0.0"
+    assert "License :: Other/Proprietary License" in metadata["classifiers"]
+    assert not any("OSI Approved" in item for item in metadata["classifiers"])
     assert metadata["urls"]["Repository"] == "https://github.com/dylanflynn477/ASPf-next"
     assert "answer-set-programming" in metadata["keywords"]
     assert "Development Status :: 2 - Pre-Alpha" in metadata["classifiers"]
@@ -63,9 +66,23 @@ def test_release_metadata_is_consistent() -> None:
     changelog = (PROJECT_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
     portfolio = (PROJECT_ROOT / "docs" / "portfolio-copy.md").read_text(encoding="utf-8")
-    assert "0.2.0a1 - 2026-08-08" in changelog
-    assert "current version is `0.2.0a1`" in readme.lower()
-    assert "Current release | `0.2.0a1`" in portfolio
+    assert "0.2.0a2 - Unreleased" in changelog
+    assert "current source version is the unpublished `0.2.0a2`" in readme.lower()
+    assert "Release candidate | `0.2.0a2`" in portfolio
+
+
+def test_license_transition_is_explicit_and_nonretroactive() -> None:
+    license_text = (PROJECT_ROOT / "LICENSE").read_text(encoding="utf-8")
+    readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
+    licensing = (PROJECT_ROOT / "docs" / "licensing.md").read_text(encoding="utf-8")
+
+    assert license_text.startswith("# PolyForm Noncommercial License 1.0.0")
+    assert "Required Notice: Copyright 2026 Dylan Flynn." in license_text
+    assert "0.2.0a1` was released under the MIT License" in readme
+    assert "does not revoke" in readme
+    assert "not OSI-approved" in readme
+    assert "not legal advice" in licensing
+    assert "commercial evaluation" in licensing
 
 
 def test_project_and_release_documents_exist() -> None:
@@ -77,7 +94,9 @@ def test_project_and_release_documents_exist() -> None:
         "docs/roadmap.md",
         "docs/demo-recording.md",
         "docs/portfolio-copy.md",
+        "docs/licensing.md",
         "docs/releases/0.2.0a1.md",
+        "docs/releases/0.2.0a2.md",
         "docs/releases/not-equal-development.md",
         "docs/releases/ordered-comparisons-development.md",
         "docs/releases/domain-safe-variables-development.md",

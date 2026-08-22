@@ -3,11 +3,19 @@
 Notable changes to ASPf-next are recorded here. Reader-facing and Python
 package versions use the same PEP 440 spelling.
 
-## Unreleased
+## 0.2.0a2 - Unreleased
 
 ### Added
 
 - Added `aspf --version` and a wheel-install smoke check in CI.
+
+### Changed
+
+- Prepared future releases for the PolyForm Noncommercial License 1.0.0,
+  subject to final copyright-holder and legal review. This source-available
+  license is not OSI-approved. The published `0.2.0a1` release remains governed
+  by its accompanying MIT License; rights already granted for that release are
+  unchanged.
 
 ### Research
 

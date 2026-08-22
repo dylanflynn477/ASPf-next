@@ -180,13 +180,16 @@ native overhead stays at one rule/theory atom.
 
 The outcome is **PARTIAL GO for research and NO-GO for production integration**. The
 prototype is isolated under `research/native_backend`; `src/aspf_next`, the reference
-backend, the CLI, and released syntax are unchanged. It still needs:
+backend, the CLI, and released syntax are unchanged. Subsequent hardening eliminated
+check-time total seed rescans, broad clauses on the recorded multi-application workload,
+and implicit cache validity. The remaining gates include:
 
 - an adapter from the production IR rather than a separate research input;
 - exact historical program-level n-loop analysis;
-- incremental value support and useful explanation clauses instead of total-state
-  rescanning and broad model-filter clauses;
-- proven multi-thread behavior (the prototype explicitly requires one thread);
+- incremental maintenance of derived value and absence state instead of Python closure
+  reevaluation;
+- narrower explanations for unassigned and cyclic dynamic absence paths;
+- proven multi-thread behavior beyond bounded two-thread tests;
 - confirmed historical cross-type ordering semantics; and
 - production-scale performance and adversarial review.
 

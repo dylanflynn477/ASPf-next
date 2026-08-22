@@ -1,8 +1,20 @@
 # Contributing
 
 ASPf-next is research software with a deliberately conservative compatibility
-boundary. Contributions are welcome when they keep that boundary explicit and
-reviewable.
+boundary.
+
+## Licensing-transition hold
+
+External code contributions are temporarily paused while the project adopts a
+contributor-agreement policy suitable for its proposed source-available and
+commercial licensing model. Please do not submit code or documentation patches
+unless the maintainer has confirmed the applicable contributor terms in
+writing. Bug reports, reproducible examples, and research citations remain
+welcome through GitHub issues.
+
+This hold does not alter the MIT License that accompanied the published
+`0.2.0a1` release. See [`docs/licensing.md`](docs/licensing.md) for the proposed
+terms for later versions and the questions still requiring legal review.
 
 ## Clean-room requirements
 
@@ -44,7 +56,8 @@ python scripts/compatibility_report.py
 
 ## Pull requests
 
-Keep pull requests narrow and explain:
+After the maintainer confirms contributor terms, keep pull requests narrow and
+explain:
 
 1. the user-visible behavior being changed;
 2. the semantic or documentation source supporting it;

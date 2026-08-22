@@ -2,11 +2,12 @@
 
 ## Current baseline
 
-ASPf-next 0.2.0a1 is a clean-room compatibility frontend and reference backend for
-modern Clingo 5.8. It reproduces a bounded set of partial-function model semantics by
-lowering n-atoms to ordinary relations with functionality and no totality rule. This
-path is inspectable and useful as an executable semantic reference, but a relation
-variable used to copy a value is grounded over its candidate domain.
+Published ASPf-next 0.2.0a1 and the unpublished 0.2.0a2 candidate share the same
+clean-room compatibility frontend and reference-backend language boundary for modern
+Clingo 5.8. They reproduce a bounded set of partial-function model semantics by lowering
+n-atoms to ordinary relations with functionality and no totality rule. This path is
+inspectable and useful as an executable semantic reference, but a relation variable
+used to copy a value is grounded over its candidate domain.
 
 Historical Clingo{f} n-variables such as `_v` were deliberately treated as ground
 expressions during grounding and evaluated later. Translating `_v` to an ordinary

@@ -18,9 +18,10 @@ with Balduccini, the historical Clingo{f} project, or Potassco.
 
 ## Implementation provenance
 
-The 0.1 code was written from the milestone specification in this repository and
-the public interfaces of the official Clingo Python package. It does not fork,
-patch, or modify Clingo's C/C++ source and does not copy code from historical
+The compatibility frontend and reference backend were written from the
+milestone specifications in this repository, primary publications, and the
+public interfaces of the official Clingo Python package. They do not fork,
+patch, or modify Clingo's C/C++ source and do not copy code from historical
 Clingo{f}.
 
 The implementation intentionally separates compatibility scanning, typed IR,
@@ -35,8 +36,25 @@ Relevant public Clingo interfaces:
 - [theory atoms](https://potassco.org/clingo/python-api/5.8/clingo/theory_atoms.html)
 - [custom propagators](https://potassco.org/clingo/python-api/5.8/clingo/propagator.html)
 
-The latter two links inform only a possible future architecture. No theory atom
-or propagator is implemented in 0.1.
+The latter two links now inform a bounded research prototype under
+`research/native_backend/`. That prototype is not imported by the released
+package, exposed by the CLI, or represented as production support. The
+reference backend remains the default and supported implementation.
+
+## Authorship and licensing record
+
+The repository audit for the `0.2.0a2` release candidate found commits and
+merged pull requests authored only through Dylan Flynn's recorded name/email
+identities and GitHub account, with no co-author trailers or other GitHub
+contributors. No third-party implementation is vendored. Clingo remains an
+external runtime dependency under its own terms.
+
+That evidence is useful but is not a legal determination that every copyright
+interest is owned by one person. Before publishing a changed license, the
+copyright holder should confirm authorship, employment/contractor obligations,
+and the status of any tool-assisted material. External patches are paused until
+a reviewed contributor-agreement process exists. See
+[`docs/licensing.md`](licensing.md).
 
 ## Distinction from Potassco flingo
 

@@ -598,8 +598,9 @@ not an ordinary relational fallback disguised as native support.
     mode is opt-in to the research solver; normal collection and every released API
     remain unchanged.
 16. **Did production ASPf-next behavior change?** No imports or execution paths were
-    added under `src/aspf_next`, no CLI flag or `_V` syntax was added, and package
-    version `0.2.0a1` is unchanged.
+    added under `src/aspf_next`, and no CLI flag or `_V` syntax was added. The later
+    `0.2.0a2` release candidate changes version/license metadata and research artifacts,
+    not the supported language or production backend.
 17. **Are grounding efficiency and solve speed separated?** Yes. Structural deltas,
     ground time, first-model solve, exhaustive raw solve, and visible output are
     reported independently.

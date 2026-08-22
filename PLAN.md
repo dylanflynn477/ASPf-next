@@ -51,6 +51,11 @@ Before any release or compatibility increment:
 - update the changelog, supported-language specification, compatibility matrix,
   examples, and release notes together.
 
+For the `0.2.0a2` candidate, also verify that source-available terminology,
+package metadata, contributor policy, and the immutable MIT status of
+`v0.2.0a1` remain consistent. Do not publish the candidate license transition
+until copyright-holder and legal review is complete.
+
 ## Invariants
 
 - Undefined is not zero, false, unequal, or an invented value.
