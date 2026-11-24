@@ -231,6 +231,35 @@ family. This is evidence for sounder, auditable explanation scope—not a speedu
 The standard multi-application counters and digests remain unchanged because its
 undefined source is statically provable and never invokes the dynamic analysis.
 
+## Project Lazarus dependency-indexed closure
+
+Commit `28c0697fb5fd215047c30e5b55dd6071911fc90f` adds per-rule derived outputs,
+dirty application/rule sets, forward dependency invalidation, and an optional full
+recomputation oracle. Cyclic grounded application dependencies conservatively retain
+the full evaluator. The experiment used Python 3.12.14, Clingo 5.8.3, the same
+Windows/Intel host, one solver thread, one warm-up, and three measured samples. Both
+evaluator modes ran on the same commit and produced identical complete model digests.
+
+| Values/models | Full rule evaluations | Indexed rule evaluations | Reduction | Full solve | Indexed solve | Equal models |
+| ---: | ---: | ---: | ---: | ---: | ---: | :---: |
+| 10 | 162 | 111 | 31.5% | 8.072 ms | 7.597 ms | yes |
+| 100 | 1,782 | 1,191 | 33.2% | 67.629 ms | 58.953 ms | yes |
+| 1,000 | 17,982 | 11,991 | 33.3% | 837.653 ms | 1,245.958 ms | yes |
+
+A separate N=1,000 profile used two warm-ups and seven samples. Its medians are
+1,240.347 ms for full closure and 1,326.326 ms for dependency-indexed evaluation.
+Thus the deterministic semantic-work reduction does not yet establish a solve-time
+improvement; repeated Python map copying and allocation remain material. The native
+path also remains slower than the relational reference. This is a successful state-
+maintenance increment and a negative performance finding, not a production-speed
+claim.
+
+Dynamic absence now has an exact cache key consisting of the thread's semantic
+generation and the complete false-provider tuple. At 10, 50, and 100 providers the
+new workload artifact performs one proof analysis and one cache hit, probes 2N provider
+statuses, preserves zero broad clauses, and retains exact reference/native model
+digests. An unassigned provider remains outside the false tuple.
+
 ## Commands
 
 Run from the repository root with the environment's Python:
@@ -262,6 +291,10 @@ python -m benchmarks.multi_application_workload \
 python -m benchmarks.dynamic_undefinedness_workload \
   --sizes 10 50 100 --warmups 1 --repeats 7 \
   --output benchmarks/results/dynamic-undefinedness-adversarial-hardening.json
+
+python -m benchmarks.incremental_evaluator \
+  --sizes 10 100 1000 --warmups 1 --repeats 7 \
+  --output benchmarks/results/lazarus-full-vs-incremental.json
 ```
 
 Raw result files:
@@ -279,6 +312,10 @@ Raw result files:
 - [`benchmarks/results/multi-application-adversarial-hardening.json`](../../benchmarks/results/multi-application-adversarial-hardening.json)
 - [`benchmarks/results/dynamic-undefinedness-candidate-baseline.json`](../../benchmarks/results/dynamic-undefinedness-candidate-baseline.json)
 - [`benchmarks/results/dynamic-undefinedness-adversarial-hardening.json`](../../benchmarks/results/dynamic-undefinedness-adversarial-hardening.json)
+- [`benchmarks/results/lazarus-full-vs-incremental.json`](../../benchmarks/results/lazarus-full-vs-incremental.json)
+- [`benchmarks/results/lazarus-full-vs-incremental-1000-profile.json`](../../benchmarks/results/lazarus-full-vs-incremental-1000-profile.json)
+- [`benchmarks/results/lazarus-incremental-after.json`](../../benchmarks/results/lazarus-incremental-after.json)
+- [`benchmarks/results/lazarus-undefinedness-cache.json`](../../benchmarks/results/lazarus-undefinedness-cache.json)
 
 ## Interpretation and limitations
 

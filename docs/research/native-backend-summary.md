@@ -82,6 +82,15 @@ falls from 0.374 to 0.304 seconds. Clause counts, widths, and exact model digest
 unchanged. Profiled closure evaluation remains the dominant Python callback cost, so
 this does not justify production integration.
 
+Project Lazarus subsequently retains per-rule outputs and rebuilds only the forward
+dependency closure affected by a watched seed or rule change. A private mode compares
+every such state with full recomputation. On the observation workload, rule-body
+evaluations fall again from 17,982 to 11,991 at N=1,000, with exact model digests.
+Controlled timing is mixed: the seven-sample N=1,000 indexed median is 1.326 seconds
+versus 1.240 seconds for full closure on the same revision. Dynamic-absence proofs are
+also cached only under an exact semantic-generation/false-provider tuple. These are
+state-maintenance and auditability results, not a speed or production-readiness claim.
+
 ## Decision
 
 **PARTIAL GO for continued research; NO-GO for production integration.**
@@ -101,14 +110,16 @@ released IR.
 
 ## Remaining questions
 
-1. How should closure and provider-failure proofs be maintained incrementally without
-   repeating rule-body evaluation?
-2. Can n-loop analysis run on grounded typed metadata and still report source paths?
-3. Can Python evaluation, callback, initialization, and raw enumeration costs be
+1. Can n-loop analysis run on grounded typed metadata and still report source paths?
+2. Can incremental rule state avoid repeated Python map copying while retaining an
+   independently checkable full-closure oracle?
+3. Can provider-failure proofs be maintained incrementally without treating an
+   unassigned provider as false?
+4. Can Python evaluation, callback, initialization, and raw enumeration costs be
    reduced materially?
-4. Does two-thread state remain sound under larger conflicting stress cases?
-5. Do remaining reason-tracking and callback costs justify a native Clingo extension?
-6. What production IR identity should distinguish the same textual n-variable across
+5. Does two-thread state remain sound under larger conflicting stress cases?
+6. Do remaining reason-tracking and callback costs justify a native Clingo extension?
+7. What production IR identity should distinguish the same textual n-variable across
    grounded rule instances?
 
 The detailed [research report](native-backend-feasibility.md) and

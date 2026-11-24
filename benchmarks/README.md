@@ -114,6 +114,22 @@ clauses, attributed broad fallbacks, duplicate clauses, solver propagation outco
 and early explanations. Timing remains secondary to exact model digests and these
 structural work counters.
 
+Compare the retained full-closure evaluator with the Project Lazarus
+dependency-indexed evaluator on exactly the same revision with:
+
+```console
+python -m benchmarks.incremental_evaluator \
+  --sizes 10 100 1000 --warmups 1 --repeats 7 \
+  --output benchmarks/results/lazarus-full-vs-incremental.json
+```
+
+Both modes enumerate complete normalized model sets and the runner fails if they
+differ. The result includes exact model digests, rule-body evaluations, reused rules
+and applications, full/incremental evaluation counts, raw timing samples, and the
+usual environment metadata. This is the controlled comparison for evaluator work;
+`lazarus-incremental-before.json` is only a one-shot pre-change observation and must
+not be used as a timing baseline.
+
 Exercise branch-local absence separately with:
 
 ```console
@@ -128,3 +144,8 @@ commit `8c3e1c0`; `dynamic-undefinedness-adversarial-hardening.json` records the
 provider-complete proof. Both exhaustively compare normalized model sets. The paired
 artifacts show narrower explanation scope with a modest evaluation-time cost; they do
 not claim a solve-speed improvement.
+
+`lazarus-undefinedness-cache.json` records the later exact cache key: one semantic
+generation plus the complete tuple of provider literals known false by Clingo. Its
+provider-probe counter makes the signature cost explicit. Unassigned literals are not
+included and therefore never become absence evidence.

@@ -453,6 +453,16 @@ At N=1,000, rule-body evaluations fall 33.4% and the same-environment native med
 falls 18.7%. The 8.972 ms relational reference median is still about 34 times faster.
 The cache removes duplicate work; it does not make closure maintenance incremental.
 
+Project Lazarus later adds per-rule output state and forward dependency invalidation.
+On the same observation workload, dependency-indexed evaluation reduces N=1,000
+rule-body evaluations from 17,982 to 11,991 and an optional debug mode verifies every
+incremental result against full recomputation. The controlled timing result is mixed:
+its seven-sample N=1,000 median is 1.326 seconds versus 1.240 seconds for full closure
+on the same revision. The state algorithm advanced; Python allocation remains a
+performance blocker. Dynamic absence is now cached only for an exact semantic
+generation and false-provider tuple. See the focused
+[Project Lazarus note](lazarus-native-solver.md).
+
 ### Conflict and thread audit
 
 Direct seed functionality conflicts are detected incrementally and receive a clause
@@ -534,12 +544,11 @@ language contract are unchanged.
 
 Before reconsidering integration:
 
-1. incrementally maintain value and provider-failure state rather than repeating rule
-   closure for each relevant change;
-2. move exact n-loop analysis to grounded typed metadata while mapping witnesses back
+1. move exact n-loop analysis to grounded typed metadata while mapping witnesses back
    to source locations;
-3. incrementally update affected closure state and reduce remaining Python callback,
-   initialization, and raw-enumeration overhead;
+2. reduce Python copying in the dependency-indexed closure and maintain more
+   provider-failure state without treating unassigned literals as false;
+3. reduce remaining callback, initialization, and raw-enumeration overhead;
 4. stress the bounded two-thread design under substantially larger and conflicting
    workloads, or return to an explicit one-thread production boundary;
 5. define how a production typed frontend represents rule-local n-variable identities

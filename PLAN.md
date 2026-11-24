@@ -23,8 +23,10 @@ coverage, and accurate compatibility classification.
    boundary. Defined-value derivations, comparisons, and guards now retain narrow
    support explanations and propagate early in the research prototype. A conservative
    provider-complete fixed point now explains part of dynamic undefinedness without
-   treating don't-cares as false. Further work must incrementally maintain closure and
-   absence state, close remaining unassigned/cyclic explanation gaps, reduce Python
+   treating don't-cares as false. The research evaluator incrementally rebuilds the
+   dependency-indexed affected closure, retains full recomputation as a debug oracle,
+   and caches absence proofs under an exact false-provider signature. Further work must
+   close remaining unassigned/cyclic explanation gaps, reduce Python allocation and
    callback costs, and broaden grounded-exact n-loop analysis before a fresh
    production-integration review.
 4. Consider each remaining historical construct separately, beginning with a

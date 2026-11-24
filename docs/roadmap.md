@@ -40,20 +40,24 @@ derived values and comparisons, propagates narrow guard clauses earlier, and eli
 broad clauses on that workload. Adversarial follow-up adds conservative compositional
 reasons when every grounded provider of a dynamically absent application has a proved
 failure; unassigned or cyclic provider paths still fall back rather than becoming fake
-evidence. Native solving remains substantially slower than the reference, thread-local
-generation tracking prevents stale closure reuse, non-ground n-loop detection remains
-conservative, and two-thread support has only bounded evidence.
+evidence. Project Lazarus now retains per-rule outputs, invalidates a
+dependency-indexed forward closure, and caches dynamic absence only under an exact
+semantic-generation/false-provider key. A private oracle can compare every incremental
+state with full recomputation. The work counters improve, but controlled timing is
+mixed; non-ground n-loop detection remains conservative, and two-thread support has
+only bounded evidence.
 
 The code remains under `research/`; the released syntax, reference backend, and CLI are
 unchanged. The [feasibility report](research/native-backend-feasibility.md) and
-[benchmark report](benchmarks/native-vs-reference.md) record the preregistered gates,
-raw evidence, and limitations.
+[Project Lazarus increment](research/lazarus-native-solver.md) record the architecture
+and readiness boundary. The [benchmark report](benchmarks/native-vs-reference.md)
+records the preregistered gates, raw evidence, and limitations.
 
-The next native research milestone, if pursued, is incrementally maintaining affected
-value and absence state instead of reevaluating rule families, narrowing the remaining
-unassigned/cyclic explanation gaps, reducing Python callback cost, and moving wider
-n-loop checks to grounded typed metadata with source provenance. A fresh
-production-integration review should occur only if those gates succeed.
+The next native research milestone, if pursued, is moving wider n-loop checks to
+grounded typed metadata with source provenance, reducing allocation and Python callback
+cost in the dependency-indexed evaluator, and narrowing the remaining
+unassigned/cyclic absence gaps. Only then should a bounded production-IR `_v` adapter
+and fresh production-integration review be considered.
 
 ## 0.2.0a2 release
 

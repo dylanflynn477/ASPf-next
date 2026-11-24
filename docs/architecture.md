@@ -185,16 +185,17 @@ check-time total seed rescans, broad clauses on the recorded multi-application w
 and implicit cache validity. The remaining gates include:
 
 - an adapter from the production IR rather than a separate research input;
-- exact historical program-level n-loop analysis;
-- incremental maintenance of derived value and absence state instead of Python closure
-  reevaluation;
+- grounded-exact historical program-level n-loop analysis with source mapping;
+- lower-allocation dependency-indexed value state and more incremental absence state;
 - narrower explanations for unassigned and cyclic dynamic absence paths;
 - proven multi-thread behavior beyond bounded two-thread tests;
 - confirmed historical cross-type ordering semantics; and
 - production-scale performance and adversarial review.
 
 The [feasibility report](research/native-backend-feasibility.md) and
-[benchmark report](benchmarks/native-vs-reference.md) contain the evidence and decision.
+[Project Lazarus note](research/lazarus-native-solver.md) describe the implementation
+boundary. The [benchmark report](benchmarks/native-vs-reference.md) contains the raw
+evidence and decision.
 A future backend should remain a distinct backend boundary, not scattered native-mode
 branches. The reference path optimizes for inspectability, compatibility, and a simple
 modern Clingo dependency; a native path would optimize for solver-time values and

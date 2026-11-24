@@ -154,11 +154,13 @@ further research and NO-GO for production integration**. It demonstrated constan
 copy-rule grounding overhead and matching tested models. Subsequent research hardening
 added support-set provenance, conservative provider-complete dynamic-absence reasons,
 narrow derived/guard clauses, explicit cache generations, and clause audit records.
-Native solving remains substantially slower than the reference and exact historical
-n-loop coverage is incomplete. The prototype stays under `research/`; `_v` remains
-unsupported by the released frontend and no CLI backend flag was added. See the
-[research result](docs/research/native-backend-feasibility.md), the
-[adversarial review](docs/research/native-provenance-adversarial-review.md), and the
+Project Lazarus adds dependency-indexed affected-closure maintenance plus a private
+full-recomputation oracle; it reduces semantic work, but controlled timing remains
+mixed. Native solving remains substantially slower than the reference and exact
+historical n-loop coverage is incomplete. The prototype stays under `research/`;
+`_v` remains unsupported by the released frontend and no CLI backend flag was added.
+See the [research result](docs/research/native-backend-feasibility.md), the
+[Project Lazarus increment](docs/research/lazarus-native-solver.md), and the
 [benchmark report](docs/benchmarks/native-vs-reference.md).
 
 Useful CLI forms:
@@ -244,6 +246,7 @@ affiliated with Potassco.
 - [domain-safe variable development notes](docs/releases/domain-safe-variables-development.md)
 - [non-Herbrand variable research](docs/design/non-herbrand-variables.md)
 - [native-backend feasibility result](docs/research/native-backend-feasibility.md)
+- [Project Lazarus native-solver increment](docs/research/lazarus-native-solver.md)
 - [native-versus-reference benchmark](docs/benchmarks/native-vs-reference.md)
 
 ## Status and development

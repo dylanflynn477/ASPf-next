@@ -3,6 +3,21 @@
 Notable changes to ASPf-next are recorded here. Reader-facing and Python
 package versions use the same PEP 440 spelling.
 
+## Unreleased
+
+### Research
+
+- Added dependency-indexed native closure maintenance with separate per-rule outputs,
+  exact dirty forward invalidation, conservative full-closure fallback for cyclic
+  application dependencies, and an opt-in full-recomputation oracle.
+- Cached dynamic-undefinedness proofs only under an exact thread-local semantic
+  generation and false-provider signature; unassigned providers remain non-evidence.
+- Added adversarial full/native/reference equivalence tests and same-revision benchmark
+  tooling. Rule-body work falls on the measured observation workload, while controlled
+  timing remains mixed and does not support a general speed claim.
+- Kept the production frontend, released syntax, reference backend, and `_v` rejection
+  unchanged.
+
 ## 0.2.0a2 - 2026-08-22
 
 ### Added
