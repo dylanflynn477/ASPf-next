@@ -85,6 +85,8 @@ class NativeSolver:
         profile_reconstruction: bool = False,
         threads: int = 1,
         audit_clauses: bool = False,
+        dependency_indexed_evaluation: bool = True,
+        verify_incremental: bool = False,
     ) -> NativeSolveResult:
         if model_limit < 0:
             raise ValueError("model limit must not be negative")
@@ -92,11 +94,15 @@ class NativeSolver:
             raise ValueError("research solver thread count must be 1 or 2")
         if audit_clauses and threads != 1:
             raise ValueError("clause auditing requires deterministic one-thread solving")
+        if verify_incremental and not dependency_indexed_evaluation:
+            raise ValueError("incremental verification requires dependency-indexed evaluation")
         source = compile_program(program)
         control = clingo.Control([str(model_limit), "--stats=2", f"-t{threads}"])
         propagator = NativePropagator(
             record_snapshots=collect_models,
             audit_clauses=audit_clauses,
+            dependency_indexed_evaluation=dependency_indexed_evaluation,
+            verify_incremental=verify_incremental,
         )
         control.register_propagator(propagator)
         if observer is not None:

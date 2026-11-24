@@ -27,6 +27,7 @@ from research.native_backend import (
     Variable,
 )
 from research.native_backend.differential import compare_with_reference
+from research.native_backend.ir import Expression
 
 X = Symbol("x")
 
@@ -396,6 +397,64 @@ def test_clause_audit_rejects_nondeterministic_parallel_collection() -> None:
         NativeSolver().solve(_independent_paths_program(), threads=2, audit_clauses=True)
 
 
+@pytest.mark.parametrize(
+    ("program", "reference", "expects_reuse"),
+    (
+        (_transition_program(), TRANSITION_REFERENCE, False),
+        (_comparison_program(), COMPARISON_REFERENCE, False),
+        (_independent_paths_program(), INDEPENDENT_PATHS_REFERENCE, True),
+    ),
+)
+def test_dependency_indexed_evaluation_matches_full_closure_and_relational_oracle(
+    program: NativeProgram,
+    reference: str,
+    expects_reuse: bool,
+) -> None:
+    """Every explored incremental state is also checked against full recomputation."""
+
+    indexed = NativeSolver().solve(program, verify_incremental=True)
+    full = NativeSolver().solve(program, dependency_indexed_evaluation=False)
+    differential = compare_with_reference(program, reference)
+
+    indexed_models = tuple(model.visible for model in indexed.models)
+    assert indexed_models == tuple(model.visible for model in full.models)
+    assert indexed_models == differential.reference
+    assert indexed.work_metrics.dependency_indexed_evaluations > 0
+    assert (
+        indexed.work_metrics.full_oracle_evaluations
+        == indexed.work_metrics.dependency_indexed_evaluations
+    )
+    assert indexed.work_metrics.rule_body_evaluations <= full.work_metrics.rule_body_evaluations
+    if expects_reuse:
+        assert indexed.work_metrics.incremental_rules_reused > 0
+        assert indexed.work_metrics.rule_body_evaluations < full.work_metrics.rule_body_evaluations
+
+
+@pytest.mark.parametrize("threads", (1, 2))
+def test_incremental_oracle_covers_backtracking_and_thread_local_state(threads: int) -> None:
+    program = _transition_program(reverse_seeds=True)
+
+    first = NativeSolver().solve(program, threads=threads, verify_incremental=True)
+    repeated = NativeSolver().solve(program, threads=threads, verify_incremental=True)
+
+    assert tuple(model.visible for model in first.models) == tuple(
+        model.visible for model in repeated.models
+    )
+    assert first.work_metrics.seed_activations == first.work_metrics.seed_deactivations
+    assert repeated.work_metrics.seed_activations == repeated.work_metrics.seed_deactivations
+    assert first.work_metrics.full_oracle_evaluations > 0
+    assert repeated.work_metrics.full_oracle_evaluations > 0
+
+
+def test_incremental_oracle_requires_dependency_indexed_evaluation() -> None:
+    with pytest.raises(ValueError, match="requires dependency-indexed"):
+        NativeSolver().solve(
+            _independent_paths_program(),
+            dependency_indexed_evaluation=False,
+            verify_incremental=True,
+        )
+
+
 def _comparison_matrix_case(
     left_value: int | None,
     right_value: int | None,
@@ -413,8 +472,8 @@ def _comparison_matrix_case(
         reference_facts.append(f"__bench_value(g(x),{right_value}).")
 
     definitions: list[Definition] = []
-    left_expression = AppExpression(_app("f"))
-    right_expression = AppExpression(_app("g"))
+    left_expression: Expression = AppExpression(_app("f"))
+    right_expression: Expression = AppExpression(_app("g"))
     if nvariable_count >= 1:
         first = NVariable("_first")
         definitions.append(Definition(first, left_expression))

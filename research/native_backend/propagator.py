@@ -6,7 +6,7 @@ import json
 import time
 from collections import deque
 from collections.abc import Callable, Iterable, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from enum import Enum, StrEnum
 from heapq import heapify, heappop, heappush
 from typing import TypeAlias
@@ -220,9 +220,18 @@ class NativeWorkMetrics:
     check_seed_probes: int
     semantic_state_changes: int
     evaluation_runs: int
+    full_closure_evaluations: int
+    dependency_indexed_evaluations: int
+    dependency_indexed_fallbacks: int
+    incremental_rule_body_evaluations: int
+    incremental_rules_reused: int
+    incremental_applications_reused: int
+    full_oracle_evaluations: int
     evaluation_cache_hits: int
     evaluation_cache_stale_rejections: int
     dynamic_undefined_analysis_runs: int
+    dynamic_undefined_cache_hits: int
+    dynamic_undefined_provider_probes: int
     dynamic_undefined_applications_proven: int
     rule_body_evaluations: int
     blocking_clauses: int
@@ -252,6 +261,18 @@ class _ThreadState:
     ordinary_supports: dict[str, int]
     semantic_generation: int = 0
     evaluation: _CachedEvaluation | None = None
+    dirty_applications: set[GroundApplication] = field(default_factory=set)
+    dirty_rules: set[int] = field(default_factory=set)
+    undefinedness: _CachedUndefinedness | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class _RuleOutput:
+    """One derived application value with its complete positive support."""
+
+    application: GroundApplication
+    value: GroundValue
+    explanation: Explanation | None
 
 
 @dataclass(slots=True)
@@ -264,6 +285,7 @@ class _EvaluationState:
     rule_satisfaction: dict[int, bool]
     rule_explanations: dict[int, Explanation | None]
     rule_explanation_gaps: dict[int, str | None]
+    rule_outputs: dict[int, _RuleOutput | None] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
@@ -272,6 +294,15 @@ class _CachedEvaluation:
 
     generation: int
     result: _EvaluationState
+
+
+@dataclass(frozen=True, slots=True)
+class _CachedUndefinedness:
+    """Absence proofs tied to an exact positive/false provider state."""
+
+    generation: int
+    false_providers: tuple[int, ...]
+    explanations: UndefinedExplanations
 
 
 def _expect_function(term: clingo.TheoryTerm, name: str, arity: int | None = None) -> None:
@@ -872,19 +903,26 @@ class NativePropagator(clingo.Propagator):
         *,
         record_snapshots: bool = True,
         audit_clauses: bool = False,
+        dependency_indexed_evaluation: bool = True,
+        verify_incremental: bool = False,
     ) -> None:
         self._record_snapshots = record_snapshots
         self._audit_clauses = audit_clauses
+        self._dependency_indexed_evaluation = dependency_indexed_evaluation
+        self._verify_incremental = verify_incremental
         self._seeds: tuple[GroundSeed, ...] = ()
         self._rules: tuple[GroundRule, ...] = ()
         self._native_literals: tuple[int, ...] = ()
+        self._provider_literals: frozenset[int] = frozenset()
         self._constant_seeds: tuple[GroundSeed, ...] = ()
         self._seeds_by_literal: dict[int, tuple[GroundSeed, ...]] = {}
         self._seeds_by_application: dict[GroundApplication, tuple[GroundSeed, ...]] = {}
         self._rules_by_application: dict[GroundApplication, tuple[int, ...]] = {}
         self._providers_by_application: dict[GroundApplication, tuple[int, ...]] = {}
-        self._rule_activation_literals: frozenset[int] = frozenset()
+        self._rules_by_activation_literal: dict[int, tuple[int, ...]] = {}
         self._rule_order: tuple[int, ...] = ()
+        self._rule_order_rank: dict[int, int] = {}
+        self._dependency_graph_acyclic = False
         self._potential_applications: frozenset[GroundApplication] = frozenset()
         self._early_evaluation_required = False
         self._ordinary_by_literal: dict[int, tuple[str, ...]] = {}
@@ -913,9 +951,18 @@ class NativePropagator(clingo.Propagator):
         self.check_seed_probe_count = 0
         self.semantic_state_change_count = 0
         self.evaluation_count = 0
+        self.full_closure_evaluation_count = 0
+        self.dependency_indexed_evaluation_count = 0
+        self.dependency_indexed_fallback_count = 0
+        self.incremental_rule_body_evaluation_count = 0
+        self.incremental_rule_reuse_count = 0
+        self.incremental_application_reuse_count = 0
+        self.full_oracle_evaluation_count = 0
         self.evaluation_cache_hit_count = 0
         self.evaluation_cache_stale_rejection_count = 0
         self.dynamic_undefined_analysis_count = 0
+        self.dynamic_undefined_cache_hit_count = 0
+        self.dynamic_undefined_provider_probe_count = 0
         self.dynamic_undefined_application_count = 0
         self.rule_body_evaluation_count = 0
         self.blocking_clause_count = 0
@@ -967,9 +1014,18 @@ class NativePropagator(clingo.Propagator):
         self.check_seed_probe_count = 0
         self.semantic_state_change_count = 0
         self.evaluation_count = 0
+        self.full_closure_evaluation_count = 0
+        self.dependency_indexed_evaluation_count = 0
+        self.dependency_indexed_fallback_count = 0
+        self.incremental_rule_body_evaluation_count = 0
+        self.incremental_rule_reuse_count = 0
+        self.incremental_application_reuse_count = 0
+        self.full_oracle_evaluation_count = 0
         self.evaluation_cache_hit_count = 0
         self.evaluation_cache_stale_rejection_count = 0
         self.dynamic_undefined_analysis_count = 0
+        self.dynamic_undefined_cache_hit_count = 0
+        self.dynamic_undefined_provider_probe_count = 0
         self.dynamic_undefined_application_count = 0
         self.rule_body_evaluation_count = 0
         self.blocking_clause_count = 0
@@ -1042,8 +1098,21 @@ class NativePropagator(clingo.Propagator):
             application: tuple(indexes) for application, indexes in grouped_providers.items()
         }
         self._rule_order = _rule_dependency_order(self._rules)
-        self._rule_activation_literals = frozenset(
-            rule.active_literal for rule in self._rules if abs(rule.active_literal) > 1
+        self._rule_order_rank = {
+            rule_index: rank for rank, rule_index in enumerate(self._rule_order)
+        }
+        activation_rules: dict[int, list[int]] = {}
+        for index, rule in enumerate(self._rules):
+            if abs(rule.active_literal) > 1:
+                activation_rules.setdefault(rule.active_literal, []).append(index)
+        self._rules_by_activation_literal = {
+            literal: tuple(indexes) for literal, indexes in activation_rules.items()
+        }
+        self._dependency_graph_acyclic = all(
+            self._rule_order_rank[provider] < self._rule_order_rank[consumer]
+            for consumer, rule in enumerate(self._rules)
+            for application in _rule_applications(rule)
+            for provider in self._providers_by_application.get(application, ())
         )
         self._potential_applications = _potential_applications(self._seeds, self._rules)
         provider_counts: dict[GroundApplication, int] = {}
@@ -1087,6 +1156,14 @@ class NativePropagator(clingo.Propagator):
         self._seeds_by_literal = {
             literal: tuple(grouped) for literal, grouped in grouped_seeds.items()
         }
+        self._provider_literals = frozenset(
+            literal
+            for literal in (
+                *(seed.literal for seed in self._seeds),
+                *(rule.active_literal for rule in self._rules),
+            )
+            if abs(literal) > 1
+        )
         watched_literals = {literal for literal in self._native_literals if abs(literal) > 1}
         watched_literals.update(self._ordinary_by_literal)
         for literal in sorted(watched_literals):
@@ -1258,6 +1335,15 @@ class NativePropagator(clingo.Propagator):
             }
         return applications
 
+    @staticmethod
+    def _seed_values(
+        state: _ThreadState, application: GroundApplication
+    ) -> dict[GroundValue, Explanation | None]:
+        return {
+            value: frozenset() if 1 in literals else frozenset((min(literals),))
+            for value, literals in state.seed_supports.get(application, {}).items()
+        }
+
     def _seed_conflict(self, state: _ThreadState) -> _SeedConflict | None:
         for application, supports in sorted(state.seed_supports.items()):
             values = sorted(supports)
@@ -1360,8 +1446,61 @@ class NativePropagator(clingo.Propagator):
             )
         return None
 
-    def _evaluate_state(self, state: _ThreadState) -> _EvaluationState:
-        self.evaluation_count += 1
+    @staticmethod
+    def _add_rule_output(
+        applications: ApplicationValues,
+        output: _RuleOutput,
+    ) -> bool:
+        """Add one derivation and report whether the selected support changed."""
+
+        candidates = applications.setdefault(output.application, {})
+        new_value = output.value not in candidates
+        existing = candidates.get(output.value)
+        if not new_value and not _prefer_explanation(output.explanation, existing):
+            return False
+        candidates[output.value] = output.explanation
+        return new_value or existing != output.explanation
+
+    def _evaluate_rule(
+        self,
+        rule: GroundRule,
+        applications: ApplicationValues,
+        *,
+        count_work: bool,
+    ) -> tuple[RuleEvaluation, Explanation | None, _RuleOutput | None]:
+        if count_work:
+            self.rule_body_evaluation_count += 1
+        body = _rule_body(rule, applications, self._potential_applications)
+        active_explanation = (
+            frozenset() if rule.active_literal == 1 else frozenset((rule.active_literal,))
+        )
+        explanation = _merge_explanations((active_explanation, body.explanation))
+        if not body.satisfied or not isinstance(rule.head, GroundAssignmentHead):
+            return body, explanation, None
+        value = _evaluate_expression(
+            rule.head.expression,
+            applications,
+            body.nvariables,
+            self._potential_applications,
+        )
+        if value.kind is not StateKind.DEFINED or value.value is None:
+            return body, explanation, None
+        return (
+            body,
+            explanation,
+            _RuleOutput(
+                rule.head.application,
+                value.value,
+                _merge_explanations((explanation, value.explanation)),
+            ),
+        )
+
+    def _evaluate_state_full(
+        self,
+        state: _ThreadState,
+        *,
+        count_work: bool,
+    ) -> _EvaluationState:
         applications = self._seed_applications(state)
         active = tuple(self._true(state, rule.active_literal) for rule in self._rules)
         pending = deque(index for index in self._rule_order if active[index])
@@ -1370,40 +1509,24 @@ class NativePropagator(clingo.Propagator):
         rule_satisfaction: dict[int, bool] = {}
         rule_explanations: dict[int, Explanation | None] = {}
         rule_explanation_gaps: dict[int, str | None] = {}
+        rule_outputs: dict[int, _RuleOutput | None] = {}
         while pending:
             index = pending.popleft()
             scheduled.remove(index)
             rule = self._rules[index]
-            self.rule_body_evaluation_count += 1
-            evaluation = _rule_body(rule, applications, self._potential_applications)
-            active_explanation = (
-                frozenset() if rule.active_literal == 1 else frozenset((rule.active_literal,))
+            evaluation, explanation, output = self._evaluate_rule(
+                rule,
+                applications,
+                count_work=count_work,
             )
-            explanation = _merge_explanations((active_explanation, evaluation.explanation))
             rule_states[index] = evaluation.nvariables
             rule_satisfaction[index] = evaluation.satisfied
             rule_explanations[index] = explanation
             rule_explanation_gaps[index] = evaluation.explanation_gap
-            if not evaluation.satisfied or not isinstance(rule.head, GroundAssignmentHead):
+            rule_outputs[index] = output
+            if output is None or not self._add_rule_output(applications, output):
                 continue
-            value = _evaluate_expression(
-                rule.head.expression,
-                applications,
-                evaluation.nvariables,
-                self._potential_applications,
-            )
-            if value.kind is not StateKind.DEFINED or value.value is None:
-                continue
-            value_explanation = _merge_explanations((explanation, value.explanation))
-            candidates = applications.setdefault(rule.head.application, {})
-            existing = candidates.get(value.value)
-            if value.value in candidates and not _prefer_explanation(value_explanation, existing):
-                continue
-            new_value = value.value not in candidates
-            candidates[value.value] = value_explanation
-            if not new_value and existing == value_explanation:
-                continue
-            for dependent in self._rules_by_application.get(rule.head.application, ()):
+            for dependent in self._rules_by_application.get(output.application, ()):
                 if active[dependent] and dependent not in scheduled:
                     pending.append(dependent)
                     scheduled.add(dependent)
@@ -1414,7 +1537,154 @@ class NativePropagator(clingo.Propagator):
             rule_satisfaction,
             rule_explanations,
             rule_explanation_gaps,
+            rule_outputs,
         )
+
+    def _affected_closure(
+        self,
+        dirty_applications: set[GroundApplication],
+        dirty_rules: set[int],
+    ) -> tuple[set[GroundApplication], set[int]]:
+        """Return the forward dependency closure invalidated by one solver change."""
+
+        applications = set(dirty_applications)
+        rules = set(dirty_rules)
+        pending_applications = deque(sorted(applications))
+        pending_rules = deque(sorted(rules))
+        while pending_applications or pending_rules:
+            while pending_applications:
+                application = pending_applications.popleft()
+                for index in self._rules_by_application.get(application, ()):
+                    if index not in rules:
+                        rules.add(index)
+                        pending_rules.append(index)
+            while pending_rules:
+                index = pending_rules.popleft()
+                head = self._rules[index].head
+                if isinstance(head, GroundAssignmentHead) and head.application not in applications:
+                    applications.add(head.application)
+                    pending_applications.append(head.application)
+        return applications, rules
+
+    def _evaluate_state_incremental(
+        self,
+        state: _ThreadState,
+        previous: _EvaluationState,
+    ) -> _EvaluationState:
+        affected_applications, affected_rules = self._affected_closure(
+            state.dirty_applications,
+            state.dirty_rules,
+        )
+        applications = dict(previous.applications)
+        reused_applications = 0
+        for application in tuple(applications):
+            if application in affected_applications:
+                del applications[application]
+            else:
+                reused_applications += 1
+        for application in affected_applications:
+            seed_values = self._seed_values(state, application)
+            if seed_values:
+                applications[application] = seed_values
+
+        rule_outputs = {
+            index: output
+            for index, output in previous.rule_outputs.items()
+            if index not in affected_rules
+        }
+        for output in rule_outputs.values():
+            if output is not None and output.application in affected_applications:
+                self._add_rule_output(applications, output)
+
+        active = tuple(self._true(state, rule.active_literal) for rule in self._rules)
+        rule_states = {
+            index: values
+            for index, values in previous.rule_states.items()
+            if index not in affected_rules
+        }
+        rule_satisfaction = {
+            index: value
+            for index, value in previous.rule_satisfaction.items()
+            if index not in affected_rules
+        }
+        rule_explanations = {
+            index: value
+            for index, value in previous.rule_explanations.items()
+            if index not in affected_rules
+        }
+        rule_explanation_gaps = {
+            index: value
+            for index, value in previous.rule_explanation_gaps.items()
+            if index not in affected_rules
+        }
+        pending = deque(
+            sorted(
+                (index for index in affected_rules if active[index]),
+                key=self._rule_order_rank.__getitem__,
+            )
+        )
+        scheduled = set(pending)
+        while pending:
+            index = pending.popleft()
+            scheduled.remove(index)
+            rule = self._rules[index]
+            self.incremental_rule_body_evaluation_count += 1
+            evaluation, explanation, output = self._evaluate_rule(
+                rule,
+                applications,
+                count_work=True,
+            )
+            rule_states[index] = evaluation.nvariables
+            rule_satisfaction[index] = evaluation.satisfied
+            rule_explanations[index] = explanation
+            rule_explanation_gaps[index] = evaluation.explanation_gap
+            rule_outputs[index] = output
+            if output is None or not self._add_rule_output(applications, output):
+                continue
+            for dependent in self._rules_by_application.get(output.application, ()):
+                if dependent in affected_rules and active[dependent] and dependent not in scheduled:
+                    pending.append(dependent)
+                    scheduled.add(dependent)
+
+        self.incremental_rule_reuse_count += len(self._rules) - len(affected_rules)
+        self.incremental_application_reuse_count += reused_applications
+        return _EvaluationState(
+            applications,
+            active,
+            rule_states,
+            rule_satisfaction,
+            rule_explanations,
+            rule_explanation_gaps,
+            rule_outputs,
+        )
+
+    def _evaluate_state(self, state: _ThreadState) -> _EvaluationState:
+        self.evaluation_count += 1
+        cached = state.evaluation
+        can_increment = (
+            self._dependency_indexed_evaluation
+            and self._dependency_graph_acyclic
+            and cached is not None
+            and bool(state.dirty_applications or state.dirty_rules)
+        )
+        if can_increment and cached is not None:
+            self.dependency_indexed_evaluation_count += 1
+            result = self._evaluate_state_incremental(state, cached.result)
+            if self._verify_incremental:
+                self.full_oracle_evaluation_count += 1
+                oracle = self._evaluate_state_full(state, count_work=False)
+                if result != oracle:
+                    raise RuntimeError(
+                        "dependency-indexed native evaluation diverged from full closure"
+                    )
+        else:
+            if cached is not None and self._dependency_indexed_evaluation:
+                self.dependency_indexed_fallback_count += 1
+            self.full_closure_evaluation_count += 1
+            result = self._evaluate_state_full(state, count_work=True)
+        state.dirty_applications.clear()
+        state.dirty_rules.clear()
+        return result
 
     @staticmethod
     def _inactive_literal_explanation(
@@ -1523,16 +1793,48 @@ class NativePropagator(clingo.Propagator):
         self.dynamic_undefined_application_count += len(explained)
         return explained
 
+    def _cached_dynamic_undefined_explanations(
+        self,
+        evaluation: _EvaluationState,
+        state: _ThreadState,
+        assignment: clingo.Assignment,
+    ) -> UndefinedExplanations:
+        self.dynamic_undefined_provider_probe_count += len(self._provider_literals)
+        false_providers = tuple(
+            literal for literal in sorted(self._provider_literals) if assignment.is_false(literal)
+        )
+        cached = state.undefinedness
+        if (
+            cached is not None
+            and cached.generation == state.semantic_generation
+            and cached.false_providers == false_providers
+        ):
+            self.dynamic_undefined_cache_hit_count += 1
+            return cached.explanations
+        false_provider_set = frozenset(false_providers)
+        explanations = self._dynamic_undefined_explanations(
+            evaluation.applications,
+            false_provider_set.__contains__,
+        )
+        state.undefinedness = _CachedUndefinedness(
+            state.semantic_generation,
+            false_providers,
+            explanations,
+        )
+        return explanations
+
     def _with_dynamic_undefinedness(
         self,
         evaluation: _EvaluationState,
+        state: _ThreadState,
         assignment: clingo.Assignment,
     ) -> _EvaluationState:
         """Re-evaluate active bodies with conservative branch-local absence proofs."""
 
-        explanations = self._dynamic_undefined_explanations(
-            evaluation.applications,
-            assignment.is_false,
+        explanations = self._cached_dynamic_undefined_explanations(
+            evaluation,
+            state,
+            assignment,
         )
         if not explanations:
             return evaluation
@@ -1564,6 +1866,7 @@ class NativePropagator(clingo.Propagator):
             rule_satisfaction,
             rule_explanations,
             rule_explanation_gaps,
+            evaluation.rule_outputs,
         )
 
     def propagate(self, control: clingo.PropagateControl, changes: Sequence[int]) -> None:
@@ -1577,9 +1880,12 @@ class NativePropagator(clingo.Propagator):
             state.true_literals.add(literal)
             for seed in self._seeds_by_literal.get(literal, ()):
                 self._add_seed(state.seed_supports, seed)
+                state.dirty_applications.add(seed.application)
                 self.seed_activation_count += 1
                 semantic_change = True
-            if literal in self._rule_activation_literals:
+            activated_rules = self._rules_by_activation_literal.get(literal, ())
+            if activated_rules:
+                state.dirty_rules.update(activated_rules)
                 semantic_change = True
             for atom in self._ordinary_by_literal.get(literal, ()):
                 state.ordinary_supports[atom] = state.ordinary_supports.get(atom, 0) + 1
@@ -1698,7 +2004,11 @@ class NativePropagator(clingo.Propagator):
         )
         if needs_dynamic_undefinedness:
             previous_satisfaction = evaluation.rule_satisfaction
-            evaluation = self._with_dynamic_undefinedness(evaluation, control.assignment)
+            evaluation = self._with_dynamic_undefinedness(
+                evaluation,
+                state,
+                control.assignment,
+            )
             if evaluation.rule_satisfaction != previous_satisfaction:
                 raise RuntimeError("undefinedness explanations changed native rule semantics")
             undefined = {
@@ -1768,9 +2078,12 @@ class NativePropagator(clingo.Propagator):
             state.true_literals.remove(literal)
             for seed in self._seeds_by_literal.get(literal, ()):
                 self._remove_seed(state.seed_supports, seed)
+                state.dirty_applications.add(seed.application)
                 self.seed_deactivation_count += 1
                 semantic_change = True
-            if literal in self._rule_activation_literals:
+            deactivated_rules = self._rules_by_activation_literal.get(literal, ())
+            if deactivated_rules:
+                state.dirty_rules.update(deactivated_rules)
                 semantic_change = True
             for atom in self._ordinary_by_literal.get(literal, ()):
                 remaining = state.ordinary_supports[atom] - 1
@@ -1824,9 +2137,18 @@ class NativePropagator(clingo.Propagator):
             check_seed_probes=self.check_seed_probe_count,
             semantic_state_changes=self.semantic_state_change_count,
             evaluation_runs=self.evaluation_count,
+            full_closure_evaluations=self.full_closure_evaluation_count,
+            dependency_indexed_evaluations=self.dependency_indexed_evaluation_count,
+            dependency_indexed_fallbacks=self.dependency_indexed_fallback_count,
+            incremental_rule_body_evaluations=(self.incremental_rule_body_evaluation_count),
+            incremental_rules_reused=self.incremental_rule_reuse_count,
+            incremental_applications_reused=self.incremental_application_reuse_count,
+            full_oracle_evaluations=self.full_oracle_evaluation_count,
             evaluation_cache_hits=self.evaluation_cache_hit_count,
             evaluation_cache_stale_rejections=self.evaluation_cache_stale_rejection_count,
             dynamic_undefined_analysis_runs=self.dynamic_undefined_analysis_count,
+            dynamic_undefined_cache_hits=self.dynamic_undefined_cache_hit_count,
+            dynamic_undefined_provider_probes=self.dynamic_undefined_provider_probe_count,
             dynamic_undefined_applications_proven=self.dynamic_undefined_application_count,
             rule_body_evaluations=self.rule_body_evaluation_count,
             blocking_clauses=self.blocking_clause_count,
